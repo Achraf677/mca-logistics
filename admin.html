@@ -1232,16 +1232,31 @@
         <div class="sub-meta">Analyse multi-axes · véhicule, client, chauffeur, tournée</div>
       </div>
 
-      <!-- Phase 35 refonte HTML : section-head -->
+      <!-- Phase 50 refonte HTML : section-head mockup-aligned (Exporter dropdown) -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
           <h2>Rentabilité</h2>
           <div class="ds-section-head__sub">Analyse multi-axes · véhicule, client, chauffeur, tournée</div>
         </div>
-        <div class="ds-section-head__actions">
+        <div class="ds-section-head__actions u-flex-row">
           <button class="btn-secondary" onclick="ouvrirConfigRentabilite()" title="Configurer les paramètres de calcul">Config</button>
-          <button class="btn-rapport" onclick="exporterRapportRentabilitePDF()" title="Rapport mensuel multi-axes (véhicules, clients, chauffeurs, tournées)">Rapport</button>
-          <button class="btn-secondary" onclick="genererRentabilitePDF()" title="Rapport simulateur (calculateur)">Simulateur</button>
+          <div class="ds-export-wrap" style="position:relative">
+            <button class="btn-secondary ds-export-btn" id="rent-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('rent-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporter
+              <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="ds-dropdown-menu" id="rent-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:200px;z-index:50">
+              <button class="ds-menu-item" role="menuitem" onclick="exporterRapportRentabilitePDF();document.getElementById('rent-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Rapport PDF multi-axes
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="genererRentabilitePDF();document.getElementById('rent-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Simulateur PDF
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       <!-- Phase 35 : KPI grid rentabilité (valeurs peuplées par script-rentabilite-multi.js) -->
@@ -1924,39 +1939,49 @@
             <span id="tva-section-sub-count">0 écriture(s)</span>
           </div>
         </div>
-        <div class="ds-section-head__actions">
-          <button class="btn-secondary" onclick="exporterTvaCSV()">CSV</button>
-          <button class="btn-rapport" onclick="exporterTvaPDF()">Rapport TVA</button>
-        </div>
-      </div>
-
-      <!-- Phase 12 refonte HTML : period-row -->
-      <div class="period-row">
-        <div></div>
-        <div class="period-chips" data-period-target="vue-tva-select">
-          <button class="chip-period" data-period="jour">Jour</button>
-          <button class="chip-period" data-period="semaine">Semaine</button>
-          <button class="chip-period active" data-period="mois">Mois</button>
-          <button class="chip-period" data-period="annee">Année</button>
-        </div>
-      </div>
-
-      <!-- Navigation période -->
-      <div class="card u-block-pad-md">
-        <div class="nav-periode-bar">
-          <div class="nav-periode-left">
-            <select class="period-selector" id="vue-tva-select" onchange="changerVueTVA(this.value)" aria-label="vue tva select">
-              <option value="jour">Par jour</option>
-              <option value="semaine">Par semaine</option>
-              <option value="mois" selected>Par mois</option>
-              <option value="annee">Par année</option>
-            </select>
-            <button class="btn-secondary" onclick="navTvaPeriode(-1)" style="padding:5px 12px">Précédent</button>
+        <!-- Phase 50 : Exporter dropdown mockup-aligned -->
+        <div class="ds-section-head__actions u-flex-row">
+          <div class="ds-export-wrap" style="position:relative">
+            <button class="btn-secondary ds-export-btn" id="tva-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('tva-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporter
+              <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="ds-dropdown-menu" id="tva-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:200px;z-index:50">
+              <button class="ds-menu-item" role="menuitem" onclick="exporterTvaPDF();document.getElementById('tva-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Rapport TVA PDF
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="exporterTvaCSV();document.getElementById('tva-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Export CSV
+              </button>
+            </div>
           </div>
-          <div class="nav-periode-center"><div id="tva-mois-label" style="font-size:1rem;font-weight:700"></div><div id="tva-mois-dates" class="u-muted-sm"></div></div>
-          <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserTVAPeriode()" style="padding:5px 12px">Aujourd'hui</button>
-            <button class="btn-secondary" onclick="navTvaPeriode(1)" style="padding:5px 12px">Suivant</button>
+        </div>
+      </div>
+
+      <!-- Phase 50 : période nav combined row (mockup-aligned) -->
+      <div class="carb-period-nav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn-secondary" onclick="navTvaPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
+          <button class="btn-secondary" onclick="reinitialiserTVAPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
+          <button class="btn-secondary" onclick="navTvaPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize" id="tva-mois-label"></div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="tva-mois-dates"></div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select class="period-selector" id="vue-tva-select" onchange="changerVueTVA(this.value)" aria-label="vue tva select" style="display:none">
+            <option value="jour">Par jour</option>
+            <option value="semaine">Par semaine</option>
+            <option value="mois" selected>Par mois</option>
+            <option value="annee">Par année</option>
+          </select>
+          <div class="period-chips" data-period-target="vue-tva-select">
+            <button class="chip-period" data-period="jour">Jour</button>
+            <button class="chip-period" data-period="semaine">Semaine</button>
+            <button class="chip-period active" data-period="mois">Mois</button>
+            <button class="chip-period" data-period="annee">Année</button>
           </div>
         </div>
       </div>
@@ -2320,7 +2345,7 @@
         <div class="sub-meta">Suivi factures et relances clients · DSO et impayés</div>
       </div>
 
-      <!-- Phase 36 refonte HTML : section-head ds-section-head -->
+      <!-- Phase 50 refonte HTML : section-head mockup-aligned (Exporter dropdown + Enregistrer paiement) -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
           <h2>Encaissement</h2>
@@ -2330,9 +2355,25 @@
             DSO <span id="enc-section-sub-dso">—</span>
           </div>
         </div>
-        <div class="ds-section-head__actions">
-          <button class="btn-secondary" onclick="exporterEncaissementCSV()">CSV</button>
-          <button class="btn-rapport" onclick="exporterEncaissementRapport()">Rapport</button>
+        <div class="ds-section-head__actions u-flex-row">
+          <div class="ds-export-wrap" style="position:relative">
+            <button class="btn-secondary ds-export-btn" id="enc-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('enc-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporter
+              <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="ds-dropdown-menu" id="enc-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:220px;z-index:50">
+              <button class="ds-menu-item" role="menuitem" onclick="exporterEncaissementRapport();document.getElementById('enc-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Rapport impayés PDF
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="exporterEncaissementCSV();document.getElementById('enc-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Export CSV
+              </button>
+            </div>
+          </div>
+          <button class="btn-primary" onclick="openModal('modal-paiement')">+ Enregistrer paiement</button>
         </div>
       </div>
       <!-- Phase 40 refonte HTML : KPI grid Encaissement (mockup-matched) -->

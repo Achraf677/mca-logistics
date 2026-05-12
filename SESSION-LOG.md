@@ -5,6 +5,44 @@
 
 ---
 
+## Session 2026-05-12 (autonome-5) — Phase 50 : Encaissement + TVA + Rentabilité section-heads
+**Phases** : 49 (Carburant, prev session), 50
+**Commit final** : pending
+**État** : Encaissement 40%→65%, TVA 55%→75%, Rentabilité 50%→70%
+
+### Actions clés
+- **Encaissement** : Exporter dropdown (Rapport impayés PDF + CSV) + "+ Enregistrer paiement" btn-primary, section-head avec counts impayées + DSO
+- **TVA** : Exporter dropdown (Rapport TVA PDF + CSV) + combined period nav row `.carb-period-nav` — IDs `tva-mois-label`, `tva-mois-dates`, `vue-tva-select` préservés pour wiring legacy
+- **Rentabilité** : Exporter dropdown (Rapport PDF multi-axes + Simulateur PDF), bouton Config préservé
+- sw.js CACHE_VERSION v88→v89
+
+### État pages post-session
+| Page | Avant | Après |
+|---|---|---|
+| Encaissement | 40% | 65% |
+| TVA | 55% | 75% |
+| Rentabilité | 50% | 70% |
+
+---
+
+## Session 2026-05-12 (autonome-4) — Phase 49 : Carburant combined period nav
+**Phases** : 49
+**Commit final** : 3d3dffe
+**État** : Carburant 55%→75%
+
+### Actions clés
+- Carburant section-head : Exporter dropdown + "+ Plein" btn-primary
+- Combined period nav `.carb-period-nav` : ← Aujourd'hui → + mois-label + mois-dates + chips (Jour/Semaine/Mois/Année) en une seule ligne
+- Filtres (véhicule/chauffeur/anomalie/search) réduits à `height:0;overflow:hidden` (visible uniquement via toggle)
+- sw.js CACHE_VERSION v87→v88
+
+### État pages post-session
+| Page | Avant | Après |
+|---|---|---|
+| Carburant | 55% | 75% |
+
+---
+
 ## Session 2026-05-12 (autonome-3) — Phase 48 : Véhicules fleet card grid
 **Phases** : 48
 **Commit final** : f50bdc9

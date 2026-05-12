@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : f50bdc9 — Phase 48 (Véhicules fleet cards 55%→80%)
+> **Dernier commit** : Phase 50 (Encaissement 40%→65%, TVA 55%→75%, Rentabilité 50%→70%)
 
 ---
 
@@ -29,13 +29,13 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Clients | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
 | Fournisseurs | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
 | Véhicules | 80% | 100% | Phase 45+48 : section-head "Flotte" + Exporter dropdown + fleet card grid (fv-card) |
-| Carburant | 55% | 100% | Phase 35b : section-head ds-section-head + sub-meta |
+| Carburant | 75% | 100% | Phase 49 : Exporter dropdown, période nav combined row, filtres cachés |
 | Entretiens | 65% | 100% | Phase 44 : chips toolbar mockup-matched |
 | Inspections | 50% | 100% | Phase 43 : KPI grid peuplé |
 | Charges | 78% | 100% | Phase 4 + 14 + chips Assurance/Taxes/Salaires + table HT/TVA masquées |
-| Encaissement | 40% | 100% | Phase 40 : KPI grid ajouté |
-| TVA | 55% | 100% | Phase 41 : kpi-solde computation |
-| Rentabilité | 50% | 100% | Phase 35b : section-head + KPI grid (CA/Charges/Marge/Coût km) |
+| Encaissement | 65% | 100% | Phase 50 : Exporter dropdown, "+ Enregistrer paiement" primary btn, section-head mockup-aligned |
+| TVA | 75% | 100% | Phase 50 : Exporter dropdown, combined period nav row (tva-mois-label/dates/vue-tva-select IDs préservés) |
+| Rentabilité | 70% | 100% | Phase 50 : Exporter dropdown (Rapport PDF + Simulateur PDF), Config btn préservé |
 | Statistiques | 45% | 100% | Phase 45 : Exporter dropdown + period nav chips mockup-aligned |
 | Calendrier | 40% | 100% | Phase 45 : nav bar chips + mockup-aligned prev/today/next |
 | Alertes | 55% | 100% | Phase 46 : section-head "Alertes & échéances" + card "Liste des alertes" + quick filters Toutes/Non lues + marquerToutesAlertesLues() |
