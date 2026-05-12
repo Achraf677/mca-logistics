@@ -181,3 +181,37 @@
   color: var(--ds-brand-on);
   border-color: var(--ds-brand);
 }
+
+/* ============ Phase 51 : Calendrier sidebar mockup alignment ============ */
+/* Sidebar KPI grid: 1 column (mockup vertical stacked layout) */
+#page-calendrier .cal16-kpi-grid {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+/* KPI card redesign: match design system */
+#page-calendrier .cal16-kpi {
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+  border: 1px solid var(--ds-border, rgba(255,255,255,0.1));
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+#page-calendrier .cal16-kpi-lbl {
+  font-family: var(--ds-font-body);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted);
+  margin-bottom: 2px;
+}
+
+#page-calendrier .cal16-kpi-val {
+  font-family: var(--ds-font-display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ds-text);
+  margin-top: 0;
+}

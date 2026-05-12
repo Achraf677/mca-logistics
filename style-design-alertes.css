@@ -247,3 +247,44 @@
   color: var(--ds-info);
   border: 1px solid var(--ds-info);
 }
+
+/* ============ Phase 51 : Alertes mockup alignment ============ */
+/* Hide legacy Sprint-19 "Centre d'alertes" injected by script.js */
+#page-alertes #s19-centre {
+  display: none !important;
+}
+
+/* Force-show Phase 46 section-head (script.js hides .page-actions as oldActions) */
+#page-alertes .page-actions.ds-section-head,
+#page-alertes .ds-section-head.page-actions {
+  display: flex !important;
+}
+
+/* KPI grid for alertes : 3 cols, proper card borders */
+#page-alertes .kpi-grid {
+  grid-template-columns: repeat(3, 1fr) !important;
+  margin-bottom: 16px;
+}
+
+/* Critiques card : red border + soft bg */
+#page-alertes .kpi-grid .kpi:first-child {
+  border-color: var(--ds-brand);
+  background: linear-gradient(135deg, var(--ds-brand-soft, rgba(230,57,70,0.07)), transparent);
+}
+
+/* Avertissements card : amber/warning border */
+#page-alertes .kpi-grid .kpi:nth-child(2) {
+  border-color: var(--ds-warning, #f5a623);
+  background: linear-gradient(135deg, rgba(245,166,35,0.07), transparent);
+}
+
+/* Alert list card always visible */
+#card-alertes-liste {
+  display: block !important;
+}
+
+/* alertes-categories hidden by initCentre() — force show */
+#alertes-categories {
+  display: block !important;
+  padding-bottom: 14px;
+}

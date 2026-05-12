@@ -230,3 +230,14 @@
 .fac-stats-grid {
   font-family: var(--ds-font-body);
 }
+
+/* ============ Phase 51 : Statistiques — hide COMPTABILITE bandeau ============ */
+/* The s22-bandeau is outside page-statistiques. Use :has() to target by active page. */
+#mainContent:has(#page-statistiques.active) #s22-bandeau {
+  display: none !important;
+}
+
+/* Also: breadcrumb shown on statistiques (mockup shows retour link) */
+#page-statistiques .ds-crumbs {
+  display: block !important;
+}
