@@ -9,7 +9,23 @@
 
 ## 🔴 NEW (à traiter)
 
-_(vide)_
+### BUG-023 — Inspections : rendu cards-photo-grid au lieu de table mockup
+- **Page** : Inspections (admin.html)
+- **Symptôme** : `afficherInspections()` dans `script-inspections.js:226` produit des `<div class="card">` avec grille de photos. Le mockup `previews/inspections.html:281` montre une `<table>` classique Date / Véhicule / Chauffeur / Photos / Défauts / Statut avec badges colorés (ok/warn/alert).
+- **Severity** : MEDIUM (les 2 paradigmes sont fonctionnels mais le mockup compact-table est plus scan-friendly)
+- **Reporter** : audit polish 2026-05-12
+- **Fix proposé** :
+  - Option A (lourde) : refactor `afficherInspections()` pour rendre une `<table>` avec badges `ok`/`warn`/`alert` selon `insp.defauts.length` et `insp.severite`. Garder les photos accessibles via clic row → drawer 360 ou modal.
+  - Option B (légère) : CSS-only — afficher en grille tableau-like avec colonnes alignées (sans changer la structure card).
+- **Test** : ouvrir Inspections → voir une liste tabulaire compacte avec colonnes Date/Véhicule/Chauffeur/Photos/Défauts/Statut + badges colorés.
+
+### BUG-024 — Inspections : status filter "Conforme/Défaut mineur/Défaut majeur" pas wiré
+- **Page** : Inspections (admin.html)
+- **Symptôme** : Phase 58 a ajouté le `<select id="filtre-insp-statut">` mais `window.filtrerInspParStatut` n'existe pas dans `script-inspections.js`. Le `onchange` fallback sur `afficherInspections()` qui ne filtre que par salarié + date range, pas par statut.
+- **Severity** : LOW (UX dégradé — le filtre apparaît mais ne fait rien)
+- **Reporter** : audit polish 2026-05-12
+- **Fix proposé** : implémenter `window.filtrerInspParStatut(val)` qui set un `_inspFiltreStatut` et le push dans `afficherInspections()` (filter `inspections` by `insp.severite` matching the dropdown value).
+- **Test** : ouvrir Inspections → sélectionner "Défaut majeur" → seules les lignes avec defauts.severite='majeur' s'affichent.
 
 ---
 
@@ -175,7 +191,7 @@ _(vide pour l'instant — user à valider)_
 
 | Statut | Count |
 |---|---|
-| NEW | 0 |
+| NEW | 2 |
 | IN_PROGRESS | 0 |
 | FIXED (à vérifier) | 24 |
 | VERIFIED | 0 |
