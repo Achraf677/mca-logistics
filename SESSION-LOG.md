@@ -5,6 +5,28 @@
 
 ---
 
+## Session 2026-05-12 (autonome-2) — Phase 47 : Clients + Fournisseurs mockup-aligned
+**Phases** : 47
+**Commit final** : 2aee4c9
+**État** : Clients + Fournisseurs 70%→85%, 0 bug NEW
+
+### Actions clés
+- Clients section-head : "Historique clients"+"Rapport" → **Exporter dropdown** (CSV/Rapport) + "+ Nouveau client"
+- Fournisseurs section-head : même transformation
+- Chips toolbar + search : 2 divs séparés → **ds-filter-chips-row** (search inline avec chips, mockup-matched)
+- Table colonnes : `Contact→Ville` + `Adresse habituelle→SIREN` dans thead (admin.html)
+- **script-clients-table-polish.js** : MutationObserver sur #tb-clients + #tb-fournisseurs — après chaque render replace col 2 avec `c.ville` + col 4 avec `c.siren` (formaté XXX XXX XXX)
+- CSS : cols 2+4 visibles (`display:table-cell`), masquées <900px ; ds-dropdown-menu + ds-menu-item styles
+- sw.js CACHE_VERSION v85→v86
+
+### État pages post-session
+| Page | Avant | Après |
+|---|---|---|
+| Clients | 70% | 85% |
+| Fournisseurs | 70% | 85% |
+
+---
+
 ## Session 2026-05-12 (autonome) — BUG-019/020/021 + Livraisons audit systématique
 **Phases** : audit + bugfixes
 **Commit final** : e63668d

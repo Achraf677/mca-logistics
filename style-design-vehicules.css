@@ -153,3 +153,159 @@
 .vehicules-table td:nth-child(10) {
   display: none !important;
 }
+
+/* ============ Phase 48 : Fleet card grid (mockup-aligned) ============ */
+
+.fleet-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1100px) {
+  .fleet-cards-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .fleet-cards-grid { grid-template-columns: 1fr; }
+}
+
+.fv-card {
+  background: var(--bg-card, #1a1e2b);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.fv-card:hover {
+  border-color: var(--border-strong, rgba(255,255,255,0.18));
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
+.fv-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.fv-immat {
+  font-size: 16px;
+  font-weight: 800;
+  font-family: var(--font-display, 'DM Sans', sans-serif);
+  letter-spacing: -0.01em;
+}
+
+.fv-marque {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.fv-modele {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.fv-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.fv-badge-ok {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.fv-badge-warn {
+  background: rgba(234, 179, 8, 0.15);
+  color: #fbbf24;
+}
+
+.fv-badge-danger {
+  background: rgba(230, 57, 70, 0.15);
+  color: var(--brand, #e63946);
+}
+
+.fv-art {
+  display: flex;
+  justify-content: center;
+  opacity: 0.85;
+  padding: 4px 0;
+}
+
+.fv-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+
+.fv-lab {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+}
+
+.fv-val {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fv-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, rgba(255,255,255,0.07));
+}
+
+.fv-link {
+  font-size: 13px;
+  color: var(--brand, #e63946);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.fv-link:hover { text-decoration: underline; }
+
+.fv-action-btn {
+  font-size: 12px;
+  padding: 5px 12px;
+  min-height: 30px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  transition: background 0.12s;
+}
+
+.fv-action-secondary {
+  background: rgba(255,255,255,0.06);
+  border-color: var(--border-strong, rgba(255,255,255,0.12));
+  color: var(--text);
+}
+
+.fv-action-secondary:hover { background: rgba(255,255,255,0.1); }
+
+.fv-action-primary {
+  background: var(--brand, #e63946);
+  border-color: var(--brand, #e63946);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(230,57,70,0.3);
+}
+
+.fv-action-primary:hover { background: var(--brand-hover, #c81d2a); }

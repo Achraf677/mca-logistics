@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : session 2026-05-12 (BUG-019/020/021 + Livraisons period-row + drawer z-index)
+> **Dernier commit** : 2aee4c9 — Phase 47 (Clients + Fournisseurs 70%→85%)
 
 ---
 
@@ -26,8 +26,8 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 |---|---|---|---|
 | **Dashboard** | 90% | 100% | Phases 5-21 — fini |
 | **Livraisons** | 96% | 95% | Phases 22-34 + BUG-017/018/019/020/021 fixés — period-row visible, drawer z-index, watchdog |
-| Clients | 70% | 100% | Phase 38 : KPI grid 4 cols ; Phase 39 : chips Tous/Actifs 90j/Risque/Inactifs |
-| Fournisseurs | 70% | 100% | Phase 38 : KPI grid 4 cols ; Phase 39 : chips Tous/Carburant/Garage/Assurance |
+| Clients | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
+| Fournisseurs | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
 | Véhicules | 55% | 100% | Phase 45 : section-head "Flotte" + Exporter dropdown |
 | Carburant | 55% | 100% | Phase 35b : section-head ds-section-head + sub-meta |
 | Entretiens | 65% | 100% | Phase 44 : chips toolbar mockup-matched |
