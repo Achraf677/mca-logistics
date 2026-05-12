@@ -3,7 +3,7 @@
 > Document pivot pour ne pas perdre le contexte d'une session à l'autre.
 > Mis à jour à chaque fin de session significative.
 >
-> **Dernière mise à jour** : 2026-05-11
+> **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
 > **Dernier commit** : phase45 (Statistiques+Calendrier nav chips + Véhicules Exporter dropdown — agent :45)
 

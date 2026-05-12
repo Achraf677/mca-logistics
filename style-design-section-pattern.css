@@ -12,13 +12,16 @@
    ========================================================================== */
 
 /* ============ TITLE ROW (H1 page name + meta) ============ */
+/* Phase 46 : title-row supprimé visuellement — IDs conservés en DOM pour script-titlerow.js.
+   La section-head ds-section-head fournit le même contexte visuel (mockup ne montre pas de h1). */
 .title-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 18px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
+  display: none !important;
+}
+
+/* Breadcrumb (ds-crumbs) supprimé visuellement — mockup ne le montre pas */
+.ds-crumbs,
+nav.ds-crumbs {
+  display: none !important;
 }
 
 .title-row .page-title {
