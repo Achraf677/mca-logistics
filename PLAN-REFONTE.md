@@ -35,7 +35,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Charges | 90% | 100% | Phase 48+51 : period nav combined + charts (Évolution+Répartition) + Parking chip + Export 4 items |
 | Encaissement | 80% | 100% | Phase 57 : period nav bar + "Envoyer relances" btn + export 4 items + CSS enc-chips/table/badges mockup-aligned |
 | TVA | 75% | 100% | Phase 50 : Exporter dropdown, combined period nav row (tva-mois-label/dates/vue-tva-select IDs préservés) |
-| Rentabilité | 70% | 100% | Phase 50 : Exporter dropdown (Rapport PDF + Simulateur PDF), Config btn préservé |
+| Rentabilité | 78% | 100% | Phase 59 : Export CSV + Excel ajoutés (4 items dropdown) + tabs underline-style mockup-aligned (rent-tab-btn) |
 | Statistiques | 78% | 100% | Phase 57 : chips Mois/Trimestre/Année section-head + stat-row bar charts CSS + KPI label fix |
 | Calendrier | 78% | 100% | Phase 59 : section-head sub-meta mockup format ("X livraisons · Y échéances · Z jours fériés ce mois") au lieu de période |
 | Alertes | 75% | 100% | Phase 54 : CSS hide #s19-centre, force-show section-head + #alertes-categories, kpi-grid 3-col |
