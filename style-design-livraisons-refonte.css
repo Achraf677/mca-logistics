@@ -125,33 +125,32 @@
   font-weight: 600;
 }
 
+/* BUG-021 fix: driver avatars → gray per mockup (small gray circle, muted initials, border) */
 .livraisons-table .driver-av {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: var(--ds-brand, #e63946);
-  color: #fff;
+  background: var(--bg-card-hover, rgba(255,255,255,0.08));
+  color: var(--text-muted, #adb5bd);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.02em;
   flex-shrink: 0;
-  border: none;
+  border: 1px solid var(--border-strong, rgba(255,255,255,0.12));
   font-family: var(--ds-font-display, var(--font-display, "Syne", sans-serif));
 }
 
-/* Avatar variants : par defaut TOUS en brand red (mockup match).
-   On garde av-* classes si le user veut differencier plus tard, mais defaut = red */
 .livraisons-table .driver-av.av-1,
 .livraisons-table .driver-av.av-2,
 .livraisons-table .driver-av.av-3,
 .livraisons-table .driver-av.av-4,
 .livraisons-table .driver-av.av-5,
 .livraisons-table .driver-av.av-6 {
-  background: var(--ds-brand, #e63946);
-  color: #fff;
+  background: var(--bg-card-hover, rgba(255,255,255,0.08));
+  color: var(--text-muted, #adb5bd);
 }
 
 /* ============ Header polish ============ */
@@ -269,10 +268,20 @@
 
 /* ============ Aggressive cleanup (Phase 25 + 32) ============ */
 
-/* Period-row visible (Tableau/Kanban/Calendrier + Jour/Semaine/Mois/Année) — mockup shows this row */
-/* BUG-019 fix: was incorrectly hidden as "doublon" but is the view toggle row */
+/* BUG-019/020 fix: period-row visible — mockup shows Tableau/Kanban/Calendrier row */
 #page-livraisons > .period-row {
   display: flex;
+}
+
+/* BUG-022 fix: title-row restore pour Livraisons — mockup previews/livraisons.html montre
+   "Livraisons N ce mois · N retards à traiter" au-dessus de la section-head.
+   Le hide global dans style-design-section-pattern.css est surchargé ici. */
+#page-livraisons .title-row {
+  display: flex !important;
+  align-items: baseline;
+  gap: 14px;
+  white-space: nowrap;
+  margin-bottom: 14px;
 }
 
 /* Hide legacy bulk-action-bar floating (redondant avec bouton Modifier(N) en

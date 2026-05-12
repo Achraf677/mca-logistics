@@ -6,15 +6,15 @@
 ---
 
 ## Session 2026-05-12 (autonome-5) — Phase 50 : Encaissement + TVA + Rentabilité section-heads
-**Phases** : 49 (Carburant, prev session), 50
-**Commit final** : pending
+**Phases** : 50
+**Commit final** : 5782421
 **État** : Encaissement 40%→65%, TVA 55%→75%, Rentabilité 50%→70%
 
 ### Actions clés
 - **Encaissement** : Exporter dropdown (Rapport impayés PDF + CSV) + "+ Enregistrer paiement" btn-primary, section-head avec counts impayées + DSO
 - **TVA** : Exporter dropdown (Rapport TVA PDF + CSV) + combined period nav row `.carb-period-nav` — IDs `tva-mois-label`, `tva-mois-dates`, `vue-tva-select` préservés pour wiring legacy
 - **Rentabilité** : Exporter dropdown (Rapport PDF multi-axes + Simulateur PDF), bouton Config préservé
-- sw.js CACHE_VERSION v88→v89
+- sw.js CACHE_VERSION v89→v90 (merge)
 
 ### État pages post-session
 | Page | Avant | Après |
@@ -43,19 +43,35 @@
 
 ---
 
+## Session 2026-05-12 (:30) — Livraisons pixel-perfect (BUG-020/021/022)
+**Phases** : pixel-perfect audit session
+**Commit final** : 2e4ce54 + merge conflicts résolus
+**État** : Livraisons 96%→98%, 3 bugs découverts + fixés via analyse statique + screenshots Playwright
+
+### Actions clés
+- BUG-020/BUG-019 FIXED : period-row (Tableau/Kanban/Calendrier + Jour/Semaine/Mois/Année) restauré
+- BUG-021 FIXED : driver avatars brand-red → gris (24px, bg-card-hover, text-muted, border-strong per mockup)
+- BUG-022 FIXED : title-row restauré pour #page-livraisons — masqué globalement Phase 46
+- Tooling : 5 scripts de screenshot/audit ajoutés dans tools/
+- sw.js : CACHE_VERSION v89 (merge + 3 parallel sessions résolues)
+- Tests : 426/427 pass, 0 fail
+
+### État Livraisons post-session
+- Layout : 5 zones match mockup (title-row / section-head / period-row / chips-toolbar / table)
+- Avatars chauffeurs : gris ✅
+- Period row visible : ✅
+- Restant connu : status pills = inline-edit selects (vs static badges mockup) — intentionnel (fonctionnel)
+
+---
+
 ## Session 2026-05-12 (autonome-3) — Phase 48 : Véhicules fleet card grid
 **Phases** : 48
 **Commit final** : f50bdc9
 **État** : Véhicules 55%→80%
 
 ### Actions clés
-- **script-vehicules-cards.js** : reads `localStorage.vehicules` + MutationObserver sur `#tb-vehicules`
-  Renders `.fleet-cards-grid` (3→2→1 cols responsive) avec cartes `.fv-card` :
-  - Top: immat + marque/modele + badge statut CT (En service / CT Xj / CT expiré)
-  - Art: SVG camion inline
-  - Stats grid 2×2: Kilométrage, Conso 30j (calculée entre pleins), Chauffeur, Prochain CT
-  - Footer: "Voir le détail →" + bouton contextuel (Programmer CT / Entretien / Modifier)
-- admin.html : `#fleet-cards-grid` inséré avant la table ; table dans `#vehicules-table-fallback` (masquée quand cards visibles)
+- **script-vehicules-cards.js** : MutationObserver sur `#tb-vehicules`, render `.fleet-cards-grid` (3→2→1 cols) avec cartes `.fv-card`
+- admin.html : `#fleet-cards-grid` inséré avant la table
 - CSS : 15+ classes `.fv-*` dans style-design-vehicules.css
 - sw.js CACHE_VERSION v86→v87
 
@@ -97,21 +113,14 @@
 - Setup env (npm install, playwright install chromium, http-server 5500)
 - Audit complet Livraisons (audit-livraisons-deep.mjs) : 21 OK / 3 vrais bugs trouvés
 - **BUG-019** : `#page-livraisons > .period-row { display: none }` → `display: flex` — buttons Tableau/Kanban/Calendrier maintenant visibles
-- **BUG-020** : `.dr-panel { z-index: 101 }` → `z-index: 200` — drawer au-dessus du FAB (z-index 180), bouton "Modifier" maintenant fully visible
-- **BUG-021** : `watchdog.js` retirait `afficherDashboard` de ADMIN_REQUIRED (fonction non définie, confirmé script.js:9428)
-- Comparaison screenshot prod vs mockup : layout aligné, columns identiques
-- Outils créés : `audit-livraisons-deep.mjs`, `compare-livraisons-mockup.mjs`, `screenshot-compare-livraisons.mjs`, `check-period.mjs`
+- **BUG-020** : `.dr-panel { z-index: 101 }` → `z-index: 200` — drawer au-dessus du FAB (z-index 180)
+- **BUG-021** : `watchdog.js` retirait `afficherDashboard` de ADMIN_REQUIRED (fonction non définie)
 - sw.js CACHE_VERSION v84 → v85
 
 ### Bugs fixés
 - **BUG-019** : period-row Tableau/Kanban/Calendrier cachée
 - **BUG-020** : chat FAB masquait bouton Modifier dans drawer footer
 - **BUG-021** : watchdog afficherDashboard fausse alerte console
-
-### État Livraisons post-session
-- Visuel : ~95% match mockup
-- Fonctionnel : ✓ modal créa, ✓ modal modifier, ✓ drawer 360 (4 tabs), ✓ dropdowns 4 items, ✓ chips filtre, ✓ bulk select, ✓ kanban (12 cards), ✓ calendrier
-- Reste à valider user : drawer Modifier visible, period-row visible
 
 ---
 

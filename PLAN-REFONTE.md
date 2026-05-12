@@ -25,7 +25,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Page | Visuel | Fonctionnel | Notes |
 |---|---|---|---|
 | **Dashboard** | 90% | 100% | Phases 5-21 — fini |
-| **Livraisons** | 96% | 95% | Phases 22-34 + BUG-017/018/019/020/021 fixés — period-row visible, drawer z-index, watchdog |
+| **Livraisons** | 98% | 95% | Phases 22-34 + BUG-017-022 fixés — period-row restauré, avatars gris, title-row restauré |
 | Clients | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
 | Fournisseurs | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
 | Véhicules | 80% | 100% | Phase 45+48 : section-head "Flotte" + Exporter dropdown + fleet card grid (fv-card) |
