@@ -35,7 +35,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Charges | 92% | 100% | Phase 59 : exporterChargesExcel vraiment impl (était inexistant) + Phase 48+51 period nav/charts/Parking chip |
 | Encaissement | 92% | 100% | Phase 59 : exporterEncaissementExcel vraiment impl (was stub) + sub-meta 3 parties mockup |
 | TVA | 92% | 100% | Phase 59 : BUG-026 FIXED tabs + 3 exports impl (CA3 PDF + CSV taux + Excel annexes) + sub-meta mockup |
-| Rentabilité | 90% | 100% | Phase 59 : exporterRentabiliteCSV vraiment impl (était stub) + sub-meta mockup + tabs underline + Export 4 items |
+| Rentabilité | 92% | 100% | Phase 59 : CSV+Excel rentabilité vraiment impl + sub-meta mockup + tabs underline + Export 4 items |
 | Statistiques | 92% | 100% | Phase 59 : exporterStatsCSV + exporterStatsExcel vraiment impl (étaient stubs alert). Sub-meta CA mockup. |
 | Calendrier | 85% | 100% | Phase 59 : sub-meta mockup format + structure complète (sidebar filtres + KPIs + Légende + toolbar prev/Aujourd'hui/next + period chips + grid 7-col) toutes alignées mockup. Visual fine-tuning sans screenshot reste à valider. |
 | Alertes | 90% | 100% | Phase 59 : Export dropdown ajouté (CSV + Excel impl réels) + sub-meta mockup format |
