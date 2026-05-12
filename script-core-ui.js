@@ -271,6 +271,17 @@ function openModal(id)  {
   if (__modalFocusStack.length === 1) {
     document.addEventListener('keydown', __modalTrapKeydown);
   }
+  // BUG-018 fix : add guard class so CSS suppresses the :focus ring on auto-focused input.
+  // Removed on first user interaction (keydown or pointerdown).
+  overlay.classList.add('modal-just-opened');
+  var removeJustOpened = function() {
+    overlay.classList.remove('modal-just-opened');
+    overlay.removeEventListener('keydown', removeJustOpened);
+    overlay.removeEventListener('pointerdown', removeJustOpened);
+  };
+  overlay.addEventListener('keydown', removeJustOpened, { once: true });
+  overlay.addEventListener('pointerdown', removeJustOpened, { once: true });
+
   setTimeout(function() {
     const focusables = overlay.querySelectorAll(MODAL_FOCUSABLES);
     const btnClose = overlay.querySelector('.modal-close');

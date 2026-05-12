@@ -102,6 +102,20 @@ _(vide pour l'instant)_
 - **Note** : si "rien ne se passe" persiste malgré le wrapper, la cause est probablement le check SIRET absent qui redirecte vers Paramètres sans toast visible (comportement intentionnel).
 - **À vérifier** : (1) sans SIRET → toast "Renseigne un SIRET" ou redirect Paramètres ; (2) avec SIRET valide → popup impression ou toast d'erreur explicite.
 
+### BUG-018 — Champ CLIENT affiche ring rouge à l'ouverture de modal (avant toute frappe)
+- **Status** : FIXED (session :30 2026-05-12)
+- **Cause** : `openModal()` dans `script-core-ui.js` auto-focus le premier champ focusable (CLIENT) via `target.focus()`. La règle CSS `:focus` applique `border-color: var(--brand)` + `box-shadow` immédiatement. `:focus:not(:focus-visible)` inefficace — Chrome headless considère `focus()` programmatique comme `:focus-visible: true`.
+- **Fix** :
+  - `script-core-ui.js` : ajout classe `modal-just-opened` sur l'overlay à l'ouverture, retirée au 1er keydown/pointerdown user.
+  - `style-design-modals-refine.css` : règle `.modal-just-opened .modal-body input:focus` supprime `outline`, `border-color` et `box-shadow` pendant cette fenêtre.
+- **À vérifier** : ouvrir modal "+ Nouvelle livraison" → champ CLIENT a bordure normale (gris) → taper → bordure rouge apparaît → fermer/réouvrir → reprend gris.
+
+### BUG-017 — Titres de section tronqués dans modal-body (pill border-radius)
+- **Status** : FIXED (session :30 2026-05-12)
+- **Cause** : `script.js` ligne ~9127 set `body.dataset.s11Progress = '1'` sur `.modal-body` comme flag d'init. CSS dans `style-design-parametres.css` applique `[data-s11-progress] { border-radius: 9999px; overflow: hidden }` — créant un clip pill qui masque le début des titres.
+- **Fix** : `style-design-modals-refine.css` — `.modal-body { border-radius: 0 !important }` pour annuler le pill de parametres.css.
+- **À vérifier** : ouvrir modal "+ Nouvelle livraison" → 4 titres entiers visibles : "Informations générales", "Prix & TVA", "Affectation", "Lettre de voiture".
+
 ### BUG-001 — Section titles tronqués dans modal Nouvelle livraison
 - **Status** : FIXED (commit `d036955`)
 - **À vérifier** : ouvrir modal "+ Nouvelle livraison" → vérifier 4 titres entiers.
@@ -134,6 +148,6 @@ _(vide pour l'instant — user à valider)_
 |---|---|
 | NEW | 0 |
 | IN_PROGRESS | 0 |
-| FIXED (à vérifier) | 16 |
+| FIXED (à vérifier) | 18 |
 | VERIFIED | 0 |
-| **Total** | **16** |
+| **Total** | **18** |

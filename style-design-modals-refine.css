@@ -119,6 +119,7 @@
   padding: 22px 24px;
   max-height: 70vh;
   overflow-y: auto;
+  border-radius: 0 !important; /* BUG-017 : data-s11-progress flag déclenche accidentellement border-radius:9999px depuis parametres.css */
 }
 
 /* Sections inside body */
@@ -132,6 +133,17 @@
   margin: 18px 0 10px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--ds-border, var(--border));
+}
+
+/* BUG-018 : openModal() auto-focus first field → shows red :focus ring before user types.
+   La classe modal-just-opened est ajoutée par openModal() et retirée au 1er keydown/click.
+   Pendant cette fenêtre, on supprime le ring visuel sur les inputs auto-focusés. */
+.modal-just-opened .modal-body input:focus,
+.modal-just-opened .modal-body select:focus,
+.modal-just-opened .modal-body textarea:focus {
+  outline: none !important;
+  border-color: var(--ds-border, var(--border)) !important;
+  box-shadow: none !important;
 }
 
 /* BUG-001 fix : titres section legacy .fp-section-title rendaient "énérales" / "`TVA"
