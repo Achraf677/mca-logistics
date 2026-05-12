@@ -63,19 +63,29 @@
       return p.vehId === v.id && p.litres && p.km;
     }).sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
     var consoStr = v.conso ? (v.conso + ' L/100') : '—';
+    var consoHighPct = 0; // % above baseline
     if (pleins.length >= 2) {
       var totalL = 0, totalKm = 0;
       for (var i = 1; i < pleins.length; i++) {
         var delta = (pleins[i].km || 0) - (pleins[i - 1].km || 0);
         if (delta > 0 && pleins[i].litres) { totalL += pleins[i].litres; totalKm += delta; }
       }
-      if (totalKm > 0) consoStr = (totalL / totalKm * 100).toFixed(1) + ' L/100';
+      if (totalKm > 0) {
+        var realConso = totalL / totalKm * 100;
+        consoStr = realConso.toFixed(1) + ' L/100';
+        var baseline = parseFloat(v.conso) || 0;
+        if (baseline > 0 && realConso > baseline * 1.10) {
+          consoHighPct = Math.round((realConso - baseline) / baseline * 100);
+        }
+      }
     }
 
-    // CT badge
+    // CT badge — overridden by high-conso badge when applicable
     var ct = ctStatus(v.dateCT);
     var badgeHtml;
-    if (ct) {
+    if (consoHighPct >= 10) {
+      badgeHtml = '<span class="fv-badge fv-badge-warn" style="color:var(--brand)">CONSO +' + consoHighPct + '%</span>';
+    } else if (ct) {
       badgeHtml = '<span class="fv-badge fv-badge-' + ct.cls + '">' + ct.label + '</span>';
     } else {
       badgeHtml = '<span class="fv-badge fv-badge-ok">En service</span>';
@@ -97,15 +107,15 @@
     var procheEnt = entretiens.filter(function (e) {
       return e.vehId === v.id && e.statut !== 'termine';
     }).length > 0;
-    // Phase 60 polish (Gemini audit HIGH) : éviter doublon Modifier+Voir le détail.
-    // Garder un bouton d'action UNIQUEMENT en cas d'urgence (CT proche / Entretien dû). Sinon le lien "Voir le détail →" suffit.
+    // Action button priority: CT imminent > Diagnostiquer (conso) > Entretien
     var actionBtn = '';
     if (ct && ct.cls === 'badge-warn') {
       actionBtn = '<button class="fv-action-btn fv-action-primary" onclick="ouvrirEditVehicule(\'' + v.id + '\')" title="Programmer CT">Programmer CT</button>';
+    } else if (consoHighPct >= 10) {
+      actionBtn = '<button class="fv-action-btn fv-action-secondary" onclick="ouvrirEditVehicule(\'' + v.id + '\')" title="Diagnostiquer surconsommation">Diagnostiquer</button>';
     } else if (procheEnt) {
       actionBtn = '<button class="fv-action-btn fv-action-secondary" onclick="ouvrirEditVehicule(\'' + v.id + '\')" title="Entretien planifié">Entretien</button>';
     }
-    // Else : pas de bouton (redondant avec lien "Voir le détail →")
 
     var immat = v.immat || '—';
     var modele = v.modele || '';
