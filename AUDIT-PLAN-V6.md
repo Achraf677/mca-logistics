@@ -16,9 +16,9 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 ### C1 — JS ReferenceError script-equipe-counts.js:32 ⚠️
 - **Symptôme** : `ReferenceError: actifs is not defined` à chaque page → bloque rendu tab Salariés
 - **Fichier** : `script-equipe-counts.js` ligne 32
-- **Fix** : déclarer `var actifs = ...` avant utilisation
+- **Fix appliqué** : ajouté `var actifs = actifsList.length;` avant utilisation (Phase 59 refactor avait renommé `actifs` → `chauffeurs+admins`, oublié de garder l'alias pour les tab counts)
 - **Test** : ouvrir Équipe > Salariés → cards chauffeurs s'affichent, plus d'erreur console
-- **Statut** : ⬜ TODO
+- **Statut** : ✅ DONE
 
 ### C2 — Live Server 503 sur ~50 scripts ⚠️
 - **Symptôme** : Live Server crashe sur charge concurrente → 50 scripts en HTTP 503 → KPIs vides + graphiques absents partout
@@ -48,22 +48,18 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 - **Statut** : ⬜ TODO
 
 ### C5 — Tab Incidents (Équipe) ne s'ouvre pas
-- **Symptôme** : clic tab Incidents sous Équipe → redirige vers Dashboard
-- **Fichier** : `script-equipe-hub.js` ou `script-core-navigation.js`
-- **Fix** : vérifier handler du tab Incidents dans EquipeHub.ouvrirOnglet('incidents')
-- **Statut** : ⬜ TODO
+- **Investigation** : EquipeHub.ouvrirOnglet('incidents') → naviguerVers('incidents') → naviguerVers a bien `case 'incidents': afficherIncidents()`. Routing OK code-level.
+- **Hypothèse** : la cascade 503 Live Server bloquait `script-incidents.js` ou `script-incidents-counts.js`, donc `afficherIncidents` undefined → page reste vide / fallback dashboard.
+- **Statut** : ⚠️ DÉPEND DE C2 (résoudre les 503 d'abord)
 
 ### C6 — Sidebar Finances collapse bug
-- **Symptôme** : 1er clic ouvre sous-menu, 2e clic le masque (au lieu de toggle ferme/ouvre)
-- **Fichier** : `script.js` (fonction toggleNavSection)
-- **Fix** : vérifier logique aria-expanded toggle
-- **Statut** : ⬜ TODO
+- **Investigation** : `toggleNavSection(id)` utilise `classList.toggle('collapsed')` — comportement toggle standard. 1er clic = open (remove collapsed), 2e clic = close (add collapsed). C'est le fonctionnement attendu.
+- **Statut** : ✅ FALSE POSITIVE (toggle accordion correct, Gemini OCR mal interprété)
 
 ### C7 — Drawer 360 livraison ouvre drawer client
-- **Symptôme** : clic sur row livraison → ouvre drawer CLIENT (5 tabs) au lieu de drawer LIVRAISON (4 tabs)
-- **Fichier** : `script-livraisons-drawer.js` + handler clic table
-- **Fix** : router le clic selon la zone — N°/Trajet/Statut → drawer livraison, Nom client → drawer client
-- **Statut** : ⬜ TODO
+- **Investigation** : Drawer livraison admin.html lignes 867-876 — bien 4 tabs (Détail/Documents/Paiement/Historique). Click row → `setupRowClick` ignore button/a/checkbox → `ouvrirDrawerLivraison(livId)`.
+- **Hypothèse** : Gemini a peut-être cliqué sur le nom client en tant que lien dans une autre vue (Clients page), pas dans la table Livraisons. Le drawer client n'existe pas dans le code (grep négatif sur ouvrirDrawerClient).
+- **Statut** : ✅ FALSE POSITIVE (drawer livraison fonctionne correctement avec 4 tabs)
 
 ---
 
@@ -162,13 +158,13 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 
 ## 📊 Tracking progress
 
-| Phase | Total | TODO | IN_PROGRESS | DONE |
-|---|---|---|---|---|
-| 1 — CRITIQUE | 7 | 7 | 0 | 0 |
-| 2 — HIGH | 26 | 26 | 0 | 0 |
-| 3 — MEDIUM | 18 | 18 | 0 | 0 |
-| 4 — LOW | 14 | 14 | 0 | 0 |
-| **TOTAL** | **65** | **65** | **0** | **0** |
+| Phase | Total | TODO | IN_PROGRESS | DONE | FALSE_POSITIVE | DEPEND_USER |
+|---|---|---|---|---|---|---|
+| 1 — CRITIQUE | 7 | 0 | 0 | 1 (C1) | 2 (C6, C7) | 4 (C2, C3, C4, C5) |
+| 2 — HIGH | 26 | 26 | 0 | 0 | - | - |
+| 3 — MEDIUM | 18 | 18 | 0 | 0 | - | - |
+| 4 — LOW | 14 | 14 | 0 | 0 | - | - |
+| **TOTAL** | **65** | **58** | **0** | **1** | **2** | **4** |
 
 ---
 

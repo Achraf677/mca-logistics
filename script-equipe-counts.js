@@ -26,7 +26,8 @@
         .reduce(function (s, h) { return s + (parseFloat(h.heures) || 0); }, 0);
       subHeures.textContent = Math.round(moisH);
     }
-    // Tab count badges (Phase 46)
+    // Tab count badges (Phase 46) — Phase 60 V6 CRITIQUE C1 : 'actifs' était undefined depuis refactor Phase 59 → use actifsList.length
+    var actifs = actifsList.length;
     var salCount = document.getElementById('equipe-tab-sal-count');
     var incCount = document.getElementById('equipe-tab-inc-count');
     var incOuverts = incidents.filter(function (i) { return i && !i.resolu && !i.archive; }).length;
