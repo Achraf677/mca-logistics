@@ -1048,9 +1048,9 @@
       <!-- Phase 38 refonte HTML : KPI grid fournisseurs (mockup-aligned) -->
       <div class="kpi-grid fournisseurs-kpi-grid" style="margin-bottom:14px">
         <div class="kpi"><div class="kpi-lbl">Fournisseurs actifs</div><div class="kpi-val" id="fournisseurs-kpi-actifs">—</div><div class="kpi-sub">90 derniers jours</div></div>
-        <div class="kpi"><div class="kpi-lbl">Top dépense</div><div class="kpi-val" id="fournisseurs-kpi-top-nom">—</div><div class="kpi-sub" id="fournisseurs-kpi-top-ca" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div></div>
-        <div class="kpi"><div class="kpi-lbl">Charges à régler</div><div class="kpi-val" id="fournisseurs-kpi-encours" style="font-size:1.15rem">—</div><div class="kpi-sub" id="fournisseurs-kpi-encours-nb"></div></div>
-        <div class="kpi"><div class="kpi-lbl">Catégorie dominante</div><div class="kpi-val" id="fournisseurs-kpi-categorie" style="font-size:1.1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div><div class="kpi-sub" id="fournisseurs-kpi-categorie-pct"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Top dépense</div><div class="kpi-val" id="fournisseurs-kpi-top-nom">—</div><div class="kpi-sub" id="fournisseurs-kpi-top-ca"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Charges à régler</div><div class="kpi-val" id="fournisseurs-kpi-encours">—</div><div class="kpi-sub" id="fournisseurs-kpi-encours-nb"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Catégorie dominante</div><div class="kpi-val" id="fournisseurs-kpi-categorie">—</div><div class="kpi-sub" id="fournisseurs-kpi-categorie-pct"></div></div>
       </div>
       <!-- Phase 47 : chips toolbar + search inline (mockup-matched) -->
       <div class="ds-filter-chips-row" id="frn-chips-toolbar" style="margin-bottom:14px">
@@ -1469,7 +1469,7 @@
       <div id="rent-tab-simulateur" style="display:none">
       <div class="rentabilite-shell">
         <div class="card rentabilite-form-card">
-          <div class="card-header"><h2>Paramètres d'activité</h2></div>
+          <div class="card-header"><h3>Paramètres d'activité</h3></div>
           <div class="modal-body rentabilite-grid">
             <div class="rentabilite-section">
               <div class="rentabilite-section-title">Mode de calcul</div>
@@ -1610,7 +1610,7 @@
           </div>
 
           <div class="card rentabilite-summary-card">
-            <div class="card-header"><h2>Résumé financier</h2></div>
+            <div class="card-header"><h3>Résumé financier</h3></div>
             <div class="modal-body rentabilite-summary-grid">
               <div class="rentabilite-summary-item">
                 <span class="rent-summary-label">Revenu journalier HT</span>
@@ -2179,7 +2179,7 @@
 
       <!-- TVA Collectée détail -->
       <div class="card mt-20" id="tva-panel-collectee">
-        <div class="card-header"><h2 id="tva-collectee-title">TVA Collectée</h2></div>
+        <div class="card-header"><h3 id="tva-collectee-title">TVA Collectée</h3></div>
         <div class="table-wrapper">
           <table class="data-table tva-collectee-table">
             <thead><tr><th>Exigibilité</th><th>Taux</th><th>Libellé</th><th>Base HT</th><th>Montant TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
@@ -2191,7 +2191,7 @@
 
       <!-- TVA Déductible détail -->
       <div class="card mt-20" id="tva-panel-deductible" style="display:none">
-        <div class="card-header"><h2 id="tva-deductible-title">TVA Déductible (charges, carburant, entretiens)</h2></div>
+        <div class="card-header"><h3 id="tva-deductible-title">TVA Déductible (charges, carburant, entretiens)</h3></div>
         <div class="table-wrapper">
           <table class="data-table tva-deductible-table">
             <thead><tr><th>Date</th><th>Taux</th><th>Libellé</th><th>Base HT</th><th>Montant TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
@@ -2203,7 +2203,7 @@
       <!-- Solde -->
       <div class="card mt-20" id="tva-solde-card">
         <div class="card-header">
-          <h2>Solde TVA du mois</h2>
+          <h3>Solde TVA du mois</h3>
         </div>
         <div class="modal-body" id="tva-solde-detail"></div>
       </div>
@@ -2212,7 +2212,7 @@
       <div class="card mt-20" id="tva-historique-card">
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
           <div>
-            <h2 style="margin:0">Historique des déclarations TVA</h2>
+            <h3 style="margin:0">Historique des déclarations TVA</h3>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><span id="tva-historique-count">0</span> déclaration(s) — <span id="tva-historique-total">0 €</span> reversés cumulés</div>
           </div>
         </div>
@@ -3498,28 +3498,28 @@
       <div class="cal16-layout">
         <!-- Sidebar filtres -->
         <aside class="cal16-sidebar card">
-          <h3 style="margin:0 0 14px;font-family:var(--ds-font-display,var(--font-display));font-size:14px;font-weight:800">Filtres</h3>
+          <h3>Filtres</h3>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="livraisons" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-liv"></span> Livraisons</label>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="echeances" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-ech"></span> Échéances</label>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="relances" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-rel"></span> Relances</label>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="paiements" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-pai"></span> Paiements</label>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="feries" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-fer"></span> Jours fériés</label>
 
-          <hr style="margin:14px 0;border:none;border-top:1px solid var(--border)" />
-          <h3 style="margin:0 0 14px;font-family:var(--ds-font-display,var(--font-display));font-size:14px;font-weight:800">Ce mois</h3>
+          <hr />
+          <h3>Ce mois</h3>
           <div class="cal16-kpi-grid">
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">Livraisons</div><div class="cal16-kpi-val" id="cal16-kpi-liv">0</div></div>
-            <div class="cal16-kpi"><div class="cal16-kpi-lbl" style="color:var(--ds-warning,#ffd60a)">Échéances</div><div class="cal16-kpi-val" style="color:var(--ds-warning,#ffd60a)" id="cal16-kpi-ech">0</div></div>
-            <div class="cal16-kpi"><div class="cal16-kpi-lbl" style="color:var(--success,#06d6a0)">Encaissé</div><div class="cal16-kpi-val" style="color:var(--success,#06d6a0)" id="cal16-kpi-pai">—</div></div>
+            <div class="cal16-kpi"><div class="cal16-kpi-lbl" style="color:var(--ds-warning,#ffd60a)">Échéances</div><div class="cal16-kpi-val" id="cal16-kpi-ech">0</div></div>
+            <div class="cal16-kpi"><div class="cal16-kpi-lbl" style="color:var(--success,#06d6a0)">Encaissé</div><div class="cal16-kpi-val" id="cal16-kpi-pai">—</div></div>
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">Jours fériés</div><div class="cal16-kpi-val" id="cal16-kpi-feries">—</div></div>
           </div>
 
-          <hr style="margin:14px 0;border:none;border-top:1px solid var(--border)" />
-          <h3 style="margin:0 0 10px;font-family:var(--ds-font-display,var(--font-display));font-size:14px;font-weight:800">Légende</h3>
-          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:var(--brand,#e63946);flex-shrink:0"></span> Aujourd'hui</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:var(--success,#06d6a0);flex-shrink:0"></span> Férié</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:var(--ds-warning,#ffd60a);flex-shrink:0"></span> Échéance</div>
+          <hr />
+          <h3>Légende</h3>
+          <div class="cal16-legend">
+            <div class="cal16-legend-item"><span class="cal16-legend-dot today"></span> Aujourd'hui</div>
+            <div class="cal16-legend-item"><span class="cal16-legend-dot ferie"></span> Férié</div>
+            <div class="cal16-legend-item"><span class="cal16-legend-dot echeance"></span> Échéance</div>
           </div>
 
         </aside>

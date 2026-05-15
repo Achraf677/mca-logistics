@@ -371,3 +371,17 @@ tr[data-impaye="1"] td {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Fournisseurs KPI grid — inline styles → CSS */
+.fournisseurs-kpi-grid .kpi:nth-child(3) .kpi-val { font-size: 1.15rem; }
+.fournisseurs-kpi-grid .kpi:nth-child(4) .kpi-val {
+  font-size: 1.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#fournisseurs-kpi-top-ca {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
