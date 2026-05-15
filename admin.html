@@ -3123,6 +3123,31 @@
           <button class="btn-primary" onclick="openModal('modal-incident')">+ Signaler</button>
         </div>
       </div>
+      <!-- Phase 65 : période nav incidents (mockup-aligned) -->
+      <div class="carb-period-nav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn-secondary" onclick="navIncidentsPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
+          <button class="btn-secondary" onclick="reinitialiserIncidentsPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
+          <button class="btn-secondary" onclick="navIncidentsPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize" id="inc-periode-label"></div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="inc-periode-dates"></div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select class="period-selector" id="filtre-inc-vue" onchange="changerVueIncidents(this.value)" aria-label="filtre incidents vue" style="display:none">
+            <option value="jour">Par jour</option>
+            <option value="semaine">Par semaine</option>
+            <option value="mois" selected>Par mois</option>
+            <option value="annee">Par année</option>
+          </select>
+          <div class="period-chips" data-period-target="filtre-inc-vue">
+            <button class="chip-period" data-period="jour">Jour</button>
+            <button class="chip-period" data-period="semaine">Semaine</button>
+            <button class="chip-period active" data-period="mois">Mois</button>
+            <button class="chip-period" data-period="annee">Année</button>
+          </div>
+        </div>
+      </div>
+
       <div class="kpi-grid" style="margin-bottom:16px">
         <div class="kpi"><div class="kpi-lbl">Ouverts</div><div class="kpi-val" id="inc-kpi-ouverts" style="color:var(--brand)">—</div><div class="kpi-sub">Action requise</div></div>
         <div class="kpi"><div class="kpi-lbl">Résolus mois</div><div class="kpi-val" id="inc-kpi-resolus">—</div></div>
@@ -3285,8 +3310,8 @@
         </div>
         <div class="table-wrapper">
           <table class="data-table" id="tb-ct-venir">
-            <thead><tr><th>Véhicule</th><th>Immatriculation</th><th>Date CT</th><th>Échéance</th></tr></thead>
-            <tbody id="tb-ct-venir-body"><tr><td colspan="4" class="empty-row">Aucun CT à venir (30j)</td></tr></tbody>
+            <thead><tr><th>Véhicule</th><th>Immatriculation</th><th>Prochain CT</th><th>Jours restants</th><th>Statut</th></tr></thead>
+            <tbody id="tb-ct-venir-body"><tr><td colspan="5" class="empty-row">Aucun CT à venir (60j)</td></tr></tbody>
           </table>
         </div>
       </div>

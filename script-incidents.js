@@ -142,6 +142,62 @@ window.incChipFilter = function(btn, statut, gravite) {
   if (typeof afficherIncidents === 'function') afficherIncidents();
 };
 
+// Phase 65 — Period navigation for Incidents (mockup-aligned, visual parity with Carburant/Entretiens)
+(function() {
+  var _vue = 'mois';
+  var _offset = 0;
+
+  function getLabel() {
+    var now = new Date();
+    if (_vue === 'mois') {
+      var d = new Date(now.getFullYear(), now.getMonth() + _offset, 1);
+      return d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    }
+    if (_vue === 'annee') {
+      return String(now.getFullYear() + _offset);
+    }
+    if (_vue === 'semaine') {
+      var base = new Date(now);
+      base.setDate(base.getDate() + _offset * 7 - ((base.getDay() + 6) % 7));
+      var end = new Date(base); end.setDate(base.getDate() + 6);
+      return base.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) + ' – ' + end.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    var d = new Date(now); d.setDate(d.getDate() + _offset);
+    return d.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' });
+  }
+
+  function getDates() {
+    var now = new Date();
+    if (_vue === 'mois') {
+      var d = new Date(now.getFullYear(), now.getMonth() + _offset, 1);
+      var last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      var fmt = function(dt) { return ('0' + dt.getDate()).slice(-2) + '/' + ('0' + (dt.getMonth() + 1)).slice(-2); };
+      return fmt(d) + ' → ' + fmt(last);
+    }
+    return '';
+  }
+
+  function refresh() {
+    var lbl = document.getElementById('inc-periode-label');
+    var dts = document.getElementById('inc-periode-dates');
+    if (lbl) lbl.textContent = getLabel();
+    if (dts) dts.textContent = getDates();
+  }
+
+  window.navIncidentsPeriode = function(dir) { _offset += dir; refresh(); };
+  window.reinitialiserIncidentsPeriode = function() { _offset = 0; refresh(); };
+  window.changerVueIncidents = function(v) {
+    _vue = v; _offset = 0;
+    var chips = document.querySelectorAll('[data-period-target="filtre-inc-vue"] .chip-period');
+    chips.forEach(function(c) { c.classList.toggle('active', c.getAttribute('data-period') === v); });
+    refresh();
+  };
+
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(refresh, 100);
+  });
+})();
+
 // L12146 (script.js d'origine)
 function peupleIncSalarie() {
   var sel = document.getElementById('inc-salarie');

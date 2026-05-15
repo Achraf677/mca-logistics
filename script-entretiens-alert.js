@@ -69,9 +69,16 @@
       if (diff > 60) return; // show up to 60 days out
       var nom = ((v.marque || '') + ' ' + (v.modele || '')).trim() || '—';
       var immat = v.immatriculation || v.immat || '—';
-      var echeanceCls = diff < 0 ? 'color:#e63946;font-weight:700' : diff <= 15 ? 'color:#e67e22;font-weight:600' : 'color:var(--ds-text-muted)';
-      var echeance = diff < 0 ? 'Expiré (' + Math.abs(diff) + 'j)' : 'Dans ' + diff + ' jour' + (diff > 1 ? 's' : '');
-      rows.push({ diff: diff, html: '<tr><td>' + nom + '</td><td style="font-family:var(--font-mono,monospace)">' + immat + '</td><td>' + ctDate + '</td><td style="' + echeanceCls + '">' + echeance + '</td></tr>' });
+      var joursRestantsCls = diff < 0 ? 'color:#e63946;font-weight:700' : diff <= 15 ? 'color:#e67e22;font-weight:600' : 'color:var(--ds-text-muted)';
+      var joursRestantsStr = diff < 0 ? 'Expiré (' + Math.abs(diff) + 'j)' : diff + ' j';
+      var statBadge = diff < 0
+        ? '<span class="badge" style="background:rgba(230,57,70,0.12);color:#e63946;border-color:rgba(230,57,70,0.35)">Expiré</span>'
+        : diff <= 7
+          ? '<span class="badge" style="background:rgba(230,57,70,0.12);color:#e63946;border-color:rgba(230,57,70,0.35)">Urgent</span>'
+          : diff <= 30
+            ? '<span class="badge" style="background:rgba(214,158,46,0.12);color:#c97d0e;border-color:rgba(214,158,46,0.35)">Bientôt</span>'
+            : '<span class="badge ok">OK</span>';
+      rows.push({ diff: diff, html: '<tr><td>' + nom + '</td><td style="font-family:var(--font-mono,monospace)">' + immat + '</td><td style="font-family:var(--font-mono,monospace)">' + ctDate + '</td><td style="' + joursRestantsCls + ';text-align:right;font-variant-numeric:tabular-nums">' + joursRestantsStr + '</td><td>' + statBadge + '</td></tr>' });
     });
 
     rows.sort(function(a, b) { return a.diff - b.diff; });
