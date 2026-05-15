@@ -804,19 +804,19 @@
           <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <input type="search" id="filtre-recherche-liv" placeholder="Rechercher un client, un N° LIV ou un chauffeur..." oninput="afficherLivraisons()" / aria-label="Rechercher un client, un N° LIV ou un chauffeur..." />
         </div>
-        <select id="filtre-statut" onchange="afficherLivraisons()" aria-label="filtre statut">
+        <select id="filtre-statut" onchange="afficherLivraisons()" aria-label="Filtrer par statut">
           <option value="">Tous les statuts</option><option value="en-attente">En attente</option><option value="en-cours">En cours</option><option value="livre">Livré</option><option value="brouillon">Brouillon</option>
         </select>
-        <select id="filtre-paiement" onchange="afficherLivraisons()" aria-label="filtre paiement">
+        <select id="filtre-paiement" onchange="afficherLivraisons()" aria-label="Filtrer par paiement">
           <option value="">Tout paiement</option><option value="en-attente">À payer</option><option value="payé">Payé</option><option value="litige">Litige</option>
         </select>
-        <select id="filtre-chauffeur" onchange="afficherLivraisons()" aria-label="filtre chauffeur">
+        <select id="filtre-chauffeur" onchange="afficherLivraisons()" aria-label="Filtrer par chauffeur">
           <option value="">Tous les chauffeurs</option>
         </select>
         <span class="filter-inline-label">Du</span>
-        <input type="date" id="filtre-date-debut" / aria-label="filtre date debut" />
+        <input type="date" id="filtre-date-debut" aria-label="Date de début" />
         <span class="filter-inline-label">Au</span>
-        <input type="date" id="filtre-date-fin" / aria-label="filtre date fin" />
+        <input type="date" id="filtre-date-fin" aria-label="Date de fin" />
         <button class="btn-primary" onclick="appliquerFiltresDatesLivraisons()">Appliquer</button>
         <button class="btn-secondary" onclick="resetFiltres()">Réinitialiser</button>
       </div>
@@ -1135,10 +1135,10 @@
           <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <input type="search" id="filtre-veh-search" placeholder="Rechercher un véhicule, une plaque, un modèle..." oninput="afficherVehicules()" / aria-label="Rechercher un véhicule, une plaque, un modèle..." />
         </div>
-        <select id="filtre-veh-salarie" onchange="afficherVehicules()" aria-label="filtre veh salarie">
+        <select id="filtre-veh-salarie" onchange="afficherVehicules()" aria-label="Filtrer véhicule par salarié">
           <option value="">Tous les véhicules</option>
         </select>
-        <select id="filtre-veh-carburant" onchange="afficherVehicules()" aria-label="filtre veh carburant">
+        <select id="filtre-veh-carburant" onchange="afficherVehicules()" aria-label="Filtrer véhicule par type carburant">
           <option value="">Tous les carburants</option>
           <option value="diesel">Diesel/Gazole</option>
           <option value="essence">Essence</option>
@@ -1275,10 +1275,10 @@
 
       <!-- Filters (hidden visually, kept for script-carburant.js selects) -->
       <div class="filters carb-filters-hidden" style="height:0;overflow:hidden;visibility:hidden;margin:0;padding:0">
-        <select id="filtre-carb-vehicule" onchange="afficherCarburant()" aria-label="filtre carb vehicule">
+        <select id="filtre-carb-vehicule" onchange="afficherCarburant()" aria-label="Filtrer carburant par véhicule">
           <option value="">Tous les véhicules</option>
         </select>
-        <select id="filtre-carb-type" onchange="afficherCarburant()" aria-label="filtre carb type">
+        <select id="filtre-carb-type" onchange="afficherCarburant()" aria-label="Filtrer carburant par type">
           <option value="">Tous les carburants</option>
           <option value="diesel">Diesel/Gazole</option>
           <option value="essence">Essence</option>
@@ -2027,7 +2027,7 @@
           <!-- Filtres alertes (sticky) -->
           <div class="filters alertes-filters-sticky" style="margin-bottom:0;position:sticky;top:0;z-index:20;background:var(--bg-card);padding:10px 0;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
             <input type="search" id="filtre-alerte-recherche" oninput="afficherAlertes()" placeholder="Rechercher (message, salarié, client, immat…)" style="min-width:240px;flex:1 1 240px" aria-label="Rechercher (message, salarié, client, immat…)" />
-            <select id="filtre-alerte-type" onchange="afficherAlertes()" aria-label="filtre alerte type">
+            <select id="filtre-alerte-type" onchange="afficherAlertes()" aria-label="Filtrer alerte par type">
               <option value="">Tous les types</option>
               <option value="ct_expire">CT expiré</option>
               <option value="ct_proche">CT proche</option>
@@ -2047,10 +2047,10 @@
               <option value="inspection">Inspection reçue</option>
               <option value="relance_auto">Relance client</option>
             </select>
-            <select id="filtre-alerte-salarie" onchange="afficherAlertes()" aria-label="filtre alerte salarie">
+            <select id="filtre-alerte-salarie" onchange="afficherAlertes()" aria-label="Filtrer alerte par salarié">
               <option value="">Tous les salariés</option>
             </select>
-            <select id="filtre-alerte-statut" onchange="afficherAlertes()" aria-label="filtre alerte statut">
+            <select id="filtre-alerte-statut" onchange="afficherAlertes()" aria-label="Filtrer alerte par statut">
               <option value="actives">Alertes actives</option>
               <option value="reportees">⏰ Alertes reportées</option>
               <option value="traitees">Historique traité</option>
@@ -3043,10 +3043,10 @@
           <option value="tva">TVA</option>
           <option value="autre">Autre</option>
         </select>
-        <select id="filtre-charge-vehicule" onchange="afficherCharges()" aria-label="filtre charge vehicule">
+        <select id="filtre-charge-vehicule" onchange="afficherCharges()" aria-label="Filtrer charge par véhicule">
           <option value="">Tous les véhicules</option>
         </select>
-        <select id="filtre-charge-statut" onchange="afficherCharges()" aria-label="filtre charge statut">
+        <select id="filtre-charge-statut" onchange="afficherCharges()" aria-label="Filtrer charge par statut">
           <option value="">Tous statuts</option>
           <option value="a_payer">⏳ À payer</option>
           <option value="paye">Payé</option>
@@ -3142,13 +3142,13 @@
           <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <input type="search" id="filtre-inc-search" placeholder="Rechercher un client, chauffeur, description, n° livraison..." oninput="afficherIncidents()" / aria-label="Rechercher un client, chauffeur, description, n° livraison..." />
         </div>
-        <select id="filtre-inc-gravite" onchange="afficherIncidents()" aria-label="filtre inc gravite">
+        <select id="filtre-inc-gravite" onchange="afficherIncidents()" aria-label="Filtrer incident par gravité">
           <option value="">Toutes gravités</option>
           <option value="faible">Faible</option>
           <option value="moyen">Moyen</option>
           <option value="grave">Grave</option>
         </select>
-        <select id="filtre-inc-statut" onchange="afficherIncidents()" aria-label="filtre inc statut">
+        <select id="filtre-inc-statut" onchange="afficherIncidents()" aria-label="Filtrer incident par statut">
           <option value="">Tous statuts</option>
           <option value="ouvert">Ouvert</option>
           <option value="encours">En cours</option>
@@ -3262,10 +3262,10 @@
         <button class="ds-chip" type="button" data-entr-type="reparation" onclick="entrChipType(this,'reparation')">Réparations</button>
       </div>
       <div class="filters" style="margin-bottom:16px">
-        <select id="filtre-entr-vehicule" onchange="afficherEntretiens()" aria-label="filtre entr vehicule">
+        <select id="filtre-entr-vehicule" onchange="afficherEntretiens()" aria-label="Filtrer entretien par véhicule">
           <option value="">Tous les véhicules</option>
         </select>
-        <select id="filtre-entr-type" onchange="afficherEntretiens();entrSyncChips(this.value)" aria-label="filtre entr type">
+        <select id="filtre-entr-type" onchange="afficherEntretiens();entrSyncChips(this.value)" aria-label="Filtrer entretien par type">
           <option value="">Tous les types</option>
           <option value="revision">Révision</option>
           <option value="vidange">Vidange</option>
