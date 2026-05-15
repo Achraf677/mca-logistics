@@ -3133,7 +3133,7 @@
           <div class="period-dates" id="inc-periode-dates"></div>
         </div>
         <div class="period-right">
-          <select class="period-selector" id="filtre-inc-vue" onchange="changerVueIncidents(this.value)" aria-label="filtre incidents vue" style="display:none">
+          <select class="period-selector" id="filtre-inc-vue" onchange="changerVueIncidents(this.value)" aria-label="Vue période incidents" style="display:none">
             <option value="jour">Par jour</option>
             <option value="semaine">Par semaine</option>
             <option value="mois" selected>Par mois</option>
@@ -4533,7 +4533,7 @@
           <div class="form-group" style="grid-column:1/-1"><label>Tarif horaire chauffeur par défaut (€/h, brut chargé)</label><input type="number" id="cfg-rent-tarif-horaire" min="0" step="0.5" placeholder="12" / aria-label="12" /></div>
           <div class="form-group" style="grid-column:1/-1">
             <label>Méthode de répartition des coûts indirects</label>
-            <select id="cfg-rent-methode" aria-label="cfg rent methode">
+            <select id="cfg-rent-methode" aria-label="Méthode de calcul rentabilité">
               <option value="livraisons">Au prorata du nombre de livraisons</option>
               <option value="ca">Au prorata du CA</option>
               <option value="km">Au prorata des km parcourus</option>
@@ -4565,15 +4565,15 @@
 
         <div style="font-weight:600;margin:14px 0 8px;font-size:.92rem">Patterns suspects</div>
         <div class="form-grid">
-          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-doublons" / aria-label="cfg carb doublons" /> Détecter 2 pleins en moins de 24h sans km parcourus</label></div>
-          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-regression" / aria-label="cfg carb regression" /> Détecter régression km (km saisi &lt; km précédent)</label></div>
-          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-km-excessif" / aria-label="cfg carb km excessif" /> Détecter km/jour excessif</label></div>
+          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-doublons" /> Détecter 2 pleins en moins de 24h sans km parcourus</label></div>
+          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-regression" /> Détecter régression km (km saisi &lt; km précédent)</label></div>
+          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-km-excessif" /> Détecter km/jour excessif</label></div>
           <div class="form-group"><label>Seuil km/jour max</label><input type="number" id="cfg-carb-km-jour" min="100" max="3000" step="50" placeholder="1000" / aria-label="1000" /></div>
         </div>
 
         <div style="font-weight:600;margin:14px 0 8px;font-size:.92rem">Pleins hors heures (week-end / nuit)</div>
         <div class="form-grid">
-          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-hors-heures" / aria-label="cfg carb hors heures" /> Activer la détection (alertes peuvent être nombreuses)</label></div>
+          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-hors-heures" /> Activer la détection (alertes peuvent être nombreuses)</label></div>
           <div class="form-group"><label>Heure début journée normale</label><input type="number" id="cfg-carb-h-debut" min="0" max="23" step="1" placeholder="6" / aria-label="6" /></div>
           <div class="form-group"><label>Heure fin journée normale</label><input type="number" id="cfg-carb-h-fin" min="1" max="24" step="1" placeholder="22" / aria-label="22" /></div>
         </div>
@@ -4634,7 +4634,7 @@
       <div class="modal-header"><h3>Affecter un chauffeur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-affecter-vehicule')">✕</button></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);margin-bottom:16px;">Véhicule : <strong id="affect-veh-label"></strong></p>
-        <div class="form-group"><label>Chauffeur</label><select id="affect-salarie-sel" aria-label="affect chauffeur sel"><option value="">-- Retirer l'affectation --</option></select></div>
+        <div class="form-group"><label for="affect-salarie-sel">Chauffeur</label><select id="affect-salarie-sel"><option value="">-- Retirer l'affectation --</option></select></div>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-affecter-vehicule')">Annuler</button><button class="btn-primary" onclick="confirmerAffectationVehicule()">Enregistrer</button></div>
     </div>
@@ -4821,13 +4821,13 @@
       <div class="modal-body">
         <input type="hidden" id="edit-carb-id" />
         <div class="form-grid">
-          <div class="form-group"><label>Litres *</label><input type="number" id="edit-carb-litres" min="0" step="0.1" / aria-label="edit carb litres" /></div>
-          <div class="form-group"><label>Prix / litre (€) *</label><input type="number" id="edit-carb-prix" min="0" step="0.01" / aria-label="edit carb prix" /></div>
+          <div class="form-group"><label for="edit-carb-litres">Litres *</label><input type="number" id="edit-carb-litres" min="0" step="0.1" /></div>
+          <div class="form-group"><label for="edit-carb-prix">Prix / litre (€) *</label><input type="number" id="edit-carb-prix" min="0" step="0.01" /></div>
           <div class="form-group"><label>Taux TVA</label>
             <input type="number" id="edit-carb-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" placeholder="20" / aria-label="20" />
           </div>
-          <div class="form-group"><label>Km compteur</label><input type="number" id="edit-carb-km" min="0" step="1" / aria-label="edit carb km" /></div>
-          <div class="form-group"><label>Date</label><input type="date" id="edit-carb-date" / aria-label="edit carb date" /></div>
+          <div class="form-group"><label for="edit-carb-km">Km compteur</label><input type="number" id="edit-carb-km" min="0" step="1" /></div>
+          <div class="form-group"><label for="edit-carb-date">Date</label><input type="date" id="edit-carb-date" /></div>
         </div>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-carburant')">Annuler</button><button class="btn-primary" onclick="confirmerEditCarburantAdmin()">Enregistrer</button></div>
@@ -4841,9 +4841,9 @@
       <div class="modal-header"><h3>Modifier le relevé km</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-km')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
-          <div class="form-group"><label>Km départ *</label><input type="number" id="admin-km-dep" min="0" / aria-label="admin km dep" /></div>
-          <div class="form-group"><label>Km arrivée *</label><input type="number" id="admin-km-arr" min="0" / aria-label="admin km arr" /></div>
-          <div class="form-group full-width"><label>Date</label><input type="date" id="admin-km-date" / aria-label="admin km date" /></div>
+          <div class="form-group"><label for="admin-km-dep">Km départ *</label><input type="number" id="admin-km-dep" min="0" /></div>
+          <div class="form-group"><label for="admin-km-arr">Km arrivée *</label><input type="number" id="admin-km-arr" min="0" /></div>
+          <div class="form-group full-width"><label for="admin-km-date">Date</label><input type="date" id="admin-km-date" /></div>
         </div>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-km')">Annuler</button><button class="btn-primary" onclick="confirmerEditKmAdmin()">Enregistrer</button></div>
@@ -4865,9 +4865,9 @@
           <div id="charge-smart-upload-feedback" class="u-muted-xs-mt"></div>
         </div>
         <div class="form-grid">
-          <div class="form-group"><label id="charge-date-label">Date *</label><input type="date" id="charge-date" / aria-label="charge date" /></div>
-          <div class="form-group"><label>Catégorie *</label>
-            <select id="charge-cat" onchange="ajusterCategorieCharge()" aria-label="charge cat">
+          <div class="form-group"><label id="charge-date-label" for="charge-date">Date *</label><input type="date" id="charge-date" /></div>
+          <div class="form-group"><label for="charge-cat">Catégorie *</label>
+            <select id="charge-cat" onchange="ajusterCategorieCharge()">
               <option value="carburant">Carburant</option>
               <option value="peage">Péage</option>
               <option value="entretien">Entretien</option>
@@ -4890,8 +4890,8 @@
           </div>
           <div class="form-group"><label for="charge-tva">Montant TVA (€)</label><input type="number" id="charge-tva" placeholder="0.00" min="0" step="0.01" oninput="setChargeTvaManuelle(true); calculerTTCDepuisTVA('charge')" /><div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">Auto, ou saisi manuellement (facture mixte)</div></div>
           <div class="form-group"><label for="charge-montant">Montant TTC (€)</label><input type="number" id="charge-montant" placeholder="0.00" min="0" step="0.01" oninput="calculerHTDepuisTTC('charge')" /></div>
-          <div class="form-group" id="charge-tva-period-wrap" style="display:none"><label>Période TVA concernée</label><input type="month" id="charge-tva-period" / aria-label="charge tva period" /></div>
-          <div class="form-group" id="charge-veh-wrap"><label>Véhicule concerné</label><select id="charge-veh" aria-label="charge veh"><option value="">— Général —</option></select></div>
+          <div class="form-group" id="charge-tva-period-wrap" style="display:none"><label for="charge-tva-period">Période TVA concernée</label><input type="month" id="charge-tva-period" /></div>
+          <div class="form-group" id="charge-veh-wrap"><label for="charge-veh">Véhicule concerné</label><select id="charge-veh"><option value="">— Général —</option></select></div>
           <div class="form-group" id="charge-carb-litres-wrap" style="display:none"><label>Litres <span class="u-muted-xs">(crée le plein dans Carburant)</span></label><input type="number" id="charge-carb-litres" placeholder="40" min="0" step="0.1" / aria-label="40" /></div>
           <div class="form-group" id="charge-carb-prix-litre-wrap" style="display:none"><label>Prix/L (€)</label><input type="number" id="charge-carb-prix-litre" placeholder="1.85" min="0" step="0.01" / aria-label="1.85" /></div>
           <div class="form-group full-width" id="charge-livraison-wrap">
@@ -4902,7 +4902,7 @@
           </div>
           <div class="form-group">
             <label>Statut paiement *</label>
-            <select id="charge-statut-paiement" onchange="toggleChargeStatutPaiement()" aria-label="charge statut paiement">
+            <select id="charge-statut-paiement" onchange="toggleChargeStatutPaiement()" aria-label="Statut paiement charge">
               <option value="a_payer">⏳ À payer</option>
               <option value="paye">Payé</option>
               <option value="partiel">Paiement partiel</option>
@@ -4910,11 +4910,11 @@
           </div>
           <div class="form-group" id="charge-date-paiement-wrap" style="display:none">
             <label>Date de paiement</label>
-            <input type="date" id="charge-date-paiement" / aria-label="charge date paiement" />
+            <input type="date" id="charge-date-paiement" aria-label="Date paiement charge" />
           </div>
           <div class="form-group" id="charge-mode-paiement-wrap" style="display:none">
             <label>Mode paiement</label>
-            <select id="charge-mode-paiement" aria-label="charge mode paiement">
+            <select id="charge-mode-paiement" aria-label="Mode paiement charge">
               <option value="">— Aucun —</option>
               <option value="virement">Virement</option>
               <option value="prelevement">Prélèvement</option>
@@ -4938,7 +4938,7 @@
         <div class="form-grid">
           <div class="form-group"><label for="inc-date">Date *</label><input type="date" id="inc-date" /></div>
           <div class="form-group"><label for="inc-type">Type</label>
-            <select id="inc-type" aria-label="inc type">
+            <select id="inc-type">
               <option value="avarie" selected>Avarie</option>
               <option value="accident">Accident</option>
               <option value="vol">Vol</option>
@@ -4948,14 +4948,14 @@
             </select>
           </div>
           <div class="form-group"><label for="inc-gravite">Gravité</label>
-            <select id="inc-gravite" aria-label="inc gravite">
+            <select id="inc-gravite">
               <option value="faible">Faible</option>
               <option value="moyen" selected>Moyen</option>
               <option value="grave">Grave</option>
             </select>
           </div>
-          <div class="form-group full-width"><label>Livraison concernée</label><select id="inc-livraison" aria-label="inc livraison"><option value="">— Aucune livraison spécifique —</option></select></div>
-          <div class="form-group full-width"><label>Salarié concerné</label><select id="inc-salarie" aria-label="inc salarie"><option value="">— Aucun salarié spécifique —</option></select></div>
+          <div class="form-group full-width"><label for="inc-livraison">Livraison concernée</label><select id="inc-livraison"><option value="">— Aucune livraison spécifique —</option></select></div>
+          <div class="form-group full-width"><label for="inc-salarie">Salarié concerné</label><select id="inc-salarie"><option value="">— Aucun salarié spécifique —</option></select></div>
           <div class="form-group full-width"><label>Description *</label><textarea id="inc-description" rows="3" placeholder="Décrivez l'incident, la réclamation client ou le problème survenu..." style="width:100%;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:9px 12px;border-radius:8px;font-size:.88rem;font-family:inherit;resize:vertical;outline:none" aria-label="Décrivez l'incident, la réclamation client ou le problème survenu..."></textarea></div>
         </div>
       </div>
@@ -4969,10 +4969,10 @@
       <div class="modal-header"><h3>Ajouter un entretien</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-entretien')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
-          <div class="form-group"><label>Véhicule *</label><select id="entr-veh" onchange="autoFillKmEntretien()" aria-label="entr veh"><option value="">— Choisir —</option></select></div>
+          <div class="form-group"><label for="entr-veh">Véhicule *</label><select id="entr-veh" onchange="autoFillKmEntretien()"><option value="">— Choisir —</option></select></div>
           <div class="form-group"><label for="entr-date">Date *</label><input type="date" id="entr-date" /></div>
           <div class="form-group"><label>Type *</label>
-            <select id="entr-type" aria-label="entr type" required>
+            <select id="entr-type" aria-label="Type entretien" required>
               <option value="" disabled selected>— Choisir un type —</option>
               <option value="revision">Révision</option>
               <option value="vidange">Vidange</option>
@@ -5090,8 +5090,8 @@
     <div class="modal" style="max-width:620px">
       <div class="modal-header"><h3>Nouvelle inspection</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-inspection-admin')">✕</button></div>
       <div class="modal-body form-grid">
-        <div class="form-group"><label>Salarié</label><select id="admin-insp-salarie" aria-label="admin insp salarie"><option value="">— Choisir —</option></select></div>
-        <div class="form-group"><label>Véhicule</label><select id="admin-insp-vehicule" aria-label="admin insp vehicule"><option value="">— Aucun véhicule —</option></select></div>
+        <div class="form-group"><label for="admin-insp-salarie">Salarié</label><select id="admin-insp-salarie"><option value="">— Choisir —</option></select></div>
+        <div class="form-group"><label for="admin-insp-vehicule">Véhicule</label><select id="admin-insp-vehicule"><option value="">— Aucun véhicule —</option></select></div>
         <div class="form-group"><label for="admin-insp-date">Date d'inspection</label><input type="date" id="admin-insp-date" /></div>
         <div class="form-group"><label for="admin-insp-km">Kilométrage relevé</label><input type="number" id="admin-insp-km" min="0" step="1" placeholder="Ex : 125000" /></div>
         <!-- #47 audit Chrome : checkpoints inspection vehicule (DGITM controles
