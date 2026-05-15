@@ -3149,7 +3149,7 @@
       </div>
 
       <div class="kpi-grid" style="margin-bottom:16px">
-        <div class="kpi"><div class="kpi-lbl">Ouverts</div><div class="kpi-val" id="inc-kpi-ouverts" style="color:var(--brand)">—</div><div class="kpi-sub">Action requise</div></div>
+        <div class="kpi"><div class="kpi-lbl">Ouverts</div><div class="kpi-val" id="inc-kpi-ouverts">—</div><div class="kpi-sub">Action requise</div></div>
         <div class="kpi"><div class="kpi-lbl">Résolus mois</div><div class="kpi-val" id="inc-kpi-resolus">—</div></div>
         <div class="kpi"><div class="kpi-lbl">Coût total</div><div class="kpi-val" id="inc-kpi-cout">—</div><div class="kpi-sub">À facturer assurance</div></div>
         <div class="kpi"><div class="kpi-lbl">Délai résolution</div><div class="kpi-val" id="inc-kpi-delai">—</div><div class="kpi-sub">Moyenne sur 30j</div></div>
@@ -3306,7 +3306,7 @@
       <!-- H18: Contrôles techniques à venir (peuplé dynamiquement depuis vehicules.dateCT) -->
       <div class="card" id="entr-ct-venir-card" style="margin-bottom:14px;display:none">
         <div class="card-header">
-          <h3 style="margin:0;font-size:14px;font-weight:700">Contrôles techniques à venir <span id="entr-ct-venir-count" style="font-size:12px;font-weight:500;color:var(--ds-text-muted)"></span></h3>
+          <h3>Contrôles techniques à venir <span id="entr-ct-venir-count" style="font-size:12px;font-weight:500;color:var(--ds-text-muted)"></span></h3>
         </div>
         <div class="table-wrapper">
           <table class="data-table" id="tb-ct-venir">
@@ -3318,8 +3318,8 @@
 
       <!-- H19 — Historique véhicule (timeline) -->
       <div class="card" id="entr-hist-vehicule-card" style="margin-bottom:14px">
-        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-          <h3 style="margin:0;font-size:14px;font-weight:700">Historique véhicule</h3>
+        <div class="card-header">
+          <h3>Historique véhicule</h3>
           <select id="entr-hist-vehicule-select" aria-label="Sélectionner un véhicule" style="font-size:12px;padding:4px 8px;border:1px solid var(--ds-border,var(--border));border-radius:6px;background:var(--bg-card);color:var(--text)" onchange="window.__entrHistVehicule&&window.__entrHistVehicule(this.value)">
             <option value="">— Sélectionner un véhicule —</option>
           </select>
@@ -3440,7 +3440,7 @@
       </div>
 
       <!-- Layout horizontal : Compteur heures (gauche) | Relevés kilométriques (droite) -->
-      <div class="heures-km-layout" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px">
+      <div class="heures-km-layout">
         <div class="card">
           <div class="card-header"><h3>Heures travaillées</h3><span id="heures-card-badge" class="badge ok"></span></div>
           <div class="table-wrapper">
@@ -3802,7 +3802,7 @@
         <div class="kpi"><div class="kpi-lbl">Cette semaine</div><div class="kpi-val" id="insp-kpi-semaine">—</div><div class="kpi-sub">Inspections réalisées</div></div>
         <div class="kpi"><div class="kpi-lbl">Défauts signalés</div><div class="kpi-val" id="insp-kpi-defauts">—</div><div class="kpi-sub">Points KO (30j)</div></div>
         <div class="kpi"><div class="kpi-lbl">Conformité globale</div><div class="kpi-val" id="insp-kpi-conformite">—</div><div class="kpi-sub">30 derniers jours</div></div>
-        <div class="kpi"><div class="kpi-lbl">Véhicule à risque</div><div class="kpi-val" id="insp-kpi-risque" style="font-size:1.1rem">—</div><div class="kpi-sub" id="insp-kpi-risque-sub"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Véhicule à risque</div><div class="kpi-val" id="insp-kpi-risque">—</div><div class="kpi-sub" id="insp-kpi-risque-sub"></div></div>
       </div>
       <!-- Phase 52 : combined period nav row (mockup-aligned) -->
       <div class="carb-period-nav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">

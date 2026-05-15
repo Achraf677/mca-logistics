@@ -21,7 +21,7 @@
 }
 
 /* Heures card headers — match mockup icons + labels */
-#page-heures .card .card-header h2 {
+#page-heures .card .card-header h3 {
   font-size: 15px;
   font-family: var(--font-display, 'Syne', sans-serif);
   font-weight: 800;
@@ -60,6 +60,15 @@
   flex: 1;
   max-width: 480px;
 }
+
+/* Inspections — risque KPI smaller font (plaque immat fits) */
+#insp-kpi-risque { font-size: 1.1rem; }
+
+/* Incidents — open count colored brand */
+#inc-kpi-ouverts { color: var(--brand, #e63946); }
+
+/* Entretiens — Historique véhicule card-header: wrap + gap for select */
+#entr-hist-vehicule-card .card-header { flex-wrap: wrap; gap: 8px; }
 
 /* ============ INCIDENTS — Chips toolbar styling ============ */
 
