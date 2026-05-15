@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v172-seed-legacy-factures-avoirs-acomptes-relances';
+const CACHE_VERSION = 'mca-v2026-05-16-v173-modal-paiement-cree-bouton-enregistrer-fonctionnel';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -113,6 +113,8 @@ const CORE_ASSETS = [
   '/script-charges-categories.js',
   // Phase 60 V7 polish — Fix boutons morts (5 fonctions undefined)
   '/script-dead-buttons-fix.js',
+  // Phase 60 V7 polish — Modal Enregistrer paiement (manquante)
+  '/script-modal-paiement.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts

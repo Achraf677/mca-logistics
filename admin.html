@@ -138,6 +138,8 @@
   <script defer src="script-charges-categories.js?v=1"></script>
   <!-- Phase 60 V7 polish — Fix boutons morts (setEncVue, navEncPeriode, executerResetCompteur, etc.) -->
   <script defer src="script-dead-buttons-fix.js?v=1"></script>
+  <!-- Phase 60 V7 polish — Modal Enregistrer paiement (Encaissement) -->
+  <script defer src="script-modal-paiement.js?v=1"></script>
   <!-- Phase 2 HTML refonte Vehicules : counts total + alertes CT/assurance. -->
   <script defer src="script-vehicules-counts.js?v=1"></script>
   <!-- Phase 48 : Véhicules card grid (fleet view, mockup-aligned). -->
@@ -5041,6 +5043,48 @@
         <div class="form-group full-width"><label>Commentaire</label><textarea id="admin-insp-commentaire" rows="3" placeholder="Détail des points KO ou observations" aria-label="Commentaire inspection"></textarea></div>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-inspection-admin')">Annuler</button><button class="btn-primary" onclick="ajouterInspectionAdmin()">Enregistrer</button></div>
+    </div>
+  </div>
+
+  <!-- Phase 60 V7 polish — Modal Enregistrer paiement (Encaissement). Btn admin.html:2743 référençait modal inexistante. -->
+  <div class="modal-overlay" id="modal-paiement">
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header"><h3>Enregistrer un paiement</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-paiement')">✕</button></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label>Livraison impayée *</label>
+            <select id="paiement-liv-select" aria-label="Sélectionner la livraison à régler">
+              <option value="">— Choisir une livraison —</option>
+            </select>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px" id="paiement-liv-info">Seules les livraisons non payées sont listées.</div>
+          </div>
+          <div class="form-group">
+            <label>Date paiement *</label>
+            <input type="date" id="paiement-date" aria-label="Date paiement" />
+          </div>
+          <div class="form-group">
+            <label>Mode</label>
+            <select id="paiement-mode" aria-label="Mode paiement">
+              <option value="virement">Virement</option>
+              <option value="cheque">Chèque</option>
+              <option value="cb">Carte bancaire</option>
+              <option value="espece">Espèces</option>
+              <option value="prelevement">Prélèvement</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Montant TTC (€)</label>
+            <input type="number" id="paiement-montant" min="0" step="0.01" placeholder="0.00" aria-label="Montant TTC" />
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Pré-rempli depuis la livraison. Modifiable pour acompte partiel.</div>
+          </div>
+          <div class="form-group full-width">
+            <label>Référence / note</label>
+            <input type="text" id="paiement-reference" placeholder="ex : VIR-123456 ou n° chèque" aria-label="Référence" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-paiement')">Annuler</button><button class="btn-primary" onclick="window.enregistrerPaiement&&window.enregistrerPaiement()">Enregistrer</button></div>
     </div>
   </div>
 
