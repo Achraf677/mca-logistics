@@ -3184,7 +3184,7 @@
       <div class="card">
         <div class="table-wrapper">
           <table class="data-table incidents-table">
-            <thead><tr><th>Date</th><th>Client</th><th>Chauffeur</th><th>Description</th><th>Gravité</th><th>Statut</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Date</th><th>Type</th><th>Véhicule</th><th>Chauffeur</th><th>Description</th><th>Statut</th><th>Actions</th></tr></thead>
             <tbody id="tb-incidents"></tbody>
           </table>
         </div>
@@ -3751,6 +3751,12 @@
             <thead id="thead-planning-semaine"><tr><th>Salarié</th><th>Lun</th><th>Mar</th><th>Mer</th><th>Jeu</th><th>Ven</th><th>Sam</th><th>Dim</th></tr></thead>
             <tbody id="tb-planning-semaine"><tr><td colspan="8" class="empty-row">Aucun planning créé</td></tr></tbody>
           </table>
+          <!-- Phase 66 : légende planning (mockup-aligned) -->
+          <div class="cal16-legend" style="padding:10px 16px;border-top:1px solid var(--border)">
+            <div class="cal16-legend-item"><div class="cal16-legend-dot" style="background:var(--brand)"></div>Tournée planifiée</div>
+            <div class="cal16-legend-item"><div class="cal16-legend-dot" style="background:var(--ds-warning,#ffd60a)"></div>Absence / Congé</div>
+            <div class="cal16-legend-item"><div class="cal16-legend-dot" style="background:var(--text-muted)"></div>Repos</div>
+          </div>
         </div>
       </div>
     </section>
@@ -4931,7 +4937,17 @@
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label for="inc-date">Date *</label><input type="date" id="inc-date" /></div>
-          <div class="form-group"><label>Gravité</label>
+          <div class="form-group"><label for="inc-type">Type</label>
+            <select id="inc-type" aria-label="inc type">
+              <option value="avarie" selected>Avarie</option>
+              <option value="accident">Accident</option>
+              <option value="vol">Vol</option>
+              <option value="retard">Retard</option>
+              <option value="reclamation">Réclamation client</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+          <div class="form-group"><label for="inc-gravite">Gravité</label>
             <select id="inc-gravite" aria-label="inc gravite">
               <option value="faible">Faible</option>
               <option value="moyen" selected>Moyen</option>

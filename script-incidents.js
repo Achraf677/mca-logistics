@@ -42,19 +42,35 @@ function afficherIncidents() {
   }
 
   const statBadge = { ouvert:'<span class="incident-badge incident-ouvert">Ouvert</span>', encours:'<span class="incident-badge incident-encours">En cours</span>', traite:'<span class="incident-badge incident-traite">✅ Traité</span>' };
-  const graviteBadge = {
-    faible:'<span class="incident-badge incident-traite">Faible</span>',
-    moyen:'<span class="incident-badge incident-encours">Moyen</span>',
-    grave:'<span class="incident-badge incident-ouvert">Grave</span>'
+
+  // Type badge (mockup-aligned): uses i.type if set, falls back to gravite-derived
+  const typeBadgeHtml = function(i) {
+    var t = i.type || '';
+    if (!t) {
+      // derive from gravite
+      var g = i.gravite || 'moyen';
+      if (g === 'grave') t = 'accident';
+      else if (g === 'faible') t = 'autre';
+      else t = 'avarie';
+    }
+    var labels = { accident:'Accident', avarie:'Avarie', vol:'Vol', retard:'Retard', reclamation:'Réclamation', autre:'Autre' };
+    var label = labels[t] || t;
+    var cls = (t === 'accident') ? 'badge alert' : (t === 'vol' || t === 'autre') ? 'badge' : 'badge warn';
+    return '<span class="' + cls + '">' + label + '</span>';
   };
 
+  var livraisons = charger('livraisons');
+
   paginer(incidents, 'tb-incidents', function(items) {
-    return items.map(i => `<tr>
+    return items.map(i => {
+      var vehImmat = '';
+      if (i.livId) { var liv = livraisons.find(l => l.id === i.livId); vehImmat = (liv && (liv.vehImmat || liv.vehicule)) || ''; }
+      return `<tr>
     <td>${formatDateExport(i.date)}</td>
-    <td><strong>${i.client||'—'}</strong></td>
+    <td>${typeBadgeHtml(i)}</td>
+    <td style="font-family:var(--font-mono,monospace);font-size:.82rem">${vehImmat||'—'}</td>
     <td>${i.salNom||i.chaufNom||'—'}</td>
     <td style="font-size:.83rem">${i.description||'—'}</td>
-    <td>${graviteBadge[i.gravite||'moyen']||graviteBadge.moyen}</td>
     <td>${statBadge[i.statut||'ouvert']||''}</td>
     <td>${buildInlineActionsDropdown('Actions', [
       { icon:'🔴', label:'Marquer ouvert', action:`changerStatutIncident('${i.id}','ouvert')` },
@@ -62,7 +78,8 @@ function afficherIncidents() {
       { icon:'✅', label:'Marquer traité', action:`changerStatutIncident('${i.id}','traite')` },
       { icon:'🗑️', label:'Supprimer', action:`supprimerIncident('${i.id}')`, danger:true }
     ])}</td>
-  </tr>`).join('');
+  </tr>`;
+    }).join('');
   }, 12);
 }
 
@@ -71,6 +88,7 @@ function ajouterIncident() {
   const date     = document.getElementById('inc-date')?.value || aujourdhui();
   const livId    = document.getElementById('inc-livraison')?.value || '';
   const salId    = document.getElementById('inc-salarie')?.value || '';
+  const type     = document.getElementById('inc-type')?.value || 'avarie';
   // #51 audit Chrome : sanitize defense en profondeur (le rendu echappe deja
   // mais on retire <script>/<iframe>/on*= avant stockage pour eviter qu'un
   // futur renderer innerHTML execute du code injecte).
@@ -92,7 +110,7 @@ function ajouterIncident() {
   const finalSalNom = sal?.nom || liv?.chaufNom || '';
 
   const incidents = charger('incidents');
-  const incident  = { id:genId(), date, livId, salId:finalSalId, salNom:finalSalNom, client:liv?.client||'', chaufId:finalSalId, chaufNom:finalSalNom, description:desc, gravite, statut:'ouvert', creeLe:new Date().toISOString() };
+  const incident  = { id:genId(), date, livId, salId:finalSalId, salNom:finalSalNom, client:liv?.client||'', chaufId:finalSalId, chaufNom:finalSalNom, description:desc, type, gravite, statut:'ouvert', creeLe:new Date().toISOString() };
   incidents.push(incident);
   sauvegarder('incidents', incidents);
   ajouterEntreeAudit('Création incident', (incident.client || finalSalNom || 'Incident') + ' · ' + gravite);
