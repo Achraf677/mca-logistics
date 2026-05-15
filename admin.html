@@ -859,7 +859,7 @@
       <!-- VUE CALENDRIER -->
       <div id="vue-calendrier" style="display:none">
         <div class="card">
-          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+          <div class="card-header card-header-wrap">
             <div class="cal-nav">
               <button class="cal-nav-btn" onclick="calNaviguer(-1)" aria-label="Mois précédent">‹</button>
               <span class="cal-mois-label" id="cal-mois-label"></span>
@@ -2008,7 +2008,7 @@
 
       <!-- Phase 46 : card wrapper "Liste des alertes" + quick filters (mockup-matched) -->
       <div class="card" id="card-alertes-liste" style="margin-bottom:16px">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div class="card-header card-header-wrap">
           <div style="font-family:var(--font-display);font-size:14px;font-weight:800">Liste des alertes</div>
           <!-- Phase 60 V7 M5 — Sub-tabs Critique/À traiter/Pour info/Reportées (mockup-aligned) -->
           <div role="tablist" aria-label="Filtres alertes par sévérité" style="display:flex;gap:4px;border-bottom:1px solid var(--border);padding:0 2px">
@@ -2210,9 +2210,9 @@
 
       <!-- Phase 60 V7 polish — Historique déclarations TVA (réintègre clé legacy tva_declarations) -->
       <div class="card mt-20" id="tva-historique-card">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <div class="card-header">
           <div>
-            <h3 style="margin:0">Historique des déclarations TVA</h3>
+            <h3>Historique des déclarations TVA</h3>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><span id="tva-historique-count">0</span> déclaration(s) — <span id="tva-historique-total">0 €</span> reversés cumulés</div>
           </div>
         </div>
@@ -2378,7 +2378,7 @@
       <div class="params-grid">
 
         <!-- Cabinet comptable (mockup-aligned Phase 62) -->
-        <div class="card" style="margin:0">
+        <div class="card">
           <div class="card-header"><h3>Cabinet comptable</h3><span class="badge ok" id="param-cabinet-sync-badge">Sync OK</span></div>
           <div style="padding:18px 20px">
             <div class="form-grid">
@@ -2510,7 +2510,7 @@
       <div class="param-panel" id="ptab-securite">
       <div class="params-grid">
 
-        <div class="card" style="margin:0">
+        <div class="card">
           <div class="card-header"><h3>Mot de passe administrateur</h3></div>
           <div style="padding:18px 20px">
             <div id="param-admin-compte" style="margin-bottom:12px;font-size:12px;color:var(--text-muted)">Compte connecté : —</div>
@@ -2527,7 +2527,7 @@
           </div>
         </div>
 
-        <div class="card" style="margin:0">
+        <div class="card">
           <div class="card-header"><h3>Authentification &amp; sessions</h3></div>
           <div style="padding:18px 20px">
             <div class="toggle-row"><div class="info"><div class="name">Authentification 2 facteurs (2FA)</div><div class="desc">Code Authenticator au login</div></div><div class="toggle on"></div></div>
@@ -2547,7 +2547,7 @@
       <div class="param-panel" id="ptab-integrations">
       <div class="params-grid">
 
-        <div class="card" style="margin:0">
+        <div class="card">
           <div class="card-header"><h3>Pennylane (compta)</h3><span class="badge ok">Connecté</span></div>
           <div style="padding:18px 20px">
             <div class="field"><label>Company ID</label><input type="text" value="23200904" class="mono" readonly / aria-label="Pennylane company ID" /></div>
@@ -2556,7 +2556,7 @@
           </div>
         </div>
 
-        <div class="card" style="margin:0">
+        <div class="card">
           <div class="card-header"><h3>Qonto (banque)</h3><span class="badge ok">Connecté</span></div>
           <div style="padding:18px 20px">
             <div class="field"><label>Organization slug</label><input type="text" value="mca-logistics-3134" class="mono" readonly / aria-label="Qonto org slug" /></div>
@@ -2565,7 +2565,7 @@
           </div>
         </div>
 
-        <div class="card" style="margin:0">
+        <div class="card">
           <div class="card-header"><h3>Gemini AI</h3><span class="badge ok">Tier 1</span></div>
           <div style="padding:18px 20px">
             <div style="font-size:12px;color:var(--text-muted);padding:0 0 10px">Consommation : <strong style="color:var(--text)">~0,55-0,90 €/mois</strong> · Cap : 5 €/mois</div>
@@ -2574,7 +2574,7 @@
           </div>
         </div>
 
-        <div class="card" style="margin:0">
+        <div class="card">
           <div class="card-header"><h3>OpenRouteService (Maps)</h3><span class="badge ok">Actif</span></div>
           <div style="padding:18px 20px">
             <div style="font-size:12px;color:var(--text-muted);padding:0 0 10px">Quota : <strong style="color:var(--text)">2000 req/jour</strong> · Profil : HGV (camion)</div>
@@ -2589,7 +2589,7 @@
       <div class="param-panel" id="ptab-apparence">
       <div class="params-grid">
 
-        <div class="card" style="margin:0">
+        <div class="card">
           <div class="card-header"><h3>Thème &amp; palette</h3></div>
           <div style="padding:18px 20px">
             <div class="field"><label for="param-theme-mode">Mode</label>
@@ -2607,7 +2607,7 @@
           </div>
         </div>
 
-        <div class="card" style="margin:0">
+        <div class="card">
           <div class="card-header"><h3>Préférences</h3></div>
           <div style="padding:18px 20px">
             <div class="field"><label for="param-langue">Langue</label>
@@ -2638,7 +2638,7 @@
       <div class="param-panel" id="ptab-sauvegarde">
       <div class="params-grid">
 
-        <div class="card" style="margin:0">
+        <div class="card">
           <div class="card-header"><h3>Sauvegarde automatique</h3><span class="badge ok">Actif</span></div>
           <div style="padding:18px 20px">
             <div class="toggle-row"><div class="info"><div class="name">Backup quotidien Supabase</div><div class="desc">Snapshot 02:00 UTC</div></div><div class="toggle on"></div></div>
@@ -2656,7 +2656,7 @@
           </div>
         </div>
 
-        <div class="card" style="margin:0">
+        <div class="card">
           <div class="card-header"><h3>Audit log &amp; journal</h3></div>
           <div style="padding:18px 20px">
             <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Toutes les modifications admin sont tracées dans <code style="color:var(--brand);background:var(--bg-elevated);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:11px">audit_log</code> (18 tables couvertes).</div>
@@ -2673,7 +2673,7 @@
           </div>
         </div>
 
-        <div class="card params-card-wide" style="margin:0">
+        <div class="card params-card-wide">
           <div class="card-header"><h3>Historique des versions</h3></div>
           <div style="padding:18px 20px">
             <p style="font-size:12px;color:var(--text-muted);margin:0 0 14px">
@@ -3895,8 +3895,8 @@
         <button class="ds-chip" type="button" data-brouillons-statut="ocr" onclick="brouillonsChipFilter(this)">OCR factures</button>
       </div>
       <div class="card" style="padding:0">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-          <div style="font-family:var(--ds-font-display,var(--font-display));font-size:14px;font-weight:800">Actions en attente</div>
+        <div class="card-header">
+          <h3>Actions en attente</h3>
           <div style="font-size:.78rem;color:var(--text-muted)">Approuver ou rejeter chaque proposition</div>
         </div>
         <div style="padding:14px 18px" id="brouillons-ia-list">

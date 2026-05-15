@@ -324,3 +324,6 @@
   color: var(--text-muted, #7c8299);
   margin-top: 2px;
 }
+
+/* Phase 72 : card-header-wrap (adds flex-wrap + gap to base .card-header flex) */
+.card-header-wrap { flex-wrap: wrap; gap: 10px; }
