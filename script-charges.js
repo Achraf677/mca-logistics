@@ -207,14 +207,21 @@ function peuplerSelectCategoriesCharge() {
   var selectionCourante = sel.value;
   // Catégories canoniques (slugs utilisés ailleurs dans le code : carburant, peage, etc.)
   var canoniques = [
-    { value: 'carburant',  label: 'Carburant' },
-    { value: 'peage',      label: 'Péage' },
-    { value: 'entretien',  label: 'Entretien' },
-    { value: 'assurance',  label: 'Assurance' },
-    { value: 'salaires',   label: 'Salaires' },
-    { value: 'lld_credit', label: 'LLD / Crédit' },
-    { value: 'tva',        label: 'TVA' },
-    { value: 'autre',      label: 'Autre' }
+    { value: 'carburant',     label: 'Carburant' },
+    { value: 'peage',         label: 'Péage' },
+    { value: 'entretien',     label: 'Entretien' },
+    { value: 'assurance',     label: 'Assurance' },
+    { value: 'salaires',      label: 'Salaires' },
+    { value: 'sociales',      label: 'Charges sociales' },
+    { value: 'loyer',         label: 'Loyer' },
+    { value: 'banque',        label: 'Banque' },
+    { value: 'comptabilite',  label: 'Comptabilité' },
+    { value: 'telecom',       label: 'Télécom' },
+    { value: 'hosting',       label: 'Hosting' },
+    { value: 'fournitures',   label: 'Fournitures' },
+    { value: 'lld_credit',    label: 'LLD / Crédit' },
+    { value: 'tva',           label: 'TVA' },
+    { value: 'autre',         label: 'Autre' }
   ];
   // Custom user via Paramètres > Comptabilité (charges_categories)
   var custom = [];
@@ -248,15 +255,22 @@ function peuplerFiltreCategoriesCharge() {
   if (!sel) return;
   var selectionCourante = sel.value;
   var canoniques = [
-    { value: '',           label: 'Toutes catégories' },
-    { value: 'carburant',  label: 'Carburant' },
-    { value: 'peage',      label: 'Péage' },
-    { value: 'entretien',  label: 'Entretien' },
-    { value: 'assurance',  label: 'Assurance' },
-    { value: 'salaires',   label: 'Salaires' },
-    { value: 'lld_credit', label: 'LLD / Crédit' },
-    { value: 'tva',        label: 'TVA' },
-    { value: 'autre',      label: 'Autre' }
+    { value: '',              label: 'Toutes catégories' },
+    { value: 'carburant',     label: 'Carburant' },
+    { value: 'peage',         label: 'Péage' },
+    { value: 'entretien',     label: 'Entretien' },
+    { value: 'assurance',     label: 'Assurance' },
+    { value: 'salaires',      label: 'Salaires' },
+    { value: 'sociales',      label: 'Charges sociales' },
+    { value: 'loyer',         label: 'Loyer' },
+    { value: 'banque',        label: 'Banque' },
+    { value: 'comptabilite',  label: 'Comptabilité' },
+    { value: 'telecom',       label: 'Télécom' },
+    { value: 'hosting',       label: 'Hosting' },
+    { value: 'fournitures',   label: 'Fournitures' },
+    { value: 'lld_credit',    label: 'LLD / Crédit' },
+    { value: 'tva',           label: 'TVA' },
+    { value: 'autre',         label: 'Autre' }
   ];
   var custom = [];
   try {

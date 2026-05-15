@@ -4,7 +4,13 @@
 (function () {
   'use strict';
 
-  var DEFAULTS = ['Carburant', 'Garage', 'Assurance', 'Péages', 'Parking', 'Formation', 'Maintenance', 'Autre'];
+  // Phase 60 V7 polish — DEFAULTS alignés avec catégories réellement utilisées dans le seed dev + métier transport :
+  // assurance/entretien/loyer/banque/telecom/comptabilite/hosting/sociales/fournitures + canoniques transport.
+  var DEFAULTS = [
+    'Carburant', 'Entretien', 'Assurance', 'Péages', 'Parking',
+    'Loyer', 'Banque', 'Comptabilité', 'Télécom', 'Hosting',
+    'Charges sociales', 'Fournitures', 'Formation', 'Autre'
+  ];
 
   function lire() {
     try {
