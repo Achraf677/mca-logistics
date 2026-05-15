@@ -3,9 +3,9 @@
 > Document pivot pour ne pas perdre le contexte d'une session à l'autre.
 > Mis à jour à chaque fin de session significative.
 >
-> **Dernière mise à jour** : 2026-05-12
+> **Dernière mise à jour** : 2026-05-15
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : Phase 57 — Encaissement 65→80%, Statistiques 65→78%, Équipe 65→75% (commit 13c5806)
+> **Dernier commit** : Phase 62 — Heures 88→93%, Paramètres 88→93% (commit cecf373)
 
 ---
 
@@ -40,9 +40,9 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Calendrier | 90% | 100% | Phase 59 : sub-meta mockup format + structure complète. Session 30+ : #cal16-kpi-feries compté depuis DOM (.cal16-day-ferie cells), fallback label mois, intervalle 5s→1.5s. |
 | Alertes | 90% | 100% | Phase 59 : Export dropdown ajouté (CSV + Excel impl réels) + sub-meta mockup format |
 | Équipe | 90% | 100% | Phase 59 : Export dropdown ajouté (CSV + Excel impl réels — numéro/nom/prénom/rôle/permis/visite médicale) + sub-meta mockup |
-| Heures | 88% | 100% | Phase 59 : exporterHeuresExcel vraiment impl (était fallback) + sub-meta mockup |
+| Heures | 93% | 100% | Phase 62 : bouton "Export paie", CE 561 kpi-sub câblé (nom chauffeur ×N), chips chauffeur dynamiques, card headers h3 + renommés ("Heures travaillées"/"Kilométrage flotte") + badges id |
 | Incidents | 90% | 100% | Phase 59 : exporterIncidentsExcel vraiment impl + sub-meta "en attente expertise" mockup-aligned |
-| Paramètres | 88% | 100% | Phase 59 + session 30+ : S29 shell bleeding through tous tabs → fix CSS :has(#ptab-entreprise.active). Notifications/Intégrations propres. Visual fine-tuning reste à valider user. |
+| Paramètres | 93% | 100% | Phase 62 : h2→h3 card headers Entreprise (Informations entreprise/Identité visuelle/Postes) + Comptabilité (Fiscalité TVA→Paramétrage TVA/Trésorerie/Catégories). Nouvelle carte "Cabinet comptable" avec badge Sync OK, toggles FEC+sync, save localStorage. |
 | Brouillons IA | 90% | 100% | Phase 59 : chips filtrent vraiment (setStatusFilter) + sub-meta mockup + Valider/Rejeter sélection batch wired |
 | Planning | 90% | 100% | Phase 59 : exporterPlanningCSV + exporterPlanningExcel + exporterPlanningIcal (.ics) vraiment impl (étaient stubs alert) |
 | Mobile m.html | 78% | 100% | Phase 59 audit code-level : m-tabs déjà accessibles (aria-hidden SVG + text labels), 75% reflète manque mockup mobile. Polish visuel impossible sans mockup mobile dédié. |
