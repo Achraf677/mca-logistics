@@ -60,10 +60,10 @@ Ces clés EXISTENT dans le code (lues ou écrites) mais semblent **orphelines** 
 ### Compta legacy (parallèle à `paiements`/`charges`/Supabase)
 | Clé | Lue par | Écrite par | Statut suggéré |
 |---|---|---|---|
-| `factures_emises` | Livraisons (génération facture) | génération facture | **Intégrer** : table "Factures émises" sur Encaissement |
+| `factures_emises` | ✅ RÉINTÉGRÉ 2026-05-15 — section "Factures émises" page Encaissement + export CSV (script-encaissement-legacy.js). |
 | `encaissements` / `encaissements_manuels` | Encaissement | UI form ? | **Fusionner** avec `paiements` (source unique) |
-| `avoirs` / `avoirs_emis` | Encaissement | génération avoir | **Intégrer** : section "Avoirs" sur Encaissement |
-| `acomptes` | Encaissement | UI form acomptes | **Intégrer** : section "Acomptes" sur Encaissement |
+| `avoirs` / `avoirs_emis` | ✅ RÉINTÉGRÉ 2026-05-15 — section "Avoirs émis" page Encaissement (script-encaissement-legacy.js). |
+| `acomptes` | ✅ RÉINTÉGRÉ 2026-05-15 — section "Acomptes reçus" page Encaissement (script-encaissement-legacy.js). |
 | `relances` / `relances_log` | Encaissement (relances.js) | bouton "Relancer" | **Intégrer** : historique relances sur drawer client |
 
 ### RH legacy
@@ -80,19 +80,19 @@ Ces clés EXISTENT dans le code (lues ou écrites) mais semblent **orphelines** 
 | Clé | Statut | Action |
 |---|---|---|
 | `documents_livraison_<id>` | Pièces jointes par livraison | **Réintégrer** : onglet Documents drawer livraison (existe déjà — vérifier wiring) |
-| `logo_entreprise` / `logo_entreprise_path` / `logo_entreprise_url` | 3 clés pour 1 logo | **Fusionner** : 1 seule clé |
+| `logo_entreprise` / `logo_entreprise_path` / `logo_entreprise_url` | ✅ DÉJÀ propre (verified 2026-05-15) — `url` = canonique display, `path` = path Supabase Storage pour re-signing, `logo_entreprise` = fallback legacy data URL pré-Supabase. Pattern intentionnel. |
 | `notes_internes` | Notes admin globales | **Réintégrer** : encart notes Dashboard ou Paramètres |
 
 ### Audit/Agent IA
 | Clé | Statut | Action |
 |---|---|---|
 | `audit_log` (vs Supabase `audit_log_entries`) | Log local fallback | **Garder** comme cache offline |
-| `agent_decisions` | Décisions agent IA | **Réintégrer** : historique Brouillons IA section "Décisions" |
+| `agent_decisions` | ✅ DÉJÀ intégré (verified 2026-05-15) — affiché dans panneau-agent (#agent-decisions-list, admin.html:5172) côté PC + script-mobile.js lignes 3920-4150 côté mobile. Pattern : panneau dédié, pas onglet Brouillons IA. |
 
 ### Compta config
 | Clé | Statut | Action |
 |---|---|---|
-| `tva_declarations` | Archives déclarations TVA | **Réintégrer** : page TVA section "Historique déclarations" |
+| `tva_declarations` | ✅ RÉINTÉGRÉ 2026-05-15 — page TVA section "Historique des déclarations TVA" (admin.html `#tva-historique-card` + script-tva-historique.js). |
 | `charges_categories` | Custom catégories charges | **Réintégrer** : Paramètres > Comptabilité |
 | `config_anomalies_carburant` | Seuils détection anomalies | ✅ DÉJÀ : modal "Configurer anomalies" |
 | `config_rentabilite` | Config calcul rentabilité | ✅ DÉJÀ : modal "Config" Rentabilité |
@@ -131,7 +131,7 @@ _(Aucun pour l'instant — toutes les clés ont au moins un read ou un write que
 
 ### Priorité 1 — Fusion clés dupliquées (gain de cohérence immédiat)
 1. **Params entreprise** : `params` + `params_entreprise` + `config_entreprise` → 1 seule (`params_entreprise`)
-2. **Logo** : `logo_entreprise` + `logo_entreprise_path` + `logo_entreprise_url` → 1 seule (`logo_entreprise_url`)
+2. ~~**Logo** : `logo_entreprise` + `logo_entreprise_path` + `logo_entreprise_url`~~ — FALSE POSITIVE 2026-05-15 : 3 rôles distincts (url canonique / path Supabase / fallback data URL). Pattern intentionnel.
 3. **Heures** : `heures` + `heures_pointage` → 1 seule (`heures`)
 4. **Encaissement** : `encaissements` + `encaissements_manuels` → 1 seule (fusionnée avec `paiements`)
 5. **Chauffeurs** : supprimer `chauffeurs` (redondant avec `salaries`)

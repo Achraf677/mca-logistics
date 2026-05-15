@@ -130,6 +130,10 @@
   <script defer src="script-extra-charts.js?v=1"></script>
   <!-- Phase 60 V7 polish — Inspections exports (PDF/CSV/Excel) qui manquaient -->
   <script defer src="script-exports-inspections.js?v=1"></script>
+  <!-- Phase 60 V7 polish — Encaissement legacy : Factures émises + Avoirs + Acomptes -->
+  <script defer src="script-encaissement-legacy.js?v=1"></script>
+  <!-- Phase 60 V7 polish — TVA Historique déclarations -->
+  <script defer src="script-tva-historique.js?v=1"></script>
   <!-- Phase 2 HTML refonte Vehicules : counts total + alertes CT/assurance. -->
   <script defer src="script-vehicules-counts.js?v=1"></script>
   <!-- Phase 48 : Véhicules card grid (fleet view, mockup-aligned). -->
@@ -2195,6 +2199,22 @@
         </div>
         <div class="modal-body" id="tva-solde-detail"></div>
       </div>
+
+      <!-- Phase 60 V7 polish — Historique déclarations TVA (réintègre clé legacy tva_declarations) -->
+      <div class="card mt-20" id="tva-historique-card">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <h2 style="margin:0">Historique des déclarations TVA</h2>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><span id="tva-historique-count">0</span> déclaration(s) — <span id="tva-historique-total">0 €</span> reversés cumulés</div>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Période</th><th>TVA collectée</th><th>TVA déductible</th><th>À reverser</th><th>Statut</th></tr></thead>
+            <tbody id="tb-tva-historique"><tr><td colspan="5" class="empty-row">Aucune déclaration archivée</td></tr></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- ============================================================
@@ -2750,6 +2770,53 @@
       </div>
 
       <div id="encaissement-content"></div>
+
+      <!-- Phase 60 V7 polish — Réintégration legacy localStorage (factures_emises + avoirs_emis + acomptes) -->
+      <div class="card" id="enc-factures-emises-card" style="margin-top:16px">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-family:var(--font-display);font-size:15px;font-weight:800">Factures émises</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><span id="enc-fact-count">0</span> facture(s) générée(s) — <span id="enc-fact-total">0 €</span> TTC total</div>
+          </div>
+          <button class="btn-secondary" onclick="window.exporterFacturesEmisesCSV&&window.exporterFacturesEmisesCSV()" title="Export CSV factures émises" style="font-size:12px;padding:6px 10px">Export CSV</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>N° Facture</th><th>Client</th><th>Date</th><th>Montant HT</th><th>Montant TTC</th><th>Statut</th></tr></thead>
+            <tbody id="tb-enc-factures"><tr><td colspan="6" class="empty-row">Aucune facture émise</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" id="enc-avoirs-card" style="margin-top:16px">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-family:var(--font-display);font-size:15px;font-weight:800">Avoirs émis</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><span id="enc-avoirs-count">0</span> avoir(s) — <span id="enc-avoirs-total">0 €</span> TTC déduit</div>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>N° Avoir</th><th>Client</th><th>Date</th><th>Motif</th><th>Montant HT</th><th>Montant TTC</th></tr></thead>
+            <tbody id="tb-enc-avoirs"><tr><td colspan="6" class="empty-row">Aucun avoir émis</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" id="enc-acomptes-card" style="margin-top:16px">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-family:var(--font-display);font-size:15px;font-weight:800">Acomptes reçus</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><span id="enc-acomptes-count">0</span> acompte(s) — <span id="enc-acomptes-total">0 €</span> reçus</div>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Client</th><th>Référence livraison</th><th>Mode</th><th>Montant</th><th>Note</th></tr></thead>
+            <tbody id="tb-enc-acomptes"><tr><td colspan="6" class="empty-row">Aucun acompte enregistré</td></tr></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- ============================================================

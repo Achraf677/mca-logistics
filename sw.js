@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-15-v162-polish-dead-buttons-objectifs-inspections-exports';
+const CACHE_VERSION = 'mca-v2026-05-15-v163-legacy-reintegration-encaissement-tva';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -105,6 +105,10 @@ const CORE_ASSETS = [
   '/script-equipe-overview.js',
   // Phase 60 V7 polish — Inspections exports PDF/CSV/Excel
   '/script-exports-inspections.js',
+  // Phase 60 V7 polish — Encaissement legacy : factures_emises/avoirs/acomptes
+  '/script-encaissement-legacy.js',
+  // Phase 60 V7 polish — TVA Historique déclarations (tva_declarations)
+  '/script-tva-historique.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
