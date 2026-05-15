@@ -69,16 +69,36 @@
     if (!canvas) return;
     destroyIfExists('_chartCarbEvol');
     var carburant = lire('carburant');
+    // Pré-calcul des deltas par véhicule sur l'ensemble des pleins (1 passe)
+    var pleinsParVeh = {};
+    carburant.forEach(function (p) {
+      if (!p || !p.vehId || !p.litres || !p.km || !p.date) return;
+      if (!pleinsParVeh[p.vehId]) pleinsParVeh[p.vehId] = [];
+      pleinsParVeh[p.vehId].push(p);
+    });
+    // Pour chaque véhicule, calcule delta km entre pleins consécutifs (triés par km)
+    var deltasPleins = [];  // [{ date, litres, distance }]
+    Object.keys(pleinsParVeh).forEach(function (vid) {
+      var pleins = pleinsParVeh[vid].sort(function (a, b) {
+        return (parseFloat(a.km) || 0) - (parseFloat(b.km) || 0);
+      });
+      for (var i = 1; i < pleins.length; i++) {
+        var delta = (parseFloat(pleins[i].km) || 0) - (parseFloat(pleins[i - 1].km) || 0);
+        if (delta > 0 && delta < 5000) {
+          deltasPleins.push({ date: pleins[i].date, litres: parseFloat(pleins[i].litres) || 0, distance: delta });
+        }
+      }
+    });
     var months = last6Months();
     var data = months.map(function (m) {
-      var pleins = carburant.filter(function (p) {
-        if (!p || !p.date) return false;
-        var d = new Date(p.date);
-        return d.getFullYear() === m.year && d.getMonth() === m.month;
+      var inMonth = deltasPleins.filter(function (d) {
+        if (!d.date) return false;
+        var dt = new Date(d.date);
+        return dt.getFullYear() === m.year && dt.getMonth() === m.month;
       });
-      if (!pleins.length) return null;
-      var totalL = pleins.reduce(function (s, p) { return s + (parseFloat(p.litres) || 0); }, 0);
-      var totalKm = pleins.reduce(function (s, p) { return s + (parseFloat(p.km) || 0); }, 0);
+      if (!inMonth.length) return null;
+      var totalL = inMonth.reduce(function (s, d) { return s + d.litres; }, 0);
+      var totalKm = inMonth.reduce(function (s, d) { return s + d.distance; }, 0);
       if (totalKm === 0) return null;
       return Math.round((totalL / totalKm) * 100 * 10) / 10;  // L/100km
     });
@@ -115,20 +135,38 @@
     destroyIfExists('_chartCarbVeh');
     var carburant = lire('carburant');
     var vehicules = lire('vehicules');
-    var consoParVeh = {};
+    // Group pleins par véhicule, trier par km croissant
+    var pleinsParVeh = {};
     carburant.forEach(function (p) {
-      var v = vehicules.find(function (x) { return x && x.id === p.vehId; });
+      if (!p || !p.vehId || !p.litres || !p.km) return;
+      if (!pleinsParVeh[p.vehId]) pleinsParVeh[p.vehId] = [];
+      pleinsParVeh[p.vehId].push(p);
+    });
+    var consoParVeh = {};
+    Object.keys(pleinsParVeh).forEach(function (vid) {
+      var v = vehicules.find(function (x) { return x && x.id === vid; });
       if (!v) return;
       var key = v.modele || v.immat || v.id;
-      if (!consoParVeh[key]) consoParVeh[key] = { totalL: 0, totalKm: 0 };
-      consoParVeh[key].totalL += parseFloat(p.litres) || 0;
-      consoParVeh[key].totalKm += parseFloat(p.km) || 0;
+      var pleins = pleinsParVeh[vid].sort(function (a, b) {
+        return (parseFloat(a.km) || 0) - (parseFloat(b.km) || 0);
+      });
+      var totalL = 0, totalDistance = 0;
+      // Pour chaque plein > 1er, calcule delta km
+      for (var i = 1; i < pleins.length; i++) {
+        var delta = (parseFloat(pleins[i].km) || 0) - (parseFloat(pleins[i - 1].km) || 0);
+        if (delta > 0 && delta < 5000) {  // Skip outliers (>5000km entre 2 pleins = anomalie)
+          totalDistance += delta;
+          totalL += parseFloat(pleins[i].litres) || 0;
+        }
+      }
+      consoParVeh[key] = { totalL: totalL, totalKm: totalDistance };
     });
     var entries = Object.keys(consoParVeh).map(function (k) {
       var c = consoParVeh[k];
       var conso = c.totalKm > 0 ? Math.round((c.totalL / c.totalKm) * 100 * 10) / 10 : 0;
       return { label: k, conso: conso };
-    }).sort(function (a, b) { return b.conso - a.conso; }).slice(0, 6);
+    }).filter(function (e) { return e.conso > 0; })
+      .sort(function (a, b) { return b.conso - a.conso; }).slice(0, 6);
     window._chartCarbVeh = new Chart(canvas, {
       type: 'bar',
       data: {
