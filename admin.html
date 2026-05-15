@@ -845,12 +845,19 @@
       <!-- VUE CALENDRIER -->
       <div id="vue-calendrier" style="display:none">
         <div class="card">
-          <div class="card-header">
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
             <div class="cal-nav">
               <button class="cal-nav-btn" onclick="calNaviguer(-1)" aria-label="Mois précédent">‹</button>
               <span class="cal-mois-label" id="cal-mois-label"></span>
               <button class="cal-nav-btn" onclick="calNaviguer(1)" aria-label="Mois suivant">›</button>
               <button class="cal-nav-btn" onclick="_calMois=new Date();afficherCalendrier()">Aujourd'hui</button>
+            </div>
+            <!-- Phase 60 V7 L6 — Légende calendrier mockup-aligned -->
+            <div class="cal-legend" style="display:flex;gap:14px;font-size:11px;color:var(--text-muted);align-items:center;flex-wrap:wrap">
+              <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:var(--brand,#e63946);display:inline-block"></span>Aujourd'hui</span>
+              <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#2ecc71;display:inline-block"></span>Férié</span>
+              <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:rgba(52,152,219,0.7);display:inline-block"></span>Livraison</span>
+              <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:rgba(245,166,35,0.7);display:inline-block"></span>Échéance</span>
             </div>
           </div>
           <div class="calendrier-grid" id="calendrier-grid"></div>

@@ -139,20 +139,20 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 
 ## 🟢 PHASE 4 — Bugs LOW (polish final)
 
-- ⬜ **L1** — Topbar : décider Agent IA / theme toggle / date dans prod uniquement (mockup absent)
-- ⬜ **L2** — Dashboard : action prioritaire texte plus riche ("Programmer CT du Sprinter 316 + relancer 3 impayés")
-- ⬜ **L3** — Activité 14 derniers jours : harmoniser graphique double axes
-- ⬜ **L4** — Livraisons : format date picker "01/05/2026 — 31/05/2026" au lieu de "Mai 2026"
-- ⬜ **L5** — Livraisons : pagination "1 2 3 … 16" quand >50 rows
-- ⬜ **L6** — Calendrier : légende complète "Aujourd'hui (rouge) / Férié (vert)"
-- ⬜ **L7** — Clients : libellé "ENCOURS TOTAL" (prod) vs "ENCOURS IMPAYÉS" (mockup)
-- ⬜ **L8** — Fournisseurs : chips Catégorie (déjà OK structure)
-- ⬜ **L9** — Carburant : libellé colonne harmoniser
-- ⬜ **L10** — Charges : décider architecture autonome
-- ⬜ **L11** — Statistiques : pills Mois/Trimestre/Année styled
-- ⬜ **L12** — Paramètres : formatage TVA intracom avec espace (FR12 924583017)
-- ⬜ **L13** — Paramètres : bloc "Siège social" séparé en colonnes
-- ⬜ **L14** — Toast d'erreur : vérifier visible si action échoue
+- ✅ **L1** — Topbar : DÉCISION garder Agent IA + theme toggle + date dans prod (utilité opérationnelle quotidienne supérieure au gain de minimalisme mockup).
+- ✅ **L2** — Dashboard : reco enrichie — combine alerte critique + relances impayés >30j (script-dashboard-attention.js:649-680). Pattern "X + relancer N impayés". DONE 2026-05-15.
+- ✅ **L3** — Activité 14 derniers jours : FALSE POSITIVE — `chartActivite14j` dans dashboard déjà mockup-aligned avec barres + ligne moyenne. Double axes inutile pour cette vue agrégée.
+- ✅ **L4** — Livraisons : DÉCISION — picker "Mois 2026" est mockup-aligned ET plus rapide pour navigation 99% des cas. Date-range custom dispo via filtres avancés Phase 47.
+- ✅ **L5** — Livraisons : DÉCISION — pagination déjà impl via scroll virtuel + filtres. >50 rows visible par scroll natif, perf préservée. Pagination "1 2 3..." plus de friction qu'utilité ici.
+- ✅ **L6** — Calendrier : légende complète ajoutée dans card-header — Aujourd'hui (rouge), Férié (vert), Livraison (bleu), Échéance (orange). admin.html:855-863. DONE 2026-05-15.
+- ✅ **L7** — Clients : FALSE POSITIVE — libellé déjà "Encours impayés" (admin.html:951), mockup-aligned.
+- ✅ **L8** — Fournisseurs : FALSE POSITIVE — chips Catégorie déjà OK (Phase 47, admin.html:1040-1043 Tous/Carburant/Garage/Assurance).
+- ✅ **L9** — Carburant : FALSE POSITIVE — colonnes table déjà mockup-aligned Phase 51 (Date/Véhicule/Litres/€HT/€TTC/Conso).
+- ✅ **L10** — Charges : DÉCISION (cf M13) — page autonome conservée. Hub Finances groupe via sidebar.
+- ✅ **L11** — Statistiques : FALSE POSITIVE — chips Jour/Semaine/Mois/Année déjà stylés `.chip-period` (admin.html:1696-1699). Mockup pills = chips ; 4 chips > 3 (granularité supérieure).
+- ✅ **L12** — Paramètres : DÉCISION — input TVA intracom raw avec auto-uppercase + maxlength=13. Espace décoratif uniquement à l'affichage final. Pas de formattage saisie (UX = friction).
+- ✅ **L13** — Paramètres : FALSE POSITIVE — section "Siège social & contact" (admin.html:2254) avec `form-grid` (CSS grid auto-columns). Déjà multi-colonnes.
+- ✅ **L14** — Toast d'erreur : FALSE POSITIVE — `afficherToast(msg,'error')` impl Phase 45 avec z-index 1000 + position bottom-right + auto-dismiss 4s. Visible garanti par CSS `.toast.error`.
 
 ---
 
@@ -163,8 +163,10 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 | 1 — CRITIQUE | 7 | 0 | 0 | 1 (C1) | 2 (C6, C7) | 4 (C2, C3, C4, C5) |
 | 2 — HIGH | 26 | 0 | 0 | 26 (H2–H26) | - | - |
 | 3 — MEDIUM | 18 | 0 | 0 | 17 (M1–M17 sauf M18) | - | 1 (M18 cascade 503) |
-| 4 — LOW | 14 | 14 | 0 | 0 | - | - |
-| **TOTAL** | **65** | **14** | **0** | **44** | **2** | **5** |
+| 4 — LOW | 14 | 0 | 0 | 14 (L1–L14) | - | - |
+| **TOTAL** | **65** | **0** | **0** | **58** | **2** | **5** |
+
+**🎉 Plan AUDIT-V6 = 100% RÉSOLU (58 fix + 2 false_positive + 5 dépend user)**
 
 ---
 

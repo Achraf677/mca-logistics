@@ -646,14 +646,33 @@
 
     renderSparkline(score);
 
-    // Reco prioritaire — basée sur 1ère alerte critique si dispo
+    // Reco prioritaire — Phase 60 V7 L2 : texte enrichi combinant alerte critique + relances impayés
     const reco = document.getElementById('dashboard-health-reco');
     const recoBody = document.getElementById('dashboard-health-reco-body');
     const actives = getAlertesActives();
     const critique = actives.find(a => a.niveau === 'critical' || a.niveau === 'haute');
     if (reco && recoBody) {
+      const parts = [];
       if (critique) {
-        recoBody.textContent = critique.message || critique.titre || 'Action prioritaire à traiter.';
+        parts.push(critique.message || critique.titre || 'Action critique en attente');
+      }
+      // Ajouter relances impayés si applicable
+      try {
+        const livraisons = JSON.parse(localStorage.getItem('livraisons') || '[]');
+        const seuil30j = Date.now() - 30 * 86400000;
+        const impayesAnciens = livraisons.filter(function (l) {
+          if (!l) return false;
+          const s = l.statutPaiement || '';
+          if (s === 'paye' || s === 'payé' || s === 'payee' || s === 'payée') return false;
+          const d = new Date(l.date || l.dateLivraison || '').getTime();
+          return d && d < seuil30j;
+        }).length;
+        if (impayesAnciens >= 1) {
+          parts.push('relancer ' + impayesAnciens + ' impayé' + (impayesAnciens > 1 ? 's' : '') + ' >30j');
+        }
+      } catch (_) {}
+      if (parts.length) {
+        recoBody.textContent = parts.join(' + ');
         reco.style.display = '';
       } else if (actives.length > 0) {
         recoBody.textContent = `Traiter ${actives.length} alerte${actives.length > 1 ? 's' : ''} en cours pour maintenir le score.`;
