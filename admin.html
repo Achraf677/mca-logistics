@@ -4615,19 +4615,19 @@
       <div class="modal-header"><h3>Modifier la fiche salarié</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-salarie')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
-          <div class="form-group"><label>Nom *</label><input type="text" id="edit-sal-nom" / aria-label="edit sal nom" /></div>
-          <div class="form-group"><label>Prénom *</label><input type="text" id="edit-sal-prenom" / aria-label="edit sal prenom" /></div>
+          <div class="form-group"><label for="edit-sal-nom">Nom *</label><input type="text" id="edit-sal-nom" /></div>
+          <div class="form-group"><label for="edit-sal-prenom">Prénom *</label><input type="text" id="edit-sal-prenom" /></div>
           <div class="form-group">
-            <label>Numéro salarié *</label>
-            <input type="text" id="edit-sal-numero" / aria-label="edit sal numero" />
+            <label for="edit-sal-numero">Numéro salarié *</label>
+            <input type="text" id="edit-sal-numero" />
           </div>
-          <div class="form-group"><label>Téléphone</label><input type="tel" id="edit-sal-tel" / aria-label="edit sal tel" /></div>
-          <div class="form-group"><label>Poste / Fonction</label><select id="edit-sal-poste" aria-label="edit sal poste"><option value="">-- Choisir un poste --</option></select></div>
-          <div class="form-group"><label>Véhicule affecté</label><select id="edit-sal-vehicule" aria-label="edit sal vehicule"><option value="">-- Retirer l'affectation --</option></select></div>
-          <div class="form-group"><label>Expiration permis</label><input type="date" id="edit-sal-date-permis" / aria-label="edit sal date permis" /></div>
-          <div class="form-group"><label>Expiration assurance</label><input type="date" id="edit-sal-date-assurance" / aria-label="edit sal date assurance" /></div>
-          <div class="form-group"><label>Catégorie permis</label>
-            <select id="edit-sal-cat-permis" aria-label="edit sal cat permis">
+          <div class="form-group"><label for="edit-sal-tel">Téléphone</label><input type="tel" id="edit-sal-tel" /></div>
+          <div class="form-group"><label for="edit-sal-poste">Poste / Fonction</label><select id="edit-sal-poste"><option value="">-- Choisir un poste --</option></select></div>
+          <div class="form-group"><label for="edit-sal-vehicule">Véhicule affecté</label><select id="edit-sal-vehicule"><option value="">-- Retirer l'affectation --</option></select></div>
+          <div class="form-group"><label for="edit-sal-date-permis">Expiration permis</label><input type="date" id="edit-sal-date-permis" /></div>
+          <div class="form-group"><label for="edit-sal-date-assurance">Expiration assurance</label><input type="date" id="edit-sal-date-assurance" /></div>
+          <div class="form-group"><label for="edit-sal-cat-permis">Catégorie permis</label>
+            <select id="edit-sal-cat-permis">
               <option value="">—</option>
               <option value="B">B (VL ≤ 3,5 t)</option>
               <option value="autre">Autre (permis étranger ou licence équivalente)</option>
@@ -4638,16 +4638,16 @@
           <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">Suivi médical du travail</summary>
           <div class="u-card-section">
             <div class="form-grid">
-              <div class="form-group"><label>Date dernière visite</label><input type="date" id="edit-sal-visite-date" / aria-label="edit sal visite date" /></div>
-              <div class="form-group"><label>Aptitude</label>
-                <select id="edit-sal-visite-aptitude" aria-label="edit sal visite aptitude">
+              <div class="form-group"><label for="edit-sal-visite-date">Date dernière visite</label><input type="date" id="edit-sal-visite-date" /></div>
+              <div class="form-group"><label for="edit-sal-visite-aptitude">Aptitude</label>
+                <select id="edit-sal-visite-aptitude">
                   <option value="">—</option>
                   <option value="apte">Apte</option>
                   <option value="apte_restrictions">Apte avec restrictions</option>
                   <option value="inapte">Inapte</option>
                 </select>
               </div>
-              <div class="form-group"><label>Date prochaine visite</label><input type="date" id="edit-sal-visite-date-exp" / aria-label="edit sal visite date exp" /></div>
+              <div class="form-group"><label for="edit-sal-visite-date-exp">Date prochaine visite</label><input type="date" id="edit-sal-visite-date-exp" /></div>
             </div>
           </div>
         </details>
@@ -4664,11 +4664,11 @@
         <p style="color:var(--text-muted);margin-bottom:16px;">Identifiant : <code id="reset-mdp-numero" style="background:var(--bg-dark);padding:2px 8px;border-radius:6px">—</code></p>
         <div id="reset-mdp-statut" style="margin-bottom:16px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text-muted);font-size:.82rem"></div>
         <div class="form-group">
-          <label>Nouveau mot de passe *</label>
+          <label for="reset-mdp-val">Nouveau mot de passe *</label>
           <div class="u-flex-row-tight">
             <div style="position:relative;flex:1">
-              <input type="password" id="reset-mdp-val" oninput="mettreAJourQualiteMdpSalarie('access')" style="padding-right:58px;width:100%" / aria-label="reset mdp val" />
-              <button onclick="toggleParamMdp('reset-mdp-val')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:.82rem;color:var(--text-muted)">Voir</button>
+              <input type="password" id="reset-mdp-val" oninput="mettreAJourQualiteMdpSalarie('access')" style="padding-right:58px;width:100%" />
+              <button onclick="toggleParamMdp('reset-mdp-val')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:.82rem;color:var(--text-muted)" aria-label="Afficher/masquer le mot de passe">Voir</button>
             </div>
             <button type="button" class="btn-secondary" onclick="genererMotDePasseSalarie('access')">Générer</button>
           </div>
