@@ -530,9 +530,32 @@ body.role-salarie-unified .page:not(.active) {
 .data-table td:last-child { overflow: visible; position: relative; }
 .data-table tbody tr:hover { background: rgba(255,255,255,0.02); }
 .data-table tbody tr:last-child td { border-bottom: none; }
-.empty-row { text-align: center; color: var(--text-muted); padding: 32px !important; font-style: italic; }
+.empty-row {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 24px !important;
+  font-style: normal;
+  font-size: .85rem;
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+}
+.empty-row::before {
+  content: "—";
+  display: block;
+  font-size: 2rem;
+  color: var(--text-muted);
+  opacity: 0.4;
+  margin-bottom: 8px;
+  letter-spacing: -.05em;
+}
 
 .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
+/* Phase 60 V7 polish — variants génériques badge.ok/warn/alert pour Encaissement legacy, TVA historique, Inspections */
+.badge.ok    { background: rgba(46,204,113,0.14); color: #2ecc71; }
+.badge.warn  { background: rgba(245,166,35,0.14); color: #f5a623; }
+.badge.alert { background: rgba(230,57,70,0.15);  color: var(--brand, #e63946); }
+/* Utility classes : .mono (chiffres tabulaires N°/montants/dates) — slashed-zero pour distinguer 0/O */
+td.mono, .mono { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-variant-numeric: tabular-nums slashed-zero; }
 .badge-attente  { background: rgba(230,57,70,0.15); color: var(--accent); }
 .badge-cours    { background: rgba(52,152,219,0.15); color: var(--blue); }
 .badge-livre    { background: rgba(46,204,113,0.15); color: var(--green); }
