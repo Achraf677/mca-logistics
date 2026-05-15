@@ -303,6 +303,69 @@ function exporterIncidentsExcel() {
 }
 window.exporterIncidentsExcel = exporterIncidentsExcel;
 
+function exporterIncidentsCSV() {
+  const incidents = charger('incidents');
+  exporterCSV(incidents, [
+    { label: 'Date', get: i => i.creeLe || i.date || '' },
+    { label: 'Type', get: i => i.type || '' },
+    { label: 'Description', get: i => i.description || '' },
+    { label: 'Gravité', get: i => i.gravite || '' },
+    { label: 'Statut', get: i => i.statut || '' },
+    { label: 'Client', get: i => i.client || '' },
+    { label: 'Chauffeur', get: i => i.chaufNom || '' },
+    { label: 'Coût', get: i => parseFloat(i.cout || 0) }
+  ], 'incidents-' + new Date().toISOString().slice(0, 10) + '.csv');
+  if (typeof afficherToast === 'function') afficherToast('CSV incidents exporté');
+}
+window.exporterIncidentsCSV = exporterIncidentsCSV;
+
+function exporterIncidentsPDF() {
+  const incidents = charger('incidents').sort((a, b) => new Date(b.creeLe || b.date || 0) - new Date(a.creeLe || a.date || 0));
+  if (typeof ouvrirFenetreImpression !== 'function') {
+    exporterIncidentsCSV();
+    return;
+  }
+  const params = getEntrepriseExportParams();
+  const dateExp = formatDateHeureExport();
+  const total = incidents.reduce((s, i) => s + parseFloat(i.cout || 0), 0);
+  const graviteColor = { critique: '#ef4444', haute: '#f97316', moyenne: '#f5a623', faible: '#22c55e' };
+  const rows = incidents.map((inc, idx) => {
+    const gc = graviteColor[(inc.gravite || '').toLowerCase()] || '#6b7280';
+    return `<tr style="border-bottom:1px solid #f0f0f0;background:${idx % 2 === 0 ? '#fff' : '#fafafa'}">
+      <td style="padding:7px 10px">${inc.creeLe || inc.date || '—'}</td>
+      <td style="padding:7px 10px">${inc.type || '—'}</td>
+      <td style="padding:7px 10px"><span style="color:${gc};font-weight:600">${inc.gravite || '—'}</span></td>
+      <td style="padding:7px 10px">${inc.statut || '—'}</td>
+      <td style="padding:7px 10px">${inc.client || '—'}</td>
+      <td style="padding:7px 10px">${inc.chaufNom || '—'}</td>
+      <td style="padding:7px 10px;max-width:200px;overflow:hidden;text-overflow:ellipsis">${inc.description || '—'}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:700">${total > 0 && inc.cout ? (typeof euros === 'function' ? euros(inc.cout) : inc.cout + ' €') : '—'}</td>
+    </tr>`;
+  }).join('');
+  const meta = `${incidents.length} incident(s)` + (total > 0 ? ` · Coût total ${typeof euros === 'function' ? euros(total) : total + ' €'}` : '');
+  const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:900px;margin:0 auto;padding:32px;color:#1a1d27">
+    ${typeof construireEnteteExport === 'function' ? construireEnteteExport(params, 'Rapport incidents', '', dateExp, meta) : '<h2>Rapport incidents</h2>'}
+    ${typeof renderBlocInfosEntreprise === 'function' ? renderBlocInfosEntreprise(params) : ''}
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+      <thead><tr style="background:#f3f4f6">
+        <th style="padding:8px 10px;text-align:left">Date</th>
+        <th style="padding:8px 10px;text-align:left">Type</th>
+        <th style="padding:8px 10px;text-align:left">Gravité</th>
+        <th style="padding:8px 10px;text-align:left">Statut</th>
+        <th style="padding:8px 10px;text-align:left">Client</th>
+        <th style="padding:8px 10px;text-align:left">Chauffeur</th>
+        <th style="padding:8px 10px;text-align:left">Description</th>
+        <th style="padding:8px 10px;text-align:right">Coût</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${typeof renderFooterEntreprise === 'function' ? renderFooterEntreprise(params, dateExp) : ''}
+  </div>`;
+  ouvrirFenetreImpression('Incidents — ' + params.nom, html, 'width=1050,height=750');
+  if (typeof afficherToast === 'function') afficherToast('PDF incidents généré');
+}
+window.exporterIncidentsPDF = exporterIncidentsPDF;
+
 function exporterVehiculesExcel() {
   const vehicules = charger('vehicules');
   const entretiens = charger('entretiens');
