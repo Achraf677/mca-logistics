@@ -413,6 +413,20 @@
   }
 
   // ============ RENTABILITÉ : Donut répartition charges ============
+  // Mapping slugs canoniques → labels user-friendly pour la légende.
+  var CATEGORIE_LABELS = {
+    carburant: 'Carburant', peage: 'Péage', entretien: 'Entretien', assurance: 'Assurance',
+    salaires: 'Salaires', sociales: 'Charges sociales', loyer: 'Loyer', banque: 'Banque',
+    comptabilite: 'Comptabilité', telecom: 'Télécom', hosting: 'Hosting',
+    fournitures: 'Fournitures', lld_credit: 'LLD / Crédit', tva: 'TVA', autre: 'Autres'
+  };
+  function labelize(slug) {
+    if (!slug) return 'Autres';
+    if (CATEGORIE_LABELS[slug]) return CATEGORIE_LABELS[slug];
+    // Custom : capitaliser première lettre + remplace _ par espace
+    return String(slug).charAt(0).toUpperCase() + String(slug).slice(1).replace(/_/g, ' ');
+  }
+
   function renderRentChargesDonut() {
     var canvas = document.getElementById('chart-rent-charges-donut');
     if (!canvas) return;
@@ -425,8 +439,9 @@
       if (!c) return;
       var d = new Date(c.date || c.dateCharge || '');
       if (isNaN(d.getTime()) || d.getTime() < seuil) return;
-      var cat = (c.categorie || c.type || 'Autres').toString();
-      groupes[cat] = (groupes[cat] || 0) + (parseFloat(c.montantHT || c.montant || 0) || 0);
+      var slug = (c.categorie || c.type || 'autre').toString().toLowerCase();
+      var label = labelize(slug);
+      groupes[label] = (groupes[label] || 0) + (parseFloat(c.montantHT || c.montant || 0) || 0);
     });
     var totalCarb = carburant.filter(function (p) {
       if (!p) return false;
