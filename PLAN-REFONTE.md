@@ -30,7 +30,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Fournisseurs | 90% | 100% | Phase 59 : sub-meta mockup Dépenses cumulées 12m ajouté (X fourn · Y actifs 90j · Dépenses Z €) |
 | Véhicules | 92% | 100% | Phase 59 : exporterVehiculesCSV + exporterVehiculesExcel tous deux vraiment impl (étaient stubs/fallback) |
 | Carburant | 92% | 100% | Phase 59 : exporterCarburantExcel vraiment impl (était fallback CSV). Tous exports réels. |
-| Entretiens | 92% | 100% | Phase 59 : exporterEntretiensExcel vraiment impl (était fallback) + Email cabinet compta |
+| Entretiens | 93% | 100% | Phase 65 : CT table 5 cols (Véhicule/Immatriculation/Prochain CT/Jours restants/Statut badge Expiré/Urgent/Bientôt/OK). Fenêtre 30j→60j. |
 | Inspections | 92% | 100% | Phase 59 : BUG-023 FIXED — table mockup-aligned (Date/Véhicule/Chauffeur/Photos/Défauts/Statut + badges ok/warn/alert). Photos count clickable → lightbox |
 | Charges | 92% | 100% | Phase 59 : exporterChargesExcel vraiment impl (était inexistant) + Phase 48+51 period nav/charts/Parking chip |
 | Encaissement | 92% | 100% | Phase 59 : exporterEncaissementExcel vraiment impl (was stub) + sub-meta 3 parties mockup |
@@ -41,7 +41,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Alertes | 90% | 100% | Phase 59 : Export dropdown ajouté (CSV + Excel impl réels) + sub-meta mockup format |
 | Équipe | 90% | 100% | Phase 59 : Export dropdown ajouté (CSV + Excel impl réels — numéro/nom/prénom/rôle/permis/visite médicale) + sub-meta mockup |
 | Heures | 93% | 100% | Phase 62 : bouton "Export paie", CE 561 kpi-sub câblé (nom chauffeur ×N), chips chauffeur dynamiques, card headers h3 + renommés ("Heures travaillées"/"Kilométrage flotte") + badges id |
-| Incidents | 90% | 100% | Phase 59 : exporterIncidentsExcel vraiment impl + sub-meta "en attente expertise" mockup-aligned |
+| Incidents | 91% | 100% | Phase 65 : barre navigation période (← Aujourd'hui → + chips Jour/Semaine/Mois/Année) mockup-aligned (previews/incidents.html). |
 | Paramètres | 93% | 100% | Phase 62 : h2→h3 card headers Entreprise (Informations entreprise/Identité visuelle/Postes) + Comptabilité (Fiscalité TVA→Paramétrage TVA/Trésorerie/Catégories). Nouvelle carte "Cabinet comptable" avec badge Sync OK, toggles FEC+sync, save localStorage. |
 | Brouillons IA | 90% | 100% | Phase 59 : chips filtrent vraiment (setStatusFilter) + sub-meta mockup + Valider/Rejeter sélection batch wired |
 | Planning | 90% | 100% | Phase 59 : exporterPlanningCSV + exporterPlanningExcel + exporterPlanningIcal (.ics) vraiment impl (étaient stubs alert) |
