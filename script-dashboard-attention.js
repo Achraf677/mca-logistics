@@ -670,7 +670,7 @@
         if (impayesAnciens >= 1) {
           parts.push('relancer ' + impayesAnciens + ' impayé' + (impayesAnciens > 1 ? 's' : '') + ' >30j');
         }
-      } catch (_) {}
+      } catch (e) { console.warn('[dashboard-attention] reco impayés:', e); }
       if (parts.length) {
         recoBody.textContent = parts.join(' + ');
         reco.style.display = '';

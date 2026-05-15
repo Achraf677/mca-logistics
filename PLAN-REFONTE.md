@@ -3,9 +3,9 @@
 > Document pivot pour ne pas perdre le contexte d'une session à l'autre.
 > Mis à jour à chaque fin de session significative.
 >
-> **Dernière mise à jour** : 2026-05-15
+> **Dernière mise à jour** : 2026-05-16
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : Phase 64 palette cleanup — orange résiduel → tokens warning/brand (commit 5a9a3ad)
+> **Dernier commit** : Phase 68 salarie.html a11y + HTML validity + H3.6 catches logging
 
 ---
 
@@ -46,7 +46,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Brouillons IA | 90% | 100% | Phase 59 : chips filtrent vraiment (setStatusFilter) + sub-meta mockup + Valider/Rejeter sélection batch wired |
 | Planning | 91% | 100% | Phase 66 : légende colorée en pied de table semaine (Tournée planifiée / Absence / Repos). Mockup-aligned. |
 | Mobile m.html | 80% | 100% | Phase 63 : :focus-visible tabs/drawer/header-action, @media (hover:hover), landscape compact, .m-loading abs positioning, disabled state. |
-| Mobile salarie.html | 77% | 100% | Phase 63 : idem m.html (CSS partagé style-design-mobile-refine.css). Polish DX/a11y sans mockup dédié. |
+| Mobile salarie.html | 83% | 100% | Phase 68 : 23 malformed `/ aria-label` → `aria-label` (HTML validity), label `for`/`id` sur 14 form-groups, 8 tab SVG inline styles → CSS `.tabs .tab svg`, bn-item + tabs `aria-label`/`aria-selected`/`role=tab`, focus-visible bn-item + tab CSS. |
 
 ---
 

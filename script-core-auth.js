@@ -166,7 +166,7 @@ function purgerSessionAdminLocale() {
       }
     }
     keysToDelete.forEach(function (k) { sessionStorage.removeItem(k); });
-  } catch (_) {}
+  } catch (e) { console.warn('[core-auth] purge edit-locks logout:', e); }
 }
 
 // L988 (script.js d'origine)

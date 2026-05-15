@@ -319,7 +319,7 @@
     var text = document.getElementById('carb-anomalie-banner-text');
     if (!banner || !text) return;
     var alertes = [];
-    try { alertes = JSON.parse(localStorage.getItem('alertes_admin') || '[]'); } catch (e) {}
+    try { alertes = JSON.parse(localStorage.getItem('alertes_admin') || '[]'); } catch (e) { console.warn('[carb-anomalies] parse alertes:', e); }
     var anomalies = alertes.filter(function(a) {
       return !a.traitee && (a.type === 'carburant_anomalie' || (a.categorie || '').toLowerCase().includes('carburant'));
     });

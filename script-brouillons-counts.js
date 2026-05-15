@@ -29,7 +29,7 @@
             .select('id', { count: 'exact' })
             .eq('status', 'pending');
           pending = res.count || 0;
-        } catch (_) {}
+        } catch (e) { console.warn('[brouillons-counts] fetch pending:', e); }
       }
     }
 
@@ -90,7 +90,7 @@
         var mins = validees * 5;
         kpiTemps.textContent = mins >= 60 ? '~' + Math.floor(mins / 60) + 'h' : (mins > 0 ? '~' + mins + ' min' : '—');
       }
-    } catch (_) {}
+    } catch (e) { console.warn('[brouillons-counts] kpi traitees:', e); }
   }
 
   // Phase 58 polish (BUG-025) : chips filter wire AIBrouillons.setStatusFilter

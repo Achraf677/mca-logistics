@@ -150,7 +150,7 @@ async function supprimerLogoEntreprise() {
   if (storageHelper && path) {
     try {
       await storageHelper.removeInspectionPhotos([path]);
-    } catch (_) {}
+    } catch (e) { console.warn('[branding] removeInspectionPhotos logo:', e); }
   }
   localStorage.removeItem('logo_entreprise_url');
   localStorage.removeItem('logo_entreprise_path');

@@ -702,3 +702,52 @@ label[for="carb-photo"]:hover {
   font-weight: 700 !important;
   color: var(--ds-text, #f1f3f5) !important;
 }
+
+/* ============ SALARIE.HTML — tab SVG icons (replaces 8× repeated inline style) ============ */
+.tabs .tab svg,
+.tabs-wrapper .tab svg {
+  vertical-align: -3px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ============ SALARIE.HTML — bottom nav focus-visible ============ */
+.bn-item:focus-visible {
+  outline: 2px solid var(--accent, #e63946);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+/* ============ SALARIE.HTML — tab focus-visible ============ */
+.tab:focus-visible {
+  outline: 2px solid var(--accent, #e63946);
+  outline-offset: 2px;
+}
+
+/* ============ SALARIE.HTML — km-motif standalone inputs ============ */
+#km-motif-pro,
+#km-motif-autre {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg2, #22262d);
+  border: 1.5px solid var(--border, #3a4150);
+  border-radius: 12px;
+  color: var(--text, #f1f3f5);
+  font-size: .95rem;
+  font-family: inherit;
+}
+
+/* ============ SALARIE.HTML — km-tournee-id select ============ */
+#km-tournee-id {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg2, #22262d);
+  border: 1.5px solid var(--border, #3a4150);
+  border-radius: 12px;
+  color: var(--text, #f1f3f5);
+  font-size: .95rem;
+  font-family: inherit;
+}

@@ -51,7 +51,7 @@ function trouverClientParLivraison(livraison) {
       const byName = clients.find(c => c && (c.nom || '').toLowerCase() === String(livraison.client).toLowerCase());
       if (byName) return byName;
     }
-  } catch (e) {}
+  } catch (e) { console.warn('[clients] getClientDeLivraison:', e); }
   return null;
 }
 

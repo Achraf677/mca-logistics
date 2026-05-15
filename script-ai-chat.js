@@ -67,7 +67,7 @@
   function saveHistory() {
     try {
       localStorage.setItem(HISTORY_KEY, JSON.stringify(state.history.slice(-MAX_HISTORY)));
-    } catch (_) {}
+    } catch (e) { console.warn('[ai-chat] saveHistory localStorage:', e); }
   }
 
   function clearHistory() {
@@ -1767,7 +1767,7 @@
         window.showToast(text, kind || 'info');
         return;
       }
-    } catch (_) {}
+    } catch (e) { console.warn('[ai-chat] showToast global:', e); }
     // Fallback : toast inline temporaire dans le panel chat.
     try {
       const c = document.getElementById('ai-chat-messages');
@@ -1780,7 +1780,7 @@
       c.appendChild(div);
       setTimeout(() => { div.remove(); }, 4000);
       scrollToBottom();
-    } catch (_) {}
+    } catch (e) { console.warn('[ai-chat] toast fallback inline:', e); }
   }
 
   // POST /functions/v1/ai-chat-write-execute avec auth admin. Retourne { success, ... }.
@@ -2214,11 +2214,11 @@
         try {
           const { data: refreshed } = await client.auth.refreshSession();
           token = refreshed && refreshed.session ? refreshed.session.access_token : sess.access_token;
-        } catch (_) { token = sess.access_token; }
+        } catch (e) { console.warn('[ai-chat] refreshSession:', e); token = sess.access_token; }
       } else {
         token = sess ? sess.access_token : null;
       }
-    } catch (_) {}
+    } catch (e) { console.warn('[ai-chat] getSession:', e); }
     if (!token) throw new Error('Session expiree, reconnecte-toi.');
 
     const config = window.DelivProSupabase && window.DelivProSupabase.getConfig
