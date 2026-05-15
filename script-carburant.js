@@ -218,7 +218,7 @@ function afficherCarburant() {
 
   // Sweep anomalies (genere les alertes admin manquantes a chaque affichage)
   if (typeof sweepAnomaliesCarburant === 'function') {
-    try { sweepAnomaliesCarburant(); } catch (e) { /* non bloquant */ }
+    try { sweepAnomaliesCarburant(); } catch (e) { console.warn('[carburant] sweepAnomaliesCarburant', e); }
   }
   if (!pleins.length) { tb.innerHTML = emptyState('⛽','Aucun plein enregistré','Les pleins saisis par vos salariés ou vous-même apparaîtront ici.'); return; }
   // Index pleins par vehicule pour calcul anomalies (perf)
@@ -246,7 +246,7 @@ function afficherCarburant() {
           const icone = maxNiveau === 'rouge' ? '🔴' : '🟠';
           badgeAnom = '<span title="' + tooltip.replace(/"/g, '&quot;') + '" style="background:' + bg + ';color:' + couleur + ';padding:2px 7px;border-radius:12px;font-size:0.75rem;margin-left:4px;cursor:help">' + icone + ' Anomalie</span>';
         }
-      } catch (e) { /* pas bloquant */ }
+      } catch (e) { console.warn('[carburant] anomalie badge calc', e); }
     }
     // Label étendu : matche les 6 types + tolère les synonymes
     const carbKey = (p.typeCarburant || 'diesel').toLowerCase();

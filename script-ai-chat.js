@@ -1651,6 +1651,7 @@
       showToast('Action mise en brouillon', 'info');
       renderMessages();
     } catch (e) {
+      console.warn('[ai-chat] draftWriteAction', e);
       confirmBtn.disabled = false; cancelBtn.disabled = false; draftBtn.disabled = false;
       draftBtn.textContent = 'Brouillon';
       showToast('Erreur : ' + (e.message || e), 'error');
@@ -1893,6 +1894,7 @@
         input.style.height = 'auto';
         input.style.height = Math.min(input.scrollHeight, 140) + 'px';
       }
+      console.warn('[ai-chat] onSubmit error', err);
       const errMsg = String(err.message || err).slice(0, 400);
       // Affiche l'erreur — sera retiree au prochain renderMessages, donc on l'insere
       // apres avoir desactive sending.

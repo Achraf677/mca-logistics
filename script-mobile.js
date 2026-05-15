@@ -1653,6 +1653,7 @@
               setVal('montantTtc', parsed.ttc ? parsed.ttc.toFixed(2) : '');
               dernierEdit = 'ttc'; recalc();
             } catch (err) {
+              console.warn('[mobile] OCR parse carburant', err);
               facStatus.textContent = '⚠️ Erreur : ' + (err.message || 'inconnue');
             }
             e.target.value = '';
@@ -3066,6 +3067,7 @@
               data.mdpHash = btoa(unescape(encodeURIComponent(mdpClair)));
             }
           } catch (e) {
+            console.warn('[mobile] hashPassword', e);
             M.toast('⚠️ Erreur hash mot de passe');
             return false;
           }
@@ -3282,6 +3284,7 @@
               const dataUrl = await M.resizeImageToBase64(f, 800, 0.78);
               photos.push(dataUrl);
             } catch (err) {
+              console.warn('[mobile] resizeImageToBase64', err);
               M.toast('⚠️ Photo non ajoutée');
             }
           }
@@ -12149,6 +12152,7 @@
       }
       rows = resp.data || [];
     } catch (e) {
+      console.warn('[mobile] quota-ia fetch', e);
       host.innerHTML = '<div style="color:#f59e0b">Erreur réseau : ' + M.escHtml((e && e.message) || 'inconnue') + '</div>';
       return;
     }

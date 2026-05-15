@@ -240,7 +240,7 @@ function peuplerSelectCategoriesCharge() {
         });
       }
     }
-  } catch (_) {}
+  } catch (e) { console.warn('[charges] peuplerSelectCategoriesCharge parse', e); }
   var all = canoniques.concat(custom);
   sel.innerHTML = all.map(function (o) {
     return '<option value="' + o.value + '">' + o.label.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</option>';
@@ -287,7 +287,7 @@ function peuplerFiltreCategoriesCharge() {
         });
       }
     }
-  } catch (_) {}
+  } catch (e) { console.warn('[charges] peuplerFiltreCategoriesCharge parse', e); }
   var all = canoniques.concat(custom);
   sel.innerHTML = all.map(function (o) {
     return '<option value="' + o.value + '">' + o.label.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</option>';

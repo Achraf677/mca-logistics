@@ -7116,6 +7116,7 @@ genererRentabilitePDF = function() {
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
+      console.warn('[nav-sections] lireEtatReplie localStorage parse', e);
       return [];
     }
   }
@@ -7295,6 +7296,7 @@ genererRentabilitePDF = function() {
 
       return res;
     } catch (e) {
+      console.warn('[cmd-palette] rechercherEntites', e);
       return [];
     }
   }
@@ -12140,6 +12142,7 @@ genererRentabilitePDF = function() {
           succes++;
         } catch(e) {
           // Marquer "tenté" même en cas d'échec pour stopper le retry loop infini (sinon spam egress 60s).
+          console.warn('[auto-fact] genererFactureLivraison id=' + l.id, e);
           l.__s24AutoFactAttempted = true;
           dirty = true;
         }

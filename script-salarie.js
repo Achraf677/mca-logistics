@@ -1641,6 +1641,7 @@ async function uploaderPhotosInspection(date) {
         return { ok: true, path: targetPath, queued: true };
       } catch (qErr) {
         // Si queue impossible (fallback localStorage sans blob), on retombe sur upload direct
+        console.warn('[salarie] inspection enqueueUpload (first attempt)', qErr);
       }
     }
     const r = await storageHelper.uploadInspectionPhoto(targetPath, blob);

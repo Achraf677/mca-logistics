@@ -475,3 +475,84 @@
   font-size: 12.5px;
   line-height: 1.5;
 }
+
+/* ============ FOCUS VISIBLE (a11y clavier) ============ */
+.m-header-action:focus-visible {
+  outline: 2px solid var(--ds-brand, #e63946);
+  outline-offset: 2px;
+}
+
+.m-tab:focus-visible,
+.m-bottom-nav a:focus-visible,
+.m-bottom-nav button:focus-visible {
+  outline: 2px solid var(--ds-brand, #e63946);
+  outline-offset: -2px;
+}
+
+.m-drawer-link:focus-visible,
+#m-drawer a:focus-visible {
+  outline: 2px solid var(--ds-brand, #e63946);
+  outline-offset: -2px;
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+}
+
+/* ============ TOUCH : hover seulement sur non-touch ============ */
+@media (hover: hover) {
+  .m-header-action:hover {
+    background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+    color: var(--ds-text, #f1f3f5);
+  }
+}
+
+@media (hover: none) {
+  .m-header-action:hover {
+    background: transparent;
+  }
+}
+
+/* ============ LANDSCAPE MOBILE ============ */
+@media (max-height: 500px) and (orientation: landscape) {
+  .m-header {
+    height: 44px;
+    padding: 0 8px;
+  }
+
+  .m-bottom-nav {
+    height: 50px;
+  }
+
+  .m-tab,
+  .m-bottom-nav a,
+  .m-bottom-nav button {
+    font-size: 9.5px;
+    gap: 1px;
+    padding: 2px 1px;
+  }
+
+  .m-tab-icon svg,
+  .m-bottom-nav svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* ============ LOADING STATE POSITIONNEMENT ============ */
+.m-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--ds-bg-app, #0f1115);
+  z-index: 5;
+}
+
+/* ============ DISABLED STATE TABS ============ */
+.m-tab:disabled,
+.m-tab[aria-disabled="true"],
+.m-bottom-nav button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
