@@ -4180,7 +4180,7 @@
           </label>
         </div>
         <div class="form-grid">
-          <div class="form-group"><label>Nom / Entreprise *</label><input type="text" id="frn-nom" placeholder="Nom / Raison sociale" / aria-label="Nom / Raison sociale" /></div>
+          <div class="form-group"><label for="frn-nom">Nom / Entreprise *</label><input type="text" id="frn-nom" placeholder="Nom / Raison sociale" /></div>
           <div class="form-group">
             <label>Secteur d'activité</label>
             <select id="frn-secteur" aria-label="frn secteur">
@@ -4196,19 +4196,19 @@
               <option value="autre">Autre</option>
             </select>
           </div>
-          <div class="form-group"><label>Contact</label><input type="text" id="frn-contact" placeholder="Contact" / aria-label="Contact" /></div>
-          <div class="form-group"><label>Téléphone</label><input type="tel" id="frn-tel" placeholder="Téléphone" / aria-label="Téléphone" /></div>
-          <div class="form-group"><label>Email</label><input type="email" id="frn-email" placeholder="Email" / aria-label="Email" /></div>
-          <div class="form-group"><label>Email facturation</label><input type="email" id="frn-email-fact" placeholder="compta@fournisseur.fr" / aria-label="compta@fournisseur.fr" /></div>
-          <div class="form-group full-width"><label>Adresse</label><input type="text" id="frn-adresse" placeholder="Numéro + rue" / aria-label="Numéro + rue" /></div>
-          <div class="form-group"><label>Code postal</label><input type="text" id="frn-cp" placeholder="75001" maxlength="5" / aria-label="75001" /></div>
-          <div class="form-group"><label>Ville</label><input type="text" id="frn-ville" placeholder="Paris" / aria-label="Paris" /></div>
+          <div class="form-group"><label for="frn-contact">Contact</label><input type="text" id="frn-contact" placeholder="Contact" /></div>
+          <div class="form-group"><label for="frn-tel">Téléphone</label><input type="tel" id="frn-tel" placeholder="Téléphone" /></div>
+          <div class="form-group"><label for="frn-email">Email</label><input type="email" id="frn-email" placeholder="Email" /></div>
+          <div class="form-group"><label for="frn-email-fact">Email facturation</label><input type="email" id="frn-email-fact" placeholder="compta@fournisseur.fr" /></div>
+          <div class="form-group full-width"><label for="frn-adresse">Adresse</label><input type="text" id="frn-adresse" placeholder="Numéro + rue" /></div>
+          <div class="form-group"><label for="frn-cp">Code postal</label><input type="text" id="frn-cp" placeholder="75001" maxlength="5" /></div>
+          <div class="form-group"><label for="frn-ville">Ville</label><input type="text" id="frn-ville" placeholder="Paris" /></div>
         </div>
         <div id="frn-champs-pro" class="client-champs-pro">
           <div class="form-grid">
-            <div class="form-group"><label>SIREN</label><input type="text" id="frn-siren" placeholder="9 chiffres" maxlength="9" / aria-label="9 chiffres" /></div>
-            <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="frn-tva-intra" placeholder="FR + 11 chiffres" / aria-label="FR + 11 chiffres" /></div>
-            <div class="form-group"><label>Délai paiement (jours)</label><input type="number" id="frn-delai-paiement" placeholder="30" min="0" max="180" value="30" / aria-label="30" /></div>
+            <div class="form-group"><label for="frn-siren">SIREN</label><input type="text" id="frn-siren" placeholder="9 chiffres" maxlength="9" /></div>
+            <div class="form-group"><label for="frn-tva-intra">N° TVA intracom.</label><input type="text" id="frn-tva-intra" placeholder="FR + 11 chiffres" /></div>
+            <div class="form-group"><label for="frn-delai-paiement">Délai paiement (jours)</label><input type="number" id="frn-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
             <div class="form-group"><label>Mode paiement préféré</label>
               <select id="frn-mode-paiement" aria-label="frn mode paiement">
                 <option value="virement">Virement</option>
@@ -4218,7 +4218,7 @@
                 <option value="especes">Espèces</option>
               </select>
             </div>
-            <div class="form-group full-width"><label>IBAN</label><input type="text" id="frn-iban" placeholder="FR76 …" / aria-label="FR76 …" /></div>
+            <div class="form-group full-width"><label for="frn-iban">IBAN</label><input type="text" id="frn-iban" placeholder="FR76 …" /></div>
           </div>
         </div>
         <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="frn-notes" rows="2" placeholder="Conditions, particularités, contacts..." aria-label="Conditions, particularités, contacts..."></textarea></div>
@@ -4296,11 +4296,11 @@
       <div class="modal-header"><h3>Nouveau Véhicule</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-vehicule')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
-          <div class="form-group"><label>Immatriculation *</label><input type="text" id="veh-immat" placeholder="Immatriculation (ex : AB-123-CD)" / aria-label="Immatriculation (ex : AB-123-CD)" /></div>
-          <div class="form-group"><label>Modèle</label><input type="text" id="veh-modele" placeholder="Mod&egrave;le" / aria-label="Mod&egrave;le" /></div>
-          <div class="form-group"><label>Kilométrage actuel</label><input type="number" id="veh-km" placeholder="Kilom&eacute;trage actuel" min="0" / aria-label="Kilom&eacute;trage actuel" /></div>
-          <div class="form-group"><label>Consommation (L/100 km)</label><input type="number" id="veh-conso" placeholder="8.5" min="0" step="0.1" / aria-label="8.5" /></div>
-          <div class="form-group"><label>Capacité réservoir (L)</label><input type="number" id="veh-capacite-reservoir" placeholder="80" min="0" step="1" / aria-label="80" /></div>
+          <div class="form-group"><label for="veh-immat">Immatriculation *</label><input type="text" id="veh-immat" placeholder="Immatriculation (ex : AB-123-CD)" /></div>
+          <div class="form-group"><label for="veh-modele">Modèle</label><input type="text" id="veh-modele" placeholder="Mod&egrave;le" /></div>
+          <div class="form-group"><label for="veh-km">Kilométrage actuel</label><input type="number" id="veh-km" placeholder="Kilom&eacute;trage actuel" min="0" /></div>
+          <div class="form-group"><label for="veh-conso">Consommation (L/100 km)</label><input type="number" id="veh-conso" placeholder="8.5" min="0" step="0.1" /></div>
+          <div class="form-group"><label for="veh-capacite-reservoir">Capacité réservoir (L)</label><input type="number" id="veh-capacite-reservoir" placeholder="80" min="0" step="1" /></div>
           <div class="form-group"><label>Mode d'acquisition</label>
             <select id="veh-mode-acquisition" onchange="mettreAJourFormulaireVehicule()" aria-label="veh mode acquisition">
               <option value="achat">Achat comptant</option>
@@ -4309,9 +4309,9 @@
               <option value="location">Location simple</option>
             </select>
           </div>
-          <div class="form-group"><label>Date d'acquisition</label><input type="date" id="veh-date-acquisition" onchange="mettreAJourFinContratVehicule();mettreAJourInfosVehiculeFinancement()" / aria-label="veh date acquisition" /></div>
-          <div class="form-group"><label>Dernier CT</label><input type="date" id="veh-date-ct-dernier" / aria-label="veh date ct dernier" /></div>
-          <div class="form-group"><label>Prochain CT</label><input type="date" id="veh-date-ct" / aria-label="veh date ct" /></div>
+          <div class="form-group"><label for="veh-date-acquisition">Date d'acquisition</label><input type="date" id="veh-date-acquisition" onchange="mettreAJourFinContratVehicule();mettreAJourInfosVehiculeFinancement()" /></div>
+          <div class="form-group"><label for="veh-date-ct-dernier">Dernier CT</label><input type="date" id="veh-date-ct-dernier" /></div>
+          <div class="form-group"><label for="veh-date-ct">Prochain CT</label><input type="date" id="veh-date-ct" /></div>
           <div class="form-group"><label>Entretien tous les X km</label><input type="number" id="veh-entretien-interval-km" placeholder="Ex : 15000" min="0" step="100" / aria-label="Ex : 15000" /></div>
           <div class="form-group"><label>Entretien tous les X mois</label><input type="number" id="veh-entretien-interval-mois" placeholder="Ex : 12" min="0" step="1" / aria-label="Ex : 12" /></div>
           <div class="form-group"><label>TVA carburant déductible (%)</label><input type="number" id="veh-tva-carburant" min="0" max="100" step="1" placeholder="Ex : 100" value="100" / aria-label="Ex : 100" /></div>
