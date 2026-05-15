@@ -124,6 +124,8 @@
   <script defer src="script-livraisons-chips.js?v=2"></script>
   <!-- Phase 2 HTML refonte Equipe : counts actifs + postes. -->
   <script defer src="script-equipe-counts.js?v=2"></script>
+  <!-- Phase 60 V7 H21 — Équipe Vue d'ensemble cards chauffeurs -->
+  <script defer src="script-equipe-overview.js?v=1"></script>
   <!-- Phase 2 HTML refonte Vehicules : counts total + alertes CT/assurance. -->
   <script defer src="script-vehicules-counts.js?v=1"></script>
   <!-- Phase 48 : Véhicules card grid (fleet view, mockup-aligned). -->
@@ -1750,11 +1752,15 @@
 
       <!-- Phase 37/46 refonte HTML : tabs-bar mockup pattern + count badges -->
       <nav class="tabs-bar" id="equipe-tabs-nav" role="tablist">
-        <button class="tab-btn active" id="equipe-tab-salaries" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('salaries')" role="tab">Salariés <span class="count" id="equipe-tab-sal-count"></span></button>
+        <button class="tab-btn active" id="equipe-tab-overview" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOngletOverview&&window.EquipeHub.ouvrirOngletOverview()" role="tab">Vue d'ensemble</button>
+        <button class="tab-btn" id="equipe-tab-salaries" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('salaries')" role="tab">Salariés <span class="count" id="equipe-tab-sal-count"></span></button>
         <button class="tab-btn" id="equipe-tab-planning" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('planning')" role="tab">Planning</button>
         <button class="tab-btn" id="equipe-tab-heures" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('heures')" role="tab">Heures</button>
         <button class="tab-btn" id="equipe-tab-incidents" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('incidents')" role="tab">Incidents <span class="count" id="equipe-tab-inc-count"></span></button>
       </nav>
+
+      <!-- Phase 60 V7 H21 — Vue d'ensemble : team-grid avec cards chauffeurs (mockup) -->
+      <div id="equipe-overview-grid" class="team-grid" style="margin-top:16px"></div>
     </section>
 
     <!-- ============================================================
