@@ -2592,8 +2592,8 @@
         <div class="card" style="margin:0">
           <div class="card-header"><h3>Thème &amp; palette</h3></div>
           <div style="padding:18px 20px">
-            <div class="field"><label>Mode</label>
-              <select aria-label="mode theme"><option>Sombre (Asphalt &amp; Speed Red)</option><option>Clair (Premium)</option><option>Auto (système)</option></select>
+            <div class="field"><label for="param-theme-mode">Mode</label>
+              <select id="param-theme-mode"><option>Sombre (Asphalt &amp; Speed Red)</option><option>Clair (Premium)</option><option>Auto (système)</option></select>
             </div>
             <div class="field"><label>Couleur d'accent</label>
               <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -2601,8 +2601,8 @@
                 <button class="btn btn-primary" onclick="appliquerAccentColor()" style="padding:7px 14px;font-size:12px">Appliquer</button>
               </div>
             </div>
-            <div class="field"><label>Police body</label>
-              <select aria-label="police body"><option>DM Sans (défaut)</option><option>Inter</option><option>Roboto</option></select>
+            <div class="field"><label for="param-police-body">Police body</label>
+              <select id="param-police-body"><option>DM Sans (défaut)</option><option>Inter</option><option>Roboto</option></select>
             </div>
           </div>
         </div>
@@ -2610,17 +2610,17 @@
         <div class="card" style="margin:0">
           <div class="card-header"><h3>Préférences</h3></div>
           <div style="padding:18px 20px">
-            <div class="field"><label>Langue</label>
-              <select aria-label="langue"><option>Français</option><option>English</option></select>
+            <div class="field"><label for="param-langue">Langue</label>
+              <select id="param-langue"><option>Français</option><option>English</option></select>
             </div>
-            <div class="field"><label>Devise</label>
-              <select aria-label="devise"><option>EUR (€)</option><option>USD ($)</option></select>
+            <div class="field"><label for="param-devise">Devise</label>
+              <select id="param-devise"><option>EUR (€)</option><option>USD ($)</option></select>
             </div>
-            <div class="field"><label>Fuseau horaire</label>
-              <select aria-label="fuseau horaire"><option>Europe/Paris (UTC+1)</option></select>
+            <div class="field"><label for="param-fuseau">Fuseau horaire</label>
+              <select id="param-fuseau"><option>Europe/Paris (UTC+1)</option></select>
             </div>
-            <div class="field"><label>Format date</label>
-              <select aria-label="format date"><option>JJ/MM/AAAA</option><option>AAAA-MM-JJ</option></select>
+            <div class="field"><label for="param-format-date">Format date</label>
+              <select id="param-format-date"><option>JJ/MM/AAAA</option><option>AAAA-MM-JJ</option></select>
             </div>
             <div style="padding-top:4px">
               <button class="btn-theme-toggle u-icon-btn-inline" onclick="toggleTheme()" id="btn-theme-param" aria-label="Basculer entre mode clair et sombre">
@@ -4120,8 +4120,8 @@
         <div class="form-grid">
           <div class="form-group"><label for="edit-cl-nom">Nom / Entreprise *</label><input type="text" id="edit-cl-nom" /></div>
           <div class="form-group">
-            <label>Secteur d'activité *</label>
-            <select id="edit-cl-secteur" aria-label="edit cl secteur">
+            <label for="edit-cl-secteur">Secteur d'activité *</label>
+            <select id="edit-cl-secteur">
               <option value="">-- Choisir --</option>
               <option value="transport">Transport / logistique</option>
               <option value="industrie">Industrie / usine</option>
@@ -4153,8 +4153,8 @@
         <div class="form-section-title" style="margin-top:16px">Paiement & Comptabilité</div>
         <div class="form-grid">
           <div class="form-group"><label for="edit-cl-delai-paiement">Délai paiement (jours) *</label><input type="number" id="edit-cl-delai-paiement" min="0" max="180" /></div>
-          <div class="form-group"><label>Mode paiement préféré</label>
-            <select id="edit-cl-mode-paiement" aria-label="edit cl mode paiement">
+          <div class="form-group"><label for="edit-cl-mode-paiement">Mode paiement préféré</label>
+            <select id="edit-cl-mode-paiement">
               <option value="virement">Virement</option>
               <option value="prelevement">Prélèvement SEPA</option>
               <option value="cb">Carte bancaire</option>
@@ -4164,12 +4164,12 @@
           </div>
           <div class="form-group"><label for="edit-cl-iban">IBAN (optionnel)</label><input type="text" id="edit-cl-iban" /></div>
           <div class="form-group">
-            <label>N° compte client (compta) *</label>
-            <input type="text" id="edit-cl-compte-compta" / aria-label="edit cl compte compta" />
+            <label for="edit-cl-compte-compta">N° compte client (compta) *</label>
+            <input type="text" id="edit-cl-compte-compta" />
             <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">Doit être unique — modifiable avec prudence</div>
           </div>
         </div>
-        <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="edit-cl-notes" rows="2" aria-label="edit cl notes"></textarea></div>
+        <div class="form-group" style="margin-top:14px"><label for="edit-cl-notes">Notes internes</label><textarea id="edit-cl-notes" rows="2"></textarea></div>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-client')">Annuler</button><button class="btn-primary" onclick="confirmerEditClient()">Enregistrer</button></div>
     </div>
@@ -4207,8 +4207,8 @@
         <div class="form-grid">
           <div class="form-group"><label for="frn-nom">Nom / Entreprise *</label><input type="text" id="frn-nom" placeholder="Nom / Raison sociale" /></div>
           <div class="form-group">
-            <label>Secteur d'activité</label>
-            <select id="frn-secteur" aria-label="frn secteur">
+            <label for="frn-secteur">Secteur d'activité</label>
+            <select id="frn-secteur">
               <option value="">-- Choisir --</option>
               <option value="garage">Garage / mécanique</option>
               <option value="carburant">Carburant / station</option>
@@ -4234,8 +4234,8 @@
             <div class="form-group"><label for="frn-siren">SIREN</label><input type="text" id="frn-siren" placeholder="9 chiffres" maxlength="9" /></div>
             <div class="form-group"><label for="frn-tva-intra">N° TVA intracom.</label><input type="text" id="frn-tva-intra" placeholder="FR + 11 chiffres" /></div>
             <div class="form-group"><label for="frn-delai-paiement">Délai paiement (jours)</label><input type="number" id="frn-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
-            <div class="form-group"><label>Mode paiement préféré</label>
-              <select id="frn-mode-paiement" aria-label="frn mode paiement">
+            <div class="form-group"><label for="frn-mode-paiement">Mode paiement préféré</label>
+              <select id="frn-mode-paiement">
                 <option value="virement">Virement</option>
                 <option value="prelevement">Prélèvement SEPA</option>
                 <option value="cb">Carte bancaire</option>
@@ -4272,7 +4272,7 @@
           <div class="form-group"><label for="edit-frn-nom">Nom / Entreprise *</label><input type="text" id="edit-frn-nom" /></div>
           <div class="form-group">
             <label>Secteur d'activité</label>
-            <select id="edit-frn-secteur" aria-label="edit frn secteur">
+            <select id="edit-frn-secteur">
               <option value="">-- Choisir --</option>
               <option value="garage">Garage / mécanique</option>
               <option value="carburant">Carburant / station</option>
@@ -4299,7 +4299,7 @@
             <div class="form-group"><label for="edit-frn-tva-intra">N° TVA intracom.</label><input type="text" id="edit-frn-tva-intra" /></div>
             <div class="form-group"><label for="edit-frn-delai-paiement">Délai paiement (jours)</label><input type="number" id="edit-frn-delai-paiement" min="0" max="180" /></div>
             <div class="form-group"><label>Mode paiement préféré</label>
-              <select id="edit-frn-mode-paiement" aria-label="edit frn mode paiement">
+              <select id="edit-frn-mode-paiement">
                 <option value="virement">Virement</option>
                 <option value="prelevement">Prélèvement SEPA</option>
                 <option value="cb">Carte bancaire</option>
@@ -4310,7 +4310,7 @@
             <div class="form-group full-width"><label for="edit-frn-iban">IBAN</label><input type="text" id="edit-frn-iban" /></div>
           </div>
         </div>
-        <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="edit-frn-notes" rows="2" aria-label="edit frn notes"></textarea></div>
+        <div class="form-group" style="margin-top:14px"><label for="edit-frn-notes">Notes internes</label><textarea id="edit-frn-notes" rows="2"></textarea></div>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-fournisseur')">Annuler</button><button class="btn-primary" onclick="confirmerEditFournisseur()">Enregistrer</button></div>
     </div>
@@ -4484,9 +4484,9 @@
           <div id="carb-smart-upload-feedback" class="u-muted-xs-mt"></div>
         </div>
         <div class="form-grid">
-          <div class="form-group"><label>Véhicule *</label><select id="carb-vehicule" aria-label="carb vehicule"><option value="">-- Choisir --</option></select></div>
-          <div class="form-group"><label>Type carburant *</label>
-            <select id="carb-type" aria-label="carb type">
+          <div class="form-group"><label for="carb-vehicule">Véhicule *</label><select id="carb-vehicule"><option value="">-- Choisir --</option></select></div>
+          <div class="form-group"><label for="carb-type">Type carburant *</label>
+            <select id="carb-type">
               <option value="diesel">Diesel/Gazole</option>
               <option value="essence">Essence</option>
               <option value="gnv">GNV/BioGNV</option>
