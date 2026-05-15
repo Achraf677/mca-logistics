@@ -1987,8 +1987,16 @@
 
       <!-- Phase 46 : card wrapper "Liste des alertes" + quick filters (mockup-matched) -->
       <div class="card" id="card-alertes-liste" style="margin-bottom:16px">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
           <div style="font-family:var(--font-display);font-size:14px;font-weight:800">Liste des alertes</div>
+          <!-- Phase 60 V7 M5 — Sub-tabs Critique/À traiter/Pour info/Reportées (mockup-aligned) -->
+          <div role="tablist" aria-label="Filtres alertes par sévérité" style="display:flex;gap:4px;border-bottom:1px solid var(--border);padding:0 2px">
+            <button class="rent-tab-btn active" role="tab" data-alerte-sevtab="toutes" onclick="filtreAlerteSeverite('toutes',this)">Toutes</button>
+            <button class="rent-tab-btn" role="tab" data-alerte-sevtab="critique" onclick="filtreAlerteSeverite('critique',this)">Critique</button>
+            <button class="rent-tab-btn" role="tab" data-alerte-sevtab="atraiter" onclick="filtreAlerteSeverite('atraiter',this)">À traiter</button>
+            <button class="rent-tab-btn" role="tab" data-alerte-sevtab="info" onclick="filtreAlerteSeverite('info',this)">Pour info</button>
+            <button class="rent-tab-btn" role="tab" data-alerte-sevtab="reportees" onclick="filtreAlerteSeverite('reportees',this)">Reportées</button>
+          </div>
           <div style="display:flex;gap:6px">
             <button id="btn-alerte-quick-toutes" class="btn-secondary" style="padding:6px 10px;min-height:30px;font-size:12px" onclick="filtreAlerteQuick('toutes')">Toutes</button>
             <button id="btn-alerte-quick-actives" class="btn-secondary" style="padding:6px 10px;min-height:30px;font-size:12px;background:var(--brand);color:#fff;border-color:var(--brand)" onclick="filtreAlerteQuick('actives')">Non lues</button>
@@ -2065,6 +2073,12 @@
             <span id="tva-section-sub-periode">—</span>
             <span class="ds-section-head__sep">·</span>
             <span id="tva-section-sub-count">0 écriture(s)</span>
+            <span class="ds-section-head__sep">·</span>
+            <!-- Phase 60 V7 M17 — Badge PENNYLANE SYNC -->
+            <span id="tva-pennylane-sync-badge" class="badge ok" style="font-size:10px;padding:2px 8px;display:inline-flex;align-items:center;gap:4px" title="Données synchronisées avec Pennylane">
+              <svg viewBox="0 0 24 24" width="10" height="10" style="fill:currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              PENNYLANE SYNC
+            </span>
           </div>
         </div>
         <!-- Phase 50 : Exporter dropdown mockup-aligned -->

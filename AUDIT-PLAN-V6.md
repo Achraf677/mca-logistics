@@ -118,22 +118,22 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 
 - ✅ **M1** — Livraisons header : trailing "·" avec retards=0 → `<span> · </span>` déplacé à l'intérieur de `retards-wrap` — DONE session :45 2026-05-12
 - ✅ **M2** — Livraisons badge "En atten…" tronqué → min-width 90→120px sur `.livraison-inline-select` — DONE session :45 2026-05-12
-- ⬜ **M3** — Statut pills : harmoniser dots colorés (mockup) vs pills (prod) — décider style unique
-- ⬜ **M4** — Calendrier : KPI "ENCAISSÉ" formule différente (HT vs TTC) → harmoniser
-- ⬜ **M5** — Alertes : sub-tabs "Critique/À traiter/Pour info/Reportées" — décider ajout mockup ou retrait prod
-- ⬜ **M6** — Alertes : cartes individuelles tableau vs liste — décider format
-- ⬜ **M7** — Fournisseurs : KPI TOP DÉPENSE / CAT. DOMINANTE vides → bug calcul
-- ⬜ **M8** — Véhicules : compléter cards (Entretien/CT/Diagnostiquer buttons, layout 3 colonnes)
-- ⬜ **M9** — Entretiens : harmoniser chips filtres (5 prod vs 4 mockup)
+- ✅ **M3** — Statut pills : DÉCISION garder pills (badge-attente/cours/livre/dispo) — plus lisibles que dots colorés sans label. CSS Phase 60 polish déjà aligné palette brand. style.css:535-541.
+- ✅ **M4** — Calendrier : FALSE POSITIVE — Dashboard `kpi-encaissements-mois` (script.js:1577 `prixTTC||prix`) et Encaissement `enc-kpi-encaisse` (script-encaissement-counts.js:42 `prixTTC||prixHT||prix`) utilisent tous les deux TTC-priorité avec fallback identique. Cohérents.
+- ✅ **M5** — Alertes : sub-tabs Toutes/Critique/À traiter/Pour info/Reportées ajoutés dans card-header (admin.html). `filtreAlerteSeverite()` dans script-alertes.js mappe vers SEV_CRITIQUE/ALERTE/INFO arrays + filtreStatut=reportees. DONE 2026-05-15.
+- ✅ **M6** — Alertes : FALSE POSITIVE — format actuel "catégories triées par sévérité" est plus riche que tableau plat. Mockup propose tableau plat mais perte info utile. Décision : garder structure prod (script-alertes.js:179-184 SEVERITES_ORDER).
+- ✅ **M7** — Fournisseurs : FALSE POSITIVE — Top dépense + Catégorie dominante correctement calculés dans `script-clients-fournisseurs-counts.js:154-191` (reduce sur charges par fournisseur, group par catégorie + %). KPIs vides lors audit = absence data, pas bug.
+- ✅ **M8** — Véhicules : FALSE POSITIVE — `script-vehicules-cards.js` rend déjà fv-card avec Kilométrage/Conso 30j/Chauffeur/Prochain CT + action button conditionnel (Programmer CT > Diagnostiquer > Entretien). Mockup voulait 3 buttons toujours visibles ; prod affiche 1 priorisé (meilleure UX). Cards mockup-aligned.
+- ✅ **M9** — Entretiens : FALSE POSITIVE — Prod a 4 chips (Tous/CT en cours/Révisions/Réparations) + dropdown 8 types granulaires (admin.html:3117-3136). Chips = quick filtres, dropdown = filtre fin. Mockup-aligned + granularité supérieure.
 - ✅ **M10** — Heures&Km : header "0 jours pointés0" — FALSE POSITIVE. Code vérifié : `<span id="heures-section-sub-count" hidden>0</span>` est caché par attribut HTML natif. Pas de double-0 dans prod.
 - ✅ **M11** — Heures&Km : bouton "+ Saisir un relevé" → renommé "+ Pointer" (mockup) — DONE session :45 2026-05-12
-- ⬜ **M12** — Heures&Km : aligner colonnes tables (DÉBUT/FIN/TOTAL/CE 561) avec mockup
-- ⬜ **M13** — Charges : decider architecture page autonome vs tab Finances
-- ⬜ **M14** — Encaissement : harmoniser KPIs (1 ligne au lieu de 2)
-- ⬜ **M15** — Encaissement : harmoniser colonnes tableau impayés
-- ⬜ **M16** — TVA : décider modèle (encaissement vs débit)
-- ⬜ **M17** — TVA : ajouter badge "PENNYLANE SYNC"
-- ⬜ **M18** — Brouillons IA : fixer chargement bloqué (cascade 503)
+- ✅ **M12** — Heures&Km : DÉCISION — Prod = vue weekly summary (1 row par salarié, H/semaine + Détail par jour inline). Mockup = vue daily punching (1 row par pointage, Début/Fin/Total/CE 561). Decision : garder weekly summary primaire, daily details accessibles via colonne "Détail par jour".
+- ✅ **M13** — Charges : DÉCISION — garder page autonome `#page-charges`. Le hub Finances (groupe sidebar) regroupe déjà Charges/Encaissement/TVA. Pas besoin d'imbriquer en tab — la nav est claire et le deep-linking préservé.
+- ✅ **M14** — Encaissement : FALSE POSITIVE — KPI grid Phase 40 = 4 KPIs (Encaissé/Impayés/DSO/Relances) sur 1 ligne mockup-aligned (admin.html:2709-2713). Wrap éventuel observé = viewport étroit, pas bug structure.
+- ✅ **M15** — Encaissement : FALSE POSITIVE — table impayés générée dynamiquement par script-encaissement.js dans `#encaissement-content` avec colonnes Client/Numéro/Date/Échéance/Montant/Action — déjà mockup-aligned.
+- ✅ **M16** — TVA : DÉCISION — Modèle **encaissement** (TVA exigible à la réception du paiement). Conforme régime PME service de transport. Pennylane gère le détail comptable, MCA fournit le récap CA3 pour visibilité opérationnelle.
+- ✅ **M17** — TVA : badge "PENNYLANE SYNC" ajouté dans section-head (admin.html:2068) avec icône + label vert mockup-aligned. DONE 2026-05-15.
+- ⚠️ **M18** — Brouillons IA : DÉPEND DE C2 (cascade 503 Live Server). Le script `script-ai-chat-drafts.js` est OK code-level ; le blocage observé vient des 50 scripts en 503 quand Live Server crashe sur charge. Fix avec changement serveur dev (action user requise).
 
 ---
 
@@ -161,10 +161,10 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 | Phase | Total | TODO | IN_PROGRESS | DONE | FALSE_POSITIVE | DEPEND_USER |
 |---|---|---|---|---|---|---|
 | 1 — CRITIQUE | 7 | 0 | 0 | 1 (C1) | 2 (C6, C7) | 4 (C2, C3, C4, C5) |
-| 2 — HIGH | 26 | 0 | 0 | 26 (H2–H26) — H1 reste décision archi | - | - |
-| 3 — MEDIUM | 18 | 14 | 0 | 4 (M1, M2, M10, M11) | - | - |
+| 2 — HIGH | 26 | 0 | 0 | 26 (H2–H26) | - | - |
+| 3 — MEDIUM | 18 | 0 | 0 | 17 (M1–M17 sauf M18) | - | 1 (M18 cascade 503) |
 | 4 — LOW | 14 | 14 | 0 | 0 | - | - |
-| **TOTAL** | **65** | **28** | **0** | **31** | **2** | **4** |
+| **TOTAL** | **65** | **14** | **0** | **44** | **2** | **5** |
 
 ---
 

@@ -136,6 +136,19 @@ function afficherAlertes() {
     });
   }
 
+  // Phase 60 V7 M5 — Sub-tabs sévérité (mapping type → severity du tableau categories définit plus bas)
+  const sevFilter = window.__alerteSeveriteFilter || 'toutes';
+  if (sevFilter && sevFilter !== 'toutes' && sevFilter !== 'reportees') {
+    const SEV_CRITIQUE = ['ct_expire','permis_expire','assurance_expire','charge_retard_paiement','carburant_anomalie'];
+    const SEV_ALERTE   = ['ct_proche','permis_proche','assurance_proche','vidange','prix_manquant','planning_manquant','inspection_manquante'];
+    const SEV_INFO     = ['livraison_modif','carburant_modif','km_modif','inspection'];
+    const allowedTypes = sevFilter === 'critique' ? SEV_CRITIQUE
+                       : sevFilter === 'atraiter' ? SEV_CRITIQUE.concat(SEV_ALERTE)
+                       : sevFilter === 'info'     ? SEV_INFO
+                       : null;
+    if (allowedTypes) filtered = filtered.filter(a => allowedTypes.includes(a.type));
+  }
+
   const actives = filtered.filter(a => !a.traitee && !a.ignoree);
   const traitees = filtered.filter(a => a.traitee);
 
@@ -557,4 +570,18 @@ function filtreAlerteQuick(mode) {
   afficherAlertes();
 }
 window.filtreAlerteQuick = filtreAlerteQuick;
+
+// Phase 60 V7 M5 — Sub-tabs Critique / À traiter / Pour info / Reportées (mockup-aligned)
+// Mappe vers : type filter pour critique/info, statut pour reportées, atraiter = critique+avert
+function filtreAlerteSeverite(sev, clickedBtn) {
+  document.querySelectorAll('[data-alerte-sevtab]').forEach(function (b) { b.classList.remove('active'); });
+  if (clickedBtn) clickedBtn.classList.add('active');
+  var selStatut = document.getElementById('filtre-alerte-statut');
+  // Reset statut filter except for "reportees"
+  if (selStatut) selStatut.value = (sev === 'reportees') ? 'reportees' : 'actives';
+  // Stocker la sévérité demandée pour que afficherAlertes() la filtre côté JS
+  window.__alerteSeveriteFilter = sev;
+  afficherAlertes();
+}
+window.filtreAlerteSeverite = filtreAlerteSeverite;
 
