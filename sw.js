@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v175-heures-param-polish';
+const CACHE_VERSION = 'mca-v2026-05-16-v176-merge-enregistrer-params-fix-plus-heures-polish';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -115,6 +115,8 @@ const CORE_ASSETS = [
   '/script-dead-buttons-fix.js',
   // Phase 60 V7 polish — Modal Enregistrer paiement (manquante)
   '/script-modal-paiement.js',
+  // Phase 60 V7 polish — Stubs 4 fns silent-fail
+  '/script-stubs-fns.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts

@@ -140,6 +140,8 @@
   <script defer src="script-dead-buttons-fix.js?v=1"></script>
   <!-- Phase 60 V7 polish — Modal Enregistrer paiement (Encaissement) -->
   <script defer src="script-modal-paiement.js?v=1"></script>
+  <!-- Phase 60 V7 polish — Stubs pour 4 fns silent-fail (reinitialiserParametres, testerConnexionPennylane, envoyerChargesPennylane, envoyerRelancesEmail) -->
+  <script defer src="script-stubs-fns.js?v=1"></script>
   <!-- Phase 2 HTML refonte Vehicules : counts total + alertes CT/assurance. -->
   <script defer src="script-vehicules-counts.js?v=1"></script>
   <!-- Phase 48 : Véhicules card grid (fleet view, mockup-aligned). -->
@@ -2237,7 +2239,7 @@
         </div>
         <div class="ds-section-head__actions">
           <button class="btn-secondary" onclick="if(typeof reinitialiserParametres==='function')reinitialiserParametres()">Annuler</button>
-          <button class="btn-primary" onclick="if(typeof enregistrerParametres==='function')enregistrerParametres()">Enregistrer modifications</button>
+          <button class="btn-primary" onclick="if(typeof sauvegarderParametres==='function')sauvegarderParametres()">Enregistrer modifications</button>
         </div>
       </div>
       <!-- Phase 53 : tabs navigation mockup-aligned (7 tabs) -->
