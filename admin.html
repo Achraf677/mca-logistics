@@ -1830,36 +1830,36 @@
         <div class="card-header"><h2>Créer un salarié</h2><button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Fermer</button></div>
         <div class="modal-body">
           <div class="form-grid">
-            <div class="form-group"><label>Nom *</label><input type="text" id="nsal-nom" placeholder="Nom" / aria-label="Nom" /></div>
-            <div class="form-group"><label>Prénom *</label><input type="text" id="nsal-prenom" placeholder="Pr&eacute;nom" / aria-label="Pr&eacute;nom" /></div>
+            <div class="form-group"><label for="nsal-nom">Nom *</label><input type="text" id="nsal-nom" placeholder="Nom" /></div>
+            <div class="form-group"><label for="nsal-prenom">Prénom *</label><input type="text" id="nsal-prenom" placeholder="Pr&eacute;nom" /></div>
             <div class="form-group">
-              <label>Numéro salarié *</label>
-              <input type="text" id="nsal-numero" placeholder="N&deg; salari&eacute; (ex : EMP001)" autocomplete="off" / aria-label="N&deg; salari&eacute; (ex : EMP001)" />
+              <label for="nsal-numero">Numéro salarié *</label>
+              <input type="text" id="nsal-numero" placeholder="N&deg; salari&eacute; (ex : EMP001)" autocomplete="off" />
             </div>
             <div class="form-group">
-              <label>Mot de passe de connexion *</label>
+              <label for="nsal-mdp">Mot de passe de connexion *</label>
               <div class="u-flex-row-tight">
                 <div style="position:relative;flex:1">
-                  <input type="password" id="nsal-mdp" placeholder="8 caracteres min, avec majuscule et chiffre" style="padding-right:58px;width:100%" autocomplete="new-password" oninput="mettreAJourQualiteMdpSalarie('new')" / aria-label="8 caracteres min, avec majuscule et chiffre" />
-                  <button onclick="toggleParamMdp('nsal-mdp')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:.82rem;color:var(--text-muted)">Voir</button>
+                  <input type="password" id="nsal-mdp" placeholder="8 caracteres min, avec majuscule et chiffre" style="padding-right:58px;width:100%" autocomplete="new-password" oninput="mettreAJourQualiteMdpSalarie('new')" />
+                  <button onclick="toggleParamMdp('nsal-mdp')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:.82rem;color:var(--text-muted)" aria-label="Afficher/masquer le mot de passe">Voir</button>
                 </div>
                 <button type="button" class="btn-secondary" onclick="genererMotDePasseSalarie('new')">Générer</button>
               </div>
               <div id="nsal-mdp-hint" class="u-muted-xs-mt">Utilisez 8 caractères minimum avec majuscule, minuscule et chiffre.</div>
             </div>
-            <div class="form-group"><label>Téléphone</label><input type="tel" id="nsal-tel" placeholder="T&eacute;l&eacute;phone" / aria-label="T&eacute;l&eacute;phone" /></div>
-            <div class="form-group"><label>Email</label><input type="email" id="nsal-email" placeholder="exemple@mca-logistics.fr" / aria-label="exemple@mca-logistics.fr" /></div>
-            <div class="form-group"><label>Poste / Fonction</label><select id="nsal-poste" aria-label="nsal poste"><option value="">-- Choisir un poste --</option></select></div>
-            <div class="form-group"><label>Affecter un véhicule dès la création</label><select id="nsal-vehicule" aria-label="nsal vehicule"><option value="">-- Aucun pour l'instant --</option></select></div>
-            <div class="form-group"><label>Expiration permis</label><input type="date" id="nsal-date-permis" / aria-label="nsal date permis" /></div>
-            <div class="form-group"><label>Catégorie permis</label>
-              <select id="nsal-cat-permis" aria-label="nsal cat permis">
+            <div class="form-group"><label for="nsal-tel">Téléphone</label><input type="tel" id="nsal-tel" placeholder="T&eacute;l&eacute;phone" /></div>
+            <div class="form-group"><label for="nsal-email">Email</label><input type="email" id="nsal-email" placeholder="exemple@mca-logistics.fr" /></div>
+            <div class="form-group"><label for="nsal-poste">Poste / Fonction</label><select id="nsal-poste"><option value="">-- Choisir un poste --</option></select></div>
+            <div class="form-group"><label for="nsal-vehicule">Affecter un véhicule dès la création</label><select id="nsal-vehicule"><option value="">-- Aucun pour l'instant --</option></select></div>
+            <div class="form-group"><label for="nsal-date-permis">Expiration permis</label><input type="date" id="nsal-date-permis" /></div>
+            <div class="form-group"><label for="nsal-cat-permis">Catégorie permis</label>
+              <select id="nsal-cat-permis">
                 <option value="">—</option>
                 <option value="B">B (VL ≤ 3,5 t)</option>
                 <option value="autre">Autre (permis étranger ou licence équivalente)</option>
               </select>
             </div>
-            <div class="form-group"><label>Expiration assurance</label><input type="date" id="nsal-date-assurance" / aria-label="nsal date assurance" /></div>
+            <div class="form-group"><label for="nsal-date-assurance">Expiration assurance</label><input type="date" id="nsal-date-assurance" /></div>
           </div>
           <!-- SmartUpload mode auto : drop n'importe quel doc (RIB / permis) -> auto-detect + prefill -->
           <div class="form-group full-width" style="margin-top:14px;margin-bottom:8px">
@@ -1898,16 +1898,16 @@
             </summary>
             <div class="u-card-section">
               <div class="form-grid">
-                <div class="form-group"><label>Date dernière visite</label><input type="date" id="nsal-visite-date" / aria-label="nsal visite date" /></div>
-                <div class="form-group"><label>Aptitude</label>
-                  <select id="nsal-visite-aptitude" aria-label="nsal visite aptitude">
+                <div class="form-group"><label for="nsal-visite-date">Date dernière visite</label><input type="date" id="nsal-visite-date" /></div>
+                <div class="form-group"><label for="nsal-visite-aptitude">Aptitude</label>
+                  <select id="nsal-visite-aptitude">
                     <option value="">—</option>
                     <option value="apte">Apte</option>
                     <option value="apte_restrictions">Apte avec restrictions</option>
                     <option value="inapte">Inapte</option>
                   </select>
                 </div>
-                <div class="form-group"><label>Date prochaine visite</label><input type="date" id="nsal-visite-date-exp" / aria-label="nsal visite date exp" /></div>
+                <div class="form-group"><label for="nsal-visite-date-exp">Date prochaine visite</label><input type="date" id="nsal-visite-date-exp" /></div>
                 <div class="form-group">
                   <label>Réponse médecine du travail (PDF)</label>
                   <label class="file-upload-button" for="nsal-doc-medecine"><span id="nsal-doc-medecine-label">Choisir un fichier</span></label>
