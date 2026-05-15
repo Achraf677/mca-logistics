@@ -258,13 +258,20 @@ function __runModalHooks(phase, id) {
 
 // L1773 (script.js d'origine)
 function openModal(id)  {
-  mettreAJourSelects();
+  // Phase 60 V7 polish — Latence boutons : afficher la modale IMMÉDIATEMENT,
+  // puis populer les selects en background via requestAnimationFrame (frame suivant).
+  // Avant : mettreAJourSelects() bloquait 12+ rebuilds de selects synchrones (~100-300ms perçus).
+  // Maintenant : modal visible en <16ms, selects peuplés au prochain paint.
   const overlay = document.getElementById(id);
   if (!overlay) return;
   // BUG-022 fix : éviter de pousser 2× la même modale dans le focus stack.
   const existsInStack = __modalFocusStack.some(function(s){ return s.modalId === id; });
   overlay.classList.add('open');
   __appliquerA11yModale(overlay);
+  // Defer la mise à jour lourde des selects au frame suivant pour ne pas bloquer le paint
+  (window.requestAnimationFrame || function(cb){ setTimeout(cb, 16); })(function() {
+    try { mettreAJourSelects(); } catch (e) { console.warn('[openModal mettreAJourSelects]', e); }
+  });
   if (!existsInStack) {
     __modalFocusStack.push({ modalId: id, previousFocus: document.activeElement });
   }
