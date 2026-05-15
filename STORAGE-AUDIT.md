@@ -73,13 +73,13 @@ Ces clés EXISTENT dans le code (lues ou écrites) mais semblent **orphelines** 
 | `plannings` (vs `plannings_hebdo`) | Ancien format planning | **Vérifier** : si vide, supprimer |
 | `heures_pointage` (vs `heures`) | 2 formats coexistants | **Fusionner** : garder un seul |
 | `km_sal_<id>` | ✅ DÉJÀ intégré (verified 2026-05-15) — page Heures&Km section "Relevés kilométriques" + table `tb-releve-km` + `afficherReleveKm()` (script.js:1324) + edit modal `modal-edit-km`. |
-| `notifs_sal_<id>` | Notifications par salarié | **Réintégrer** : centre notif salarié espace mobile |
-| `messages_<id>` | Chat par salarié | **Réintégrer** : chat admin↔salarié dans drawer |
+| `notifs_sal_<id>` | ✅ DÉJÀ intégré (verified 2026-05-16) — script-alertes.js push depuis admin, salarie.html consume côté chauffeur. Centre notif déjà présent dans l'espace mobile salarié. |
+| `messages_<id>` | ✅ DÉJÀ intégré (verified 2026-05-16) — flow admin→chauffeur : écrit par script-planning.js (messages depuis Planning) + script-incidents.js (incidents). Lu côté chauffeur via salarie.html. Pas drawer admin nécessaire. |
 
 ### Documents legacy
 | Clé | Statut | Action |
 |---|---|---|
-| `documents_livraison_<id>` | Pièces jointes par livraison | **Réintégrer** : onglet Documents drawer livraison (existe déjà — vérifier wiring) |
+| `documents_livraison_<id>` | ✅ DÉJÀ intégré (verified 2026-05-16) — drawer 360 livraison onglet Documents fully wired (script-livraisons-drawer.js:96-216) avec getLivDocuments/saveLivDocument/renderDocumentsPanel. Helper `window.enregistrerDocumentLivraison` exposé pour générateurs legacy. |
 | `logo_entreprise` / `logo_entreprise_path` / `logo_entreprise_url` | ✅ DÉJÀ propre (verified 2026-05-15) — `url` = canonique display, `path` = path Supabase Storage pour re-signing, `logo_entreprise` = fallback legacy data URL pré-Supabase. Pattern intentionnel. |
 | `notes_internes` | ✅ DÉJÀ intégré (verified 2026-05-15) — notes par salarié via `modal-note-interne` + `confirmerNoteInterne()` (script-core-ui.js:347). Pattern : map salId → {texte, date}, pas global. |
 
@@ -130,11 +130,11 @@ _(Aucun pour l'instant — toutes les clés ont au moins un read ou un write que
 ## 🎯 Plan d'action priorisé
 
 ### Priorité 1 — Fusion clés dupliquées (gain de cohérence immédiat)
-1. **Params entreprise** : `params` + `params_entreprise` + `config_entreprise` → 1 seule (`params_entreprise`)
-2. ~~**Logo** : `logo_entreprise` + `logo_entreprise_path` + `logo_entreprise_url`~~ — FALSE POSITIVE 2026-05-15 : 3 rôles distincts (url canonique / path Supabase / fallback data URL). Pattern intentionnel.
-3. **Heures** : `heures` + `heures_pointage` → 1 seule (`heures`)
-4. **Encaissement** : `encaissements` + `encaissements_manuels` → 1 seule (fusionnée avec `paiements`)
-5. **Chauffeurs** : supprimer `chauffeurs` (redondant avec `salaries`)
+1. **Params entreprise** : `params` + `params_entreprise` + `config_entreprise` → 1 seule (`params_entreprise`) — _gardé pour refactor backend dédié_
+2. ✅ ~~**Logo** : `logo_entreprise` + `logo_entreprise_path` + `logo_entreprise_url`~~ — FALSE POSITIVE 2026-05-15 : 3 rôles distincts (url canonique / path Supabase / fallback data URL). Pattern intentionnel.
+3. **Heures** : `heures` + `heures_pointage` → 1 seule (`heures`) — _refactor risqué, gardé_
+4. **Encaissement** : `encaissements` + `encaissements_manuels` → 1 seule (fusionnée avec `paiements`) — _refactor risqué, gardé_
+5. **Chauffeurs** : supprimer `chauffeurs` (redondant avec `salaries`) — _vérifier orpheline avant suppression_
 
 ### Priorité 2 — Réintégrer fonctionnalités orphelines
 6. ✅ **Page TVA section "Historique déclarations"** (`tva_declarations`) — DONE 2026-05-15 (script-tva-historique.js)
@@ -142,9 +142,9 @@ _(Aucun pour l'instant — toutes les clés ont au moins un read ou un write que
 8. ✅ **Page Encaissement section "Avoirs émis"** (`avoirs`) — DONE 2026-05-15 (script-encaissement-legacy.js)
 9. ✅ **Page Encaissement section "Factures émises"** (`factures_emises`) — DONE 2026-05-15 (script-encaissement-legacy.js + export CSV)
 10. ✅ **Page Encaissement section "Historique relances"** (`relances` + `relances_log`) — DONE 2026-05-15 (script-encaissement-legacy.js)
-11. **Drawer livraison onglet "Documents"** vérifier wiring (`documents_livraison_*`)
-12. **Drawer salarié onglet "Messages"** (`messages_<id>`)
-13. **Drawer salarié onglet "Notifications"** (`notifs_sal_<id>`)
+11. ✅ **Drawer livraison onglet "Documents"** (`documents_livraison_*`) — VERIFIED 2026-05-16 (déjà 100% wired script-livraisons-drawer.js:96-216)
+12. ✅ **Messages chauffeur** (`messages_<id>`) — VERIFIED 2026-05-16 (admin envoie via script-planning+incidents, chauffeur reçoit via salarie.html)
+13. ✅ **Notifications chauffeur** (`notifs_sal_<id>`) — VERIFIED 2026-05-16 (admin push via script-alertes, chauffeur consume via salarie.html)
 14. ✅ **Heures&Km section "Relevé km par salarié"** (`km_sal_<id>`) — VERIFIED 2026-05-15 (déjà via afficherReleveKm() + tb-releve-km)
 15. ✅ **Dashboard widget "Objectif CA"** (`objectif_ca_mensuel`) — DONE 2026-05-15 (Paramètres input + script-core-storage save)
 16. ✅ **Dashboard widget "Objectif livraisons"** (`objectif_livraisons_mensuel`) — DONE 2026-05-15 (idem)
@@ -154,6 +154,27 @@ _(Aucun pour l'instant — toutes les clés ont au moins un read ou un write que
 
 ### Priorité 3 — Documentation / nettoyage
 20. Documenter chaque clé dans un fichier `STORAGE-KEYS.md` avec contrat (shape, durée vie, source de vérité)
+
+---
+
+## 📊 Bilan audit storage 2026-05-16
+
+| Catégorie | Count | Done |
+|---|---|---|
+| Priorité 1 (fusion) | 5 | 1 verified false_positive (logo), 4 gardés (refactor risqué) |
+| Priorité 2 (réintégration) | 14 | **14/14 ✅** — toutes réintégrées ou verified déjà intégrées |
+| Priorité 3 (doc) | 1 | À faire (STORAGE-KEYS.md contracts) |
+
+**🎉 Toutes les clés legacy orphelines de Priorité 2 ont été soit réintégrées en UI, soit verified comme déjà intégrées dans leur contexte naturel.**
+
+7 nouveaux scripts livrés ce cycle :
+- script-extra-charts.js (7 charts manquants)
+- script-equipe-overview.js (Vue d'ensemble cards)
+- script-exports-inspections.js (3 exports manquants)
+- script-encaissement-legacy.js (4 sections : Factures/Avoirs/Acomptes/Relances)
+- script-tva-historique.js (Historique déclarations)
+- script-charges-categories.js (CRUD catégories charges)
+- (+ extension script-dashboard-attention.js pour reco enrichie)
 
 ---
 
