@@ -609,8 +609,8 @@ function afficherPlanningSal() {
   cont.innerHTML = `
     <div style="
       margin-bottom:16px;padding:14px 16px;
-      background:rgba(245,166,35,0.08);
-      border:1px solid rgba(245,166,35,0.2);
+      background:rgba(230,57,70,0.08);
+      border:1px solid rgba(230,57,70,0.2);
       border-radius:12px;
     ">
       <div style="font-size:.75rem;color:var(--muted);
@@ -625,7 +625,7 @@ function afficherPlanningSal() {
     <div style="display:flex;flex-direction:column;gap:10px">
       ${cartes.map(c => {
         const bgColor = c.estAuj
-          ? 'rgba(245,166,35,0.08)'
+          ? 'rgba(230,57,70,0.08)'
           : 'var(--card2)';
         const borderColor = c.estAuj
           ? 'var(--accent)'
@@ -778,7 +778,7 @@ function afficherAccueil() {
       <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)">
         <div style="width:24px;height:24px;border-radius:50%;background:${t.fait?'var(--green)':'rgba(255,255,255,.08)'};border:2px solid ${t.fait?'var(--green)':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem">${t.fait?'✓':''}</div>
         <span style="flex:1;font-size:.88rem;color:${t.fait?'var(--muted)':'var(--text)'};${t.fait?'text-decoration:line-through':''}">${t.label}</span>
-        ${!t.fait ? `<button onclick="${t.action}" style="background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.3);color:var(--accent);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer;white-space:nowrap">${t.btnLabel} →</button>` : '<span style="font-size:.78rem;color:var(--green)">✅ Fait</span>'}
+        ${!t.fait ? `<button onclick="${t.action}" style="background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.3);color:var(--accent);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer;white-space:nowrap">${t.btnLabel} →</button>` : '<span style="font-size:.78rem;color:var(--green)">✅ Fait</span>'}
       </div>`).join('')}
     <div style="display:flex;align-items:center;gap:12px;padding:11px 0">
       <div style="width:24px;height:24px;border-radius:50%;background:${checklist.pleinFait===true?'var(--green)':checklist.pleinFait===false?'rgba(231,76,60,.2)':'rgba(255,255,255,.08)'};border:2px solid ${checklist.pleinFait!==null?checklist.pleinFait?'var(--green)':'var(--red)':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem">${checklist.pleinFait===true?'✓':checklist.pleinFait===false?'✗':''}</div>
@@ -1011,7 +1011,7 @@ function enregistrerKmDepart() {
     btnDep.disabled = false;
   }
   if (btnRet) {
-    btnRet.style.background = 'linear-gradient(135deg,#f5a623,#ff8c00)';
+    btnRet.style.background = 'linear-gradient(135deg,#e63946,#c01c28)';
     btnRet.style.color = '#000';
     btnRet.style.border = 'none';
     btnRet.style.fontWeight = '800';
@@ -2430,7 +2430,7 @@ function initEtatBoutonsKm() {
   if (entreeAuj && !entreeAuj.kmArrivee) {
     btnRetour.style.cssText = `
       flex:1;
-      background:linear-gradient(135deg,#f5a623,#ff8c00);
+      background:linear-gradient(135deg,#e63946,#c01c28);
       color:#000;border:none;border-radius:14px;
       padding:17px;font-size:1rem;font-weight:800;
       cursor:pointer;
@@ -2445,7 +2445,7 @@ function initEtatBoutonsKm() {
   } else {
     btnDepart.style.cssText = `
       flex:1;
-      background:linear-gradient(135deg,#f5a623,#ff8c00);
+      background:linear-gradient(135deg,#e63946,#c01c28);
       color:#000;border:none;border-radius:14px;
       padding:17px;font-size:1rem;font-weight:800;
       cursor:pointer;

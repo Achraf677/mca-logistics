@@ -365,13 +365,13 @@
 
 /* Absence */
 .planning-week-grid .planning-week-state.is-absence {
-  background: rgba(245,166,35,0.1);
-  border: 1px solid rgba(245,166,35,0.3);
-  color: #f5a623;
+  background: var(--ds-warning-soft, rgba(255,214,10,0.16));
+  border: 1px solid rgba(255,214,10,0.3);
+  color: var(--ds-warning, #ffd60a);
 }
 
 .planning-week-grid .planning-week-state.is-absence > span:first-child {
-  color: #f5a623;
+  color: var(--ds-warning, #ffd60a);
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.06em;

@@ -99,8 +99,8 @@
         'body{padding:18px}' +
         '@page{margin:10mm}' +
         '.mca-pdf-h{display:flex;justify-content:space-between;align-items:flex-start;' +
-          'gap:14px;padding-bottom:10px;border-bottom:2px solid #f5a623;margin-bottom:14px}' +
-        '.mca-pdf-h .brand{font-size:1.25rem;font-weight:900;color:#f5a623}' +
+          'gap:14px;padding-bottom:10px;border-bottom:2px solid #e63946;margin-bottom:14px}' +
+        '.mca-pdf-h .brand{font-size:1.25rem;font-weight:900;color:#e63946}' +
         '.mca-pdf-h .meta{font-size:.78rem;color:#6b7280;text-align:right}' +
         '.mca-pdf-title{font-size:.95rem;font-weight:700;margin:6px 0 2px;color:#111827}' +
         '.mca-pdf-sub{font-size:.78rem;color:#6b7280}' +

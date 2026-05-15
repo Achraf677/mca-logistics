@@ -130,7 +130,7 @@
       + 'th,td{padding:6px 8px;border:1px solid #ddd;text-align:left;vertical-align:top}'
       + 'th{background:#f5f6f8;font-weight:600;font-size:10px;text-transform:uppercase}'
       + '.statut-ok{color:#06d6a0;font-weight:600}'
-      + '.statut-warn{color:#f5a623;font-weight:600}'
+      + '.statut-warn{color:#ffd60a;font-weight:600}'
       + '.statut-alert{color:#e63946;font-weight:600}'
       + '.meta{font-size:10px;color:#777;margin-bottom:18px}'
       + '@media print{body{padding:12px}}'

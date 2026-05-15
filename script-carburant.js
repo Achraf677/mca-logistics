@@ -231,7 +231,7 @@ function afficherCarburant() {
   tb.innerHTML = [...pleins].sort((a,b) => new Date(b.creeLe)-new Date(a.creeLe)).map(p => {
     const src = p.source==='salarie'
       ? '<span style="background:rgba(79,142,247,0.15);color:#4f8ef7;padding:2px 7px;border-radius:12px;font-size:0.75rem;">Salarié</span>'
-      : '<span style="background:rgba(245,166,35,0.12);color:var(--accent);padding:2px 7px;border-radius:12px;font-size:0.75rem;">⚙️ Admin</span>';
+      : '<span style="background:rgba(230,57,70,0.12);color:var(--accent);padding:2px 7px;border-radius:12px;font-size:0.75rem;">⚙️ Admin</span>';
     const mod = p.modifie ? '<span style="background:rgba(231,76,60,0.15);color:#e74c3c;padding:2px 7px;border-radius:12px;font-size:0.75rem;margin-left:4px;">✏️ Modifié</span>' : '';
     // Badge anomalie carburant
     let badgeAnom = '';
@@ -240,8 +240,8 @@ function afficherCarburant() {
         const anomalies = detecterAnomaliesPlein(p, { pleinsVeh: pleinsByVeh[p.vehId] || [], vehicules: allVehicules });
         if (anomalies && anomalies.length) {
           const maxNiveau = anomalies.some(a => a.niveau === 'rouge') ? 'rouge' : 'orange';
-          const couleur = maxNiveau === 'rouge' ? '#e74c3c' : '#f5a623';
-          const bg = maxNiveau === 'rouge' ? 'rgba(231,76,60,0.15)' : 'rgba(245,166,35,0.15)';
+          const couleur = maxNiveau === 'rouge' ? '#e74c3c' : '#ffd60a';
+          const bg = maxNiveau === 'rouge' ? 'rgba(231,76,60,0.15)' : 'rgba(255,214,10,0.15)';
           const tooltip = anomalies.map(a => '• ' + a.message).join('\n');
           const icone = maxNiveau === 'rouge' ? '🔴' : '🟠';
           badgeAnom = '<span title="' + tooltip.replace(/"/g, '&quot;') + '" style="background:' + bg + ';color:' + couleur + ';padding:2px 7px;border-radius:12px;font-size:0.75rem;margin-left:4px;cursor:help">' + icone + ' Anomalie</span>';

@@ -280,7 +280,7 @@ function calculerPrevision() {
         { label:'CA réel (€)', data:dataCA.slice(0,-1).concat([null]),
           backgroundColor:'rgba(79,142,247,0.4)', borderColor:'rgba(79,142,247,0.9)', borderWidth:2, borderRadius:6 },
         { label:'CA prévu (€)', data:Array(6).fill(null).concat([dataCA[6]]),
-          backgroundColor:'rgba(245,166,35,0.3)', borderColor:'rgba(245,166,35,0.9)', borderWidth:2, borderRadius:6, borderDash:[5,5] },
+          backgroundColor:'rgba(255,214,10,0.3)', borderColor:'rgba(255,214,10,0.9)', borderWidth:2, borderRadius:6, borderDash:[5,5] },
         { label:'Bénéfice net (€)', data:dataBen.slice(0,-1).concat([null]),
           type:'line', borderColor:'#2ecc71', backgroundColor:'rgba(46,204,113,0.1)', fill:true, tension:0.4, pointRadius:4 },
       ]

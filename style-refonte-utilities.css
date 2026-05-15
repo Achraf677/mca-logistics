@@ -134,7 +134,7 @@
   flex-shrink: 0;
 }
 .cal16-dot-liv  { background: var(--brand, #e63946); }
-.cal16-dot-ech  { background: var(--warning, #f5a623); }
+.cal16-dot-ech  { background: var(--ds-warning, var(--warning, #ffd60a)); }
 .cal16-dot-rel  { background: #ff6b35; }
 .cal16-dot-pai  { background: #06d6a0; }
 .cal16-dot-fer  { background: #4cc9f0; }

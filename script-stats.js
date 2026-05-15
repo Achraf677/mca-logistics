@@ -159,7 +159,7 @@ function afficherStatistiques() {
   if (ctxCA) {
     chartCAParChauff=new Chart(ctxCA,{
       type:'doughnut',
-      data:{labels:caChData.map(c=>c.nom),datasets:[{data:caChData.map(c=>c.ca),backgroundColor:['rgba(79,142,247,0.7)','rgba(245,166,35,0.7)','rgba(46,204,113,0.7)','rgba(155,89,182,0.7)','rgba(231,76,60,0.7)','rgba(52,152,219,0.7)','rgba(230,126,34,0.7)'],borderColor:isLight?'#fff':'#1a1d27',borderWidth:3}]},
+      data:{labels:caChData.map(c=>c.nom),datasets:[{data:caChData.map(c=>c.ca),backgroundColor:['rgba(79,142,247,0.7)','rgba(255,214,10,0.7)','rgba(46,204,113,0.7)','rgba(155,89,182,0.7)','rgba(231,76,60,0.7)','rgba(52,152,219,0.7)','rgba(230,126,34,0.7)'],borderColor:isLight?'#fff':'#1a1d27',borderWidth:3}]},
       options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:legendColor}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${euros(ctx.parsed||0)}`}}}}
     });
   }
@@ -176,13 +176,13 @@ function exporterStatsPDF() {
   const km = document.getElementById('stats-km-total')?.textContent||'0 km';
   const dateExp = formatDateHeureExport();
   const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:0 auto;padding:32px;color:#1a1d27">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">
-      <div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">${nom}</div></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #e63946;margin-bottom:24px">
+      <div><div style="font-size:1.4rem;font-weight:800;color:#e63946">${nom}</div></div>
       <div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Rapport statistiques</div><div style="font-size:.9rem;font-weight:700">${range.label}</div><div style="font-size:.78rem;color:#9ca3af">${range.dates}</div></div>
     </div>
     ${renderBlocInfosEntreprise(params)}
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px">
-      ${[['CA période',ca,'#2ecc71'],['Livraisons',livs,'#4f8ef7'],['Panier moyen',panier,'#f5a623'],['Km total',km,'#9b59b6']].map(([l,v,c])=>`<div style="background:#f8f9fc;border-radius:10px;padding:16px;text-align:center;border-top:3px solid ${c}"><div style="font-size:.72rem;color:#9ca3af;margin-bottom:6px">${l}</div><div style="font-size:1.2rem;font-weight:800;color:${c}">${v}</div></div>`).join('')}
+      ${[['CA période',ca,'#2ecc71'],['Livraisons',livs,'#4f8ef7'],['Panier moyen',panier,'#e63946'],['Km total',km,'#9b59b6']].map(([l,v,c])=>`<div style="background:#f8f9fc;border-radius:10px;padding:16px;text-align:center;border-top:3px solid ${c}"><div style="font-size:.72rem;color:#9ca3af;margin-bottom:6px">${l}</div><div style="font-size:1.2rem;font-weight:800;color:${c}">${v}</div></div>`).join('')}
     </div>
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;

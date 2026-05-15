@@ -512,7 +512,7 @@ a { color: var(--m-accent); text-decoration: none; }
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 20px rgba(245,166,35,0.4);
+  box-shadow: 0 6px 20px rgba(230,57,70,0.4);
   /* z-index 45 : au-dessus de .m-bottom-nav (40), sous le drawer overlay (80).
      Hotfix R2 (2026-05-09) — etait a 30, donc cache derriere la nav et incliquable. */
   z-index: 45;

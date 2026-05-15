@@ -1100,9 +1100,9 @@
         body { font-family: 'Segoe UI', -apple-system, Arial, sans-serif; padding: 24px; max-width: 720px; margin: 0 auto; color: #111827; background: #fff; }
         @media print { body { padding: 12mm; } @page { margin: 12mm; } }
       </style></head><body>
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #f5a623">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #e63946">
         <div>
-          <div style="font-size:1.5rem;font-weight:900;color:#f5a623">${esc(ent.nom || 'MCA Logistics')}</div>
+          <div style="font-size:1.5rem;font-weight:900;color:#e63946">${esc(ent.nom || 'MCA Logistics')}</div>
           ${ent.adresse ? `<div style="font-size:.82rem;color:#6b7280;margin-top:4px">${esc(ent.adresse)}</div>` : ''}
           ${ent.tel ? `<div style="font-size:.82rem;color:#6b7280">${esc(ent.tel)}</div>` : ''}
           ${ent.email ? `<div style="font-size:.82rem;color:#6b7280">✉ ${esc(ent.email)}</div>` : ''}
@@ -1111,7 +1111,7 @@
         </div>
         <div style="text-align:right">
           <div style="font-size:.78rem;text-transform:uppercase;color:#6b7280;letter-spacing:.06em">${titre}</div>
-          <div style="font-size:1.3rem;font-weight:800;color:#f5a623;margin-top:4px">${esc(numero)}</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#e63946;margin-top:4px">${esc(numero)}</div>
           <div style="font-size:.82rem;color:#6b7280;margin-top:6px">Date : <strong>${fmtD(liv.date)}</strong></div>
           ${isFact && liv.datePaiement ? `<div style="font-size:.82rem;color:#6b7280">Paiement : <strong>${fmtD(liv.datePaiement)}</strong></div>` : ''}
         </div>
@@ -6179,7 +6179,7 @@
           ${statut === 'actives' && filtered.length > 1 ? `<button type="button" id="m-alertes-bulk-toggle" class="m-alertes-chip ${bulkOn ? 'active' : ''}" style="font-size:.74rem;padding:0 10px;height:30px;margin-left:auto">${bulkOn ? '✕ Annuler' : '☑️ Multi'}</button>` : ''}
         </div>
         ${bulkOn && M.state.alertesBulkSel.size > 0 ? `
-          <div style="display:flex;gap:6px;margin-bottom:14px;padding:10px 12px;background:var(--m-accent-soft);border:1px solid rgba(245,166,35,0.3);border-radius:12px;align-items:center">
+          <div style="display:flex;gap:6px;margin-bottom:14px;padding:10px 12px;background:var(--m-accent-soft);border:1px solid rgba(230,57,70,0.3);border-radius:12px;align-items:center">
             <span style="font-size:.85rem;font-weight:600;color:var(--m-accent);flex:1">${M.state.alertesBulkSel.size} alerte${M.state.alertesBulkSel.size>1?'s':''} sélectionnée${M.state.alertesBulkSel.size>1?'s':''}</span>
             <button type="button" id="m-alertes-bulk-valider" style="background:rgba(46,204,113,0.2);color:var(--m-green);border:1px solid rgba(46,204,113,0.4);padding:6px 10px;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:36px">✓ Valider</button>
             <button type="button" id="m-alertes-bulk-ignorer" style="background:rgba(231,76,60,0.15);color:var(--m-red);border:1px solid rgba(231,76,60,0.4);padding:6px 10px;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:36px">✕ Ignorer</button>
@@ -6538,7 +6538,7 @@
       </div>
 
       <div style="display:flex;flex-direction:column;gap:8px">
-        ${entiteAction ? `<button type="button" id="m-alerte-detail-goto" data-page="${M.escHtml(entiteAction.page)}" data-id="${M.escHtml(entiteAction.id || '')}" style="padding:14px;background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:12px;font-weight:600;font-size:.9rem;cursor:pointer;font-family:inherit;min-height:48px">${M.escHtml(entiteAction.label)} →</button>` : ''}
+        ${entiteAction ? `<button type="button" id="m-alerte-detail-goto" data-page="${M.escHtml(entiteAction.page)}" data-id="${M.escHtml(entiteAction.id || '')}" style="padding:14px;background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(230,57,70,0.3);border-radius:12px;font-weight:600;font-size:.9rem;cursor:pointer;font-family:inherit;min-height:48px">${M.escHtml(entiteAction.label)} →</button>` : ''}
         ${!a.traitee && !a.ignoree ? `<button type="button" id="m-alerte-detail-valider" style="padding:14px;background:rgba(46,204,113,0.15);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:12px;font-weight:600;font-size:.9rem;cursor:pointer;font-family:inherit;min-height:48px">✓ Marquer comme traitée</button>` : ''}
         ${!a.traitee && !a.ignoree && !estCritiqueExpire && !enReportee ? `<button type="button" id="m-alerte-detail-ignorer" style="padding:14px;background:rgba(231,76,60,0.12);color:var(--m-red);border:1px solid rgba(231,76,60,0.3);border-radius:12px;font-weight:600;font-size:.9rem;cursor:pointer;font-family:inherit;min-height:48px">✕ Ignorer</button>` : ''}
         ${enReportee ? `<button type="button" id="m-alerte-detail-reprendre" style="padding:14px;background:rgba(155,89,182,0.15);color:var(--m-purple);border:1px solid rgba(155,89,182,0.3);border-radius:12px;font-weight:600;font-size:.9rem;cursor:pointer;font-family:inherit;min-height:48px">▶️ Reprendre</button>` : ''}
@@ -8675,7 +8675,7 @@
           ${c.ville ? `<span style="color:var(--m-text-muted);font-size:.85rem">${M.escHtml(c.ville)}</span>` : ''}
         </div>
         <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
-          <button type="button" onclick="MCAm.editerClient('${M.escHtml(c.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit;min-height:44px">✏️ Modifier</button>
+          <button type="button" onclick="MCAm.editerClient('${M.escHtml(c.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(230,57,70,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit;min-height:44px">✏️ Modifier</button>
           <button type="button" onclick="MCAm.nouvelleLivraisonPourClient('${M.escHtml(c.id)}')" style="background:rgba(46,204,113,0.15);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit;min-height:44px">+ Livraison</button>
         </div>
       </div>
@@ -8701,7 +8701,7 @@
               <div style="font-size:.66rem;color:var(--m-green);text-transform:uppercase;letter-spacing:.04em;font-weight:700">Payé</div>
               <div style="font-size:1.05rem;font-weight:700;margin-top:4px;color:var(--m-green)">${M.format$(s.paye)}</div>
             </div>
-            <div style="background:var(--m-card);border:1px solid rgba(245,166,35,0.3);border-radius:12px;padding:12px;text-align:center">
+            <div style="background:var(--m-card);border:1px solid rgba(230,57,70,0.3);border-radius:12px;padding:12px;text-align:center">
               <div style="font-size:.66rem;color:var(--m-accent);text-transform:uppercase;letter-spacing:.04em;font-weight:700">À payer</div>
               <div style="font-size:1.05rem;font-weight:700;margin-top:4px;color:var(--m-accent)">${M.format$(s.attente - s.retard)}</div>
             </div>
@@ -8844,7 +8844,7 @@
         <div style="width:64px;height:64px;border-radius:14px;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 10px">🏭</div>
         <h2 style="margin:0;font-size:1.3rem;font-weight:700;letter-spacing:-0.02em">${M.escHtml(f.nom || '—')}</h2>
         ${f.ville ? `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">${M.escHtml(f.ville)}</p>` : ''}
-        <button type="button" onclick="MCAm.editerFournisseur('${M.escHtml(f.id)}')" style="margin-top:12px;background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button>
+        <button type="button" onclick="MCAm.editerFournisseur('${M.escHtml(f.id)}')" style="margin-top:12px;background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(230,57,70,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button>
       </div>
 
       ${f.tel || f.email ? `
@@ -9880,7 +9880,7 @@
         ${i.salNom ? (salInsp
           ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(salInsp.id)}')" style="background:none;border:none;color:var(--m-blue);font-size:.85rem;margin-top:4px;font-weight:600;cursor:pointer;font-family:inherit">${M.escHtml(i.salNom)} ›</button>`
           : `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">${M.escHtml(i.salNom)}</p>`) : ''}
-        <div style="margin-top:12px"><button type="button" onclick="MCAm.editerInspection('${M.escHtml(i.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button></div>
+        <div style="margin-top:12px"><button type="button" onclick="MCAm.editerInspection('${M.escHtml(i.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(230,57,70,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button></div>
       </div>
 
       <div class="m-card" style="padding:0">
@@ -10190,7 +10190,7 @@
       return `
         <p class="m-form-hint" style="margin-bottom:12px">Liste des postes utilisés pour catégoriser les salariés. Modifiable côté PC aussi.</p>
         <div id="m-postes-liste" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
-          ${postes.map((p, i) => `<span style="display:inline-flex;align-items:center;gap:6px;background:var(--m-accent-soft);border:1px solid rgba(245,166,35,.25);color:var(--m-accent);padding:6px 12px;border-radius:18px;font-size:.82rem;font-weight:600">
+          ${postes.map((p, i) => `<span style="display:inline-flex;align-items:center;gap:6px;background:var(--m-accent-soft);border:1px solid rgba(230,57,70,.25);color:var(--m-accent);padding:6px 12px;border-radius:18px;font-size:.82rem;font-weight:600">
             ${M.escHtml(p)}
             <button type="button" class="m-poste-del" data-idx="${i}" style="background:none;border:none;cursor:pointer;color:var(--m-red);font-size:.95rem;padding:0;line-height:1" aria-label="Supprimer ${M.escHtml(p)}">✕</button>
           </span>`).join('') || '<p class="m-form-hint">Aucun poste défini.</p>'}
@@ -10265,7 +10265,7 @@
         <h2 style="margin:0;font-size:1.3rem;font-weight:700;letter-spacing:-0.02em">${M.escHtml((s.prenom ? s.prenom + ' ' : '') + (s.nom || '—'))}</h2>
         ${s.poste ? `<p style="color:var(--m-text-muted);font-size:.88rem;margin:4px 0 0">${M.escHtml(s.poste)}</p>` : ''}
         ${!estActif ? `<p style="display:inline-block;background:rgba(231,76,60,0.12);color:var(--m-red);padding:3px 10px;border-radius:12px;font-size:.72rem;font-weight:600;margin-top:8px">⏸️ Inactif</p>` : ''}
-        <div style="margin-top:12px"><button type="button" onclick="MCAm.editerSalarie('${M.escHtml(s.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button></div>
+        <div style="margin-top:12px"><button type="button" onclick="MCAm.editerSalarie('${M.escHtml(s.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(230,57,70,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button></div>
       </div>
 
       ${s.tel || s.email ? `
@@ -10687,7 +10687,7 @@
         <div style="width:64px;height:64px;border-radius:50%;background:${graviteColor}22;color:${graviteColor};display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 10px">🚨</div>
         <h2 style="margin:0;font-size:1.2rem;font-weight:700">${M.escHtml(i.client || i.salNom || 'Incident')}</h2>
         <p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">${M.formatDate(i.creeLe || i.date)}</p>
-        <div style="margin-top:12px"><button type="button" onclick="MCAm.editerIncident('${M.escHtml(i.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button></div>
+        <div style="margin-top:12px"><button type="button" onclick="MCAm.editerIncident('${M.escHtml(i.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(230,57,70,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button></div>
       </div>
 
       <div class="m-card-row">
@@ -11026,7 +11026,7 @@
             <div class="m-card-sub">${soldeSub}</div>
           </div>
           ${livEnAttente.length ? `
-            <div class="m-card" style="padding:12px 14px;margin-bottom:12px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.22)">
+            <div class="m-card" style="padding:12px 14px;margin-bottom:12px;background:rgba(255,214,10,.08);border:1px solid rgba(255,214,10,.22)">
               <div style="font-size:.85rem;font-weight:700;margin-bottom:4px">Facturé mais non exigible</div>
               <div style="font-size:.74rem;color:var(--m-text-muted);line-height:1.4">${livEnAttente.length} livraison${livEnAttente.length>1?'s':''} facturée${livEnAttente.length>1?'s':''} sur la période, en attente de paiement avant exigibilité TVA.</div>
             </div>

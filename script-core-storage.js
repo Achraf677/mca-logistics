@@ -159,7 +159,7 @@ function chargerParametres() {
   };
   Object.entries(map).forEach(([id,val]) => { const el=document.getElementById(id); if(el) el.value=val; });
   const colorEl = document.getElementById('param-accent-color');
-  if (colorEl) colorEl.value = localStorage.getItem('accent_color') || '#f5a623';
+  if (colorEl) colorEl.value = localStorage.getItem('accent_color') || '#e63946';
   const maxTentEl = document.getElementById('param-max-tentatives');
   if (maxTentEl) maxTentEl.value = localStorage.getItem('max_tentatives') || '5';
   const sessionTimeoutEl = document.getElementById('param-session-timeout');

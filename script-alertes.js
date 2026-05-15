@@ -173,13 +173,13 @@ if (!toutesDejaLues) {
     { type: 'charge_retard_paiement', severity: 'critique', label: 'Charges en retard de paiement',          color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)'  },
     { type: 'carburant_anomalie',     severity: 'critique', label: '⛽ Anomalies carburant (conso / fraude)',    color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)'  },
     // 🟠 ALERTE
-    { type: 'ct_proche',              severity: 'alerte',   label: 'CT à renouveler (< 30 jours)',           color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
-    { type: 'permis_proche',          severity: 'alerte',   label: 'Permis expirent bientôt',                color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
-    { type: 'assurance_proche',       severity: 'alerte',   label: 'Assurances expirent bientôt',           color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
+    { type: 'ct_proche',              severity: 'alerte',   label: 'CT à renouveler (< 30 jours)',           color: 'rgba(255,214,10,0.06)', border: 'rgba(255,214,10,0.2)' },
+    { type: 'permis_proche',          severity: 'alerte',   label: 'Permis expirent bientôt',                color: 'rgba(255,214,10,0.06)', border: 'rgba(255,214,10,0.2)' },
+    { type: 'assurance_proche',       severity: 'alerte',   label: 'Assurances expirent bientôt',           color: 'rgba(255,214,10,0.06)', border: 'rgba(255,214,10,0.2)' },
     { type: 'vidange',                severity: 'alerte',   label: 'Vidanges à effectuer',                   color: 'rgba(52,152,219,0.06)', border: 'rgba(52,152,219,0.2)' },
-    { type: 'prix_manquant',          severity: 'alerte',   label: 'Prix de livraison manquant',             color: 'rgba(245,166,35,0.08)', border: 'rgba(245,166,35,0.3)' },
-    { type: 'planning_manquant',      severity: 'alerte',   label: 'Salariés sans planning défini',          color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
-    { type: 'inspection_manquante',   severity: 'alerte',   label: 'Véhicules sans inspection récente',      color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
+    { type: 'prix_manquant',          severity: 'alerte',   label: 'Prix de livraison manquant',             color: 'rgba(255,214,10,0.08)', border: 'rgba(255,214,10,0.3)' },
+    { type: 'planning_manquant',      severity: 'alerte',   label: 'Salariés sans planning défini',          color: 'rgba(255,214,10,0.06)', border: 'rgba(255,214,10,0.2)' },
+    { type: 'inspection_manquante',   severity: 'alerte',   label: 'Véhicules sans inspection récente',      color: 'rgba(255,214,10,0.06)', border: 'rgba(255,214,10,0.2)' },
     // 🔵 INFO
     { type: 'livraison_modif',        severity: 'info',     label: '✏️ Livraisons modifiées',                   color: 'rgba(155,89,182,0.06)', border: 'rgba(155,89,182,0.25)'},
     { type: 'carburant_modif',        severity: 'info',     label: '✏️ Modifications carburant',                color: 'rgba(231,76,60,0.06)',  border: 'rgba(231,76,60,0.25)' },
@@ -192,7 +192,7 @@ if (!toutesDejaLues) {
   const SEVERITES_ORDER = ['critique', 'alerte', 'info'];
   const SEVERITES_HEADER = {
     critique: { label: 'Critique — à traiter immédiatement', color: '#e74c3c' },
-    alerte:   { label: 'À traiter prochainement',             color: '#f5a623' },
+    alerte:   { label: 'À traiter prochainement',             color: '#ffd60a' },
     info:     { label: 'Pour information',                    color: '#4f8ef7' },
   };
 
@@ -226,7 +226,7 @@ if (!toutesDejaLues) {
     };
     banner.innerHTML = [
       tile('Critique',    countBySev.critique || 0, '#e74c3c', 'sev-critique', 'Voir les alertes critiques'),
-      tile('À traiter',   countBySev.alerte   || 0, '#f5a623', 'sev-alerte',   'Voir les alertes à traiter'),
+      tile('À traiter',   countBySev.alerte   || 0, '#ffd60a', 'sev-alerte',   'Voir les alertes à traiter'),
       tile('Pour info',   countBySev.info     || 0, '#4f8ef7', 'sev-info',     'Voir les alertes d\'information'),
       tile('⏰ Reportées',   allReportees.length,      '#9b59b6', null,            `${allReportees.length} alerte(s) reportée(s) — utilise le filtre statut pour les voir`),
     ].join('');
@@ -293,7 +293,7 @@ if (!toutesDejaLues) {
           if (enModeReportees) {
             btnActions = `<button class="btn-icon" style="background:rgba(155,89,182,.12);color:#9b59b6;border:1px solid rgba(155,89,182,.3)" onclick="reprendreAlerte('${a.id}')" title="Réafficher l'alerte maintenant">▶️ Reprendre</button>`;
           } else if (estPrixManquant) {
-            btnActions = `<button class="btn-icon" style="background:rgba(245,166,35,0.12);color:var(--accent);border:1px solid rgba(245,166,35,0.3)" onclick="ouvrirLivraisonPourPrix('${a.meta?.client||''}')">Saisir</button>
+            btnActions = `<button class="btn-icon" style="background:rgba(255,214,10,0.12);color:var(--ds-warning,#ffd60a);border:1px solid rgba(255,214,10,0.3)" onclick="ouvrirLivraisonPourPrix('${a.meta?.client||''}')">Saisir</button>
               ${snoozeSelect(a.id)}
               <button class="btn-icon danger" onclick="ignorerAlerte('${a.id}')" style="margin-left:4px" title="Ignorer (silencieuse 30 jours)">✕ Ignorer</button>`;
           } else if (estCritique) {

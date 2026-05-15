@@ -231,9 +231,9 @@
 }
 
 .fv-badge-warn {
-  background: rgba(245, 166, 35, 0.16);
-  color: #f5a623;
-  border: 1px solid rgba(245, 166, 35, 0.3);
+  background: var(--ds-warning-soft, rgba(255,214,10,0.16));
+  color: var(--ds-warning, #ffd60a);
+  border: 1px solid rgba(255,214,10,0.3);
 }
 
 .fv-badge-danger {

@@ -55,7 +55,7 @@
   var COLORS = {
     brand: '#e63946',
     success: '#06d6a0',
-    warning: '#f5a623',
+    warning: '#ffd60a',
     info: '#3498db',
     purple: '#9b59b6',
     muted: '#7c8299',

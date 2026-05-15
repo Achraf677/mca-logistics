@@ -552,7 +552,7 @@ body.role-salarie-unified .page:not(.active) {
 .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
 /* Phase 60 V7 polish — variants génériques badge.ok/warn/alert pour Encaissement legacy, TVA historique, Inspections */
 .badge.ok    { background: rgba(46,204,113,0.14); color: #2ecc71; }
-.badge.warn  { background: rgba(245,166,35,0.14); color: #f5a623; }
+.badge.warn  { background: var(--ds-warning-soft, rgba(255,214,10,0.16)); color: var(--ds-warning, #ffd60a); }
 .badge.alert { background: rgba(230,57,70,0.15);  color: var(--brand, #e63946); }
 /* Utility classes : .mono (chiffres tabulaires N°/montants/dates) — slashed-zero pour distinguer 0/O */
 td.mono, .mono { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-variant-numeric: tabular-nums slashed-zero; }
@@ -3652,8 +3652,8 @@ kbd {
   line-height: 1.3;
 }
 .inline-badge-warning {
-  background: rgba(245, 166, 35, 0.14);
-  color: #e63946;
+  background: var(--ds-warning-soft, rgba(255,214,10,0.16));
+  color: var(--ds-warning, #ffd60a);
 }
 .inline-badge-danger {
   background: rgba(231, 76, 60, 0.14);

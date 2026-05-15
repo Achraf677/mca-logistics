@@ -136,9 +136,9 @@
 }
 
 #page-incidents .incident-badge.incident-encours {
-  color: #f5a623;
-  background: rgba(245,166,35,0.1);
-  border-color: rgba(245,166,35,0.35);
+  color: var(--ds-warning, #ffd60a);
+  background: var(--ds-warning-soft, rgba(255,214,10,0.16));
+  border-color: rgba(255,214,10,0.35);
 }
 
 #page-incidents .incident-badge.incident-traite {

@@ -570,7 +570,7 @@ function afficherTva() {
         var detail = item.paymentDate ? 'Paiement prévu le ' + formatDateExport(item.paymentDate) : 'Aucun encaissement enregistré à ce jour';
         return '<div style="display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-top:1px solid var(--border)"><div><strong>' + planningEscapeHtml(item.libelle) + '</strong><div style="font-size:.78rem;color:var(--text-muted)">' + detail + '</div></div><div style="font-weight:700;color:var(--accent)">' + euros(item.tva) + '</div></div>';
       }).join('');
-      nonExigibleInfo.innerHTML = '<div style="margin-top:4px;padding:14px 16px;border-radius:12px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.22)"><div style="font-size:.88rem;font-weight:700;margin-bottom:6px">Facturé mais non encore exigible</div><div style="font-size:.8rem;color:var(--text-muted);margin-bottom:6px">' + summary.pending.length + ' livraison(s) facturées sur la période restent hors TVA collectée tant qu’elles ne sont pas exigibles.</div><div style="font-size:.82rem;font-weight:700;color:var(--accent);margin-bottom:4px">TVA concernée : ' + euros(totalPending) + '</div>' + pendingRows + '</div>';
+      nonExigibleInfo.innerHTML = '<div style="margin-top:4px;padding:14px 16px;border-radius:12px;background:rgba(255,214,10,.08);border:1px solid rgba(255,214,10,.22)"><div style="font-size:.88rem;font-weight:700;margin-bottom:6px">Facturé mais non encore exigible</div><div style="font-size:.8rem;color:var(--text-muted);margin-bottom:6px">' + summary.pending.length + ' livraison(s) facturées sur la période restent hors TVA collectée tant qu’elles ne sont pas exigibles.</div><div style="font-size:.82rem;font-weight:700;color:var(--accent);margin-bottom:4px">TVA concernée : ' + euros(totalPending) + '</div>' + pendingRows + '</div>';
     }
   }
 
@@ -595,7 +595,7 @@ function afficherTva() {
         + '</tr>';
     });
     if (!rows2) rows2 = (typeof emptyState === 'function') ? emptyState('💸', 'Aucune TVA déductible', 'Aucune charge avec TVA payée sur cette période.') : '<tr><td colspan="7" class="empty-row">Aucune TVA déductible sur cette période</td></tr>';
-    else rows2 += '<tr style="background:rgba(245,166,35,.08);font-weight:700"><td>TOTAL</td><td></td><td></td><td></td><td style="color:var(--accent)">' + euros(summary.totalDeductible) + '</td><td></td><td></td></tr>';
+    else rows2 += '<tr style="background:rgba(255,214,10,.08);font-weight:700"><td>TOTAL</td><td></td><td></td><td></td><td style="color:var(--accent)">' + euros(summary.totalDeductible) + '</td><td></td><td></td></tr>';
     tbDed.innerHTML = rows2;
   }
 
@@ -614,7 +614,7 @@ function afficherTva() {
       : '<div style="margin-top:16px;font-size:.82rem;color:var(--text-muted);text-align:center">Aucun versement TVA enregistré pour cette période déclarative.</div>';
     soldeEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;text-align:center">'
       + '<div style="padding:16px;background:rgba(46,204,113,.06);border-radius:10px;border:1px solid rgba(46,204,113,.2)"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">TVA Collectée</div><div style="font-size:1.3rem;font-weight:800;color:var(--green)">' + euros(summary.totalCollectee) + '</div></div>'
-      + '<div style="padding:16px;background:rgba(245,166,35,.06);border-radius:10px;border:1px solid rgba(245,166,35,.2)"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">TVA Déductible</div><div style="font-size:1.3rem;font-weight:800;color:var(--accent)">' + euros(summary.totalDeductible) + '</div></div>'
+      + '<div style="padding:16px;background:rgba(255,214,10,.06);border-radius:10px;border:1px solid rgba(255,214,10,.2)"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">TVA Déductible</div><div style="font-size:1.3rem;font-weight:800;color:var(--accent)">' + euros(summary.totalDeductible) + '</div></div>'
       + '<div style="padding:16px;background:rgba(79,142,247,.06);border-radius:10px;border:1px solid rgba(79,142,247,.2)"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">Déjà planifiée / réglée</div><div style="font-size:1.3rem;font-weight:800;color:var(--blue)">' + euros(summary.totalTVAPlanifiee) + '</div></div>'
       + '<div style="padding:16px;background:' + (summary.soldeBrut >= 0 ? 'rgba(231,76,60,.06)' : 'rgba(155,89,182,.08)') + ';border-radius:10px;border:1px solid ' + (summary.soldeBrut >= 0 ? 'rgba(231,76,60,.2)' : 'rgba(155,89,182,.25)') + '"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">' + (summary.soldeBrut >= 0 ? 'Reste non planifié' : 'Crédit de TVA') + '</div><div style="font-size:1.3rem;font-weight:800;color:' + (summary.soldeBrut >= 0 ? 'var(--red)' : 'var(--purple)') + '">' + euros(summary.soldeBrut >= 0 ? summary.tvaReverser : summary.tvaCredit) + '</div></div>'
       + '</div>'

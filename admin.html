@@ -871,7 +871,7 @@
               <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:var(--brand,#e63946);display:inline-block"></span>Aujourd'hui</span>
               <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#2ecc71;display:inline-block"></span>Férié</span>
               <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:rgba(52,152,219,0.7);display:inline-block"></span>Livraison</span>
-              <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:rgba(245,166,35,0.7);display:inline-block"></span>Échéance</span>
+              <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:var(--ds-warning,#ffd60a);display:inline-block"></span>Échéance</span>
             </div>
           </div>
           <div class="calendrier-grid" id="calendrier-grid"></div>
@@ -3509,7 +3509,7 @@
           <h3 style="margin:0 0 14px;font-family:var(--ds-font-display,var(--font-display));font-size:14px;font-weight:800">Ce mois</h3>
           <div class="cal16-kpi-grid">
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">Livraisons</div><div class="cal16-kpi-val" id="cal16-kpi-liv">0</div></div>
-            <div class="cal16-kpi"><div class="cal16-kpi-lbl" style="color:var(--warning,#f5a623)">Échéances</div><div class="cal16-kpi-val" style="color:var(--warning,#f5a623)" id="cal16-kpi-ech">0</div></div>
+            <div class="cal16-kpi"><div class="cal16-kpi-lbl" style="color:var(--ds-warning,#ffd60a)">Échéances</div><div class="cal16-kpi-val" style="color:var(--ds-warning,#ffd60a)" id="cal16-kpi-ech">0</div></div>
             <div class="cal16-kpi"><div class="cal16-kpi-lbl" style="color:var(--success,#06d6a0)">Encaissé</div><div class="cal16-kpi-val" style="color:var(--success,#06d6a0)" id="cal16-kpi-pai">—</div></div>
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">Jours fériés</div><div class="cal16-kpi-val" id="cal16-kpi-feries">—</div></div>
           </div>
@@ -3519,7 +3519,7 @@
           <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
             <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:var(--brand,#e63946);flex-shrink:0"></span> Aujourd'hui</div>
             <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:var(--success,#06d6a0);flex-shrink:0"></span> Férié</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:var(--warning,#f5a623);flex-shrink:0"></span> Échéance</div>
+            <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:var(--ds-warning,#ffd60a);flex-shrink:0"></span> Échéance</div>
           </div>
 
         </aside>
@@ -3580,7 +3580,7 @@
       <div class="kpi-grid" style="margin-bottom:16px">
         <div class="kpi"><div class="kpi-lbl">Effectif suivi</div><div class="kpi-val" id="planning-kpi-effectif">—</div><div class="kpi-sub">chauffeurs actifs</div></div>
         <div class="kpi"><div class="kpi-lbl">Planifiés cette semaine</div><div class="kpi-val" id="planning-kpi-planifies">—</div><div class="kpi-sub">de l'effectif</div></div>
-        <div class="kpi"><div class="kpi-lbl">Absences</div><div class="kpi-val" id="planning-kpi-absences" style="color:var(--warning,#f5a623)">—</div><div class="kpi-sub">Congés / absences</div></div>
+        <div class="kpi"><div class="kpi-lbl">Absences</div><div class="kpi-val" id="planning-kpi-absences" style="color:var(--ds-warning,#ffd60a)">—</div><div class="kpi-sub">Congés / absences</div></div>
         <div class="kpi"><div class="kpi-lbl">Heures planifiées</div><div class="kpi-val" id="planning-kpi-heures">—</div><div class="kpi-sub">Total semaine</div></div>
       </div>
 
@@ -4567,7 +4567,7 @@
           </div>
           <select id="plan-salarie" style="display:none" tabindex="-1" aria-hidden="true" aria-label="plan salarie"><option value="">-- Choisir un salarié --</option></select>
         </div>
-        <div class="card" style="margin-bottom:12px;background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.16)">
+        <div class="card" style="margin-bottom:12px;background:rgba(255,214,10,.06);border:1px solid rgba(255,214,10,.16)">
           <div class="modal-body" style="padding:12px 14px">
             <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
               <div>
@@ -4706,7 +4706,7 @@
             </div>
           </div>
         </div>
-        <div style="font-size:.78rem;color:var(--text-muted);background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);padding:10px 12px;border-radius:8px">
+        <div style="font-size:.78rem;color:var(--text-muted);background:rgba(255,214,10,.08);border:1px solid rgba(255,214,10,.25);padding:10px 12px;border-radius:8px">
           ⚠️ Demandez au chauffeur de changer son mot de passe lors de sa première connexion (page <em>Mon compte</em> côté salarié).
         </div>
       </div>

@@ -272,10 +272,10 @@
   background: linear-gradient(135deg, var(--ds-brand-soft, rgba(230,57,70,0.07)), transparent);
 }
 
-/* Avertissements card : amber/warning border */
+/* Avertissements card : warning border */
 #page-alertes .kpi-grid .kpi:nth-child(2) {
-  border-color: var(--ds-warning, #f5a623);
-  background: linear-gradient(135deg, rgba(245,166,35,0.07), transparent);
+  border-color: var(--ds-warning, #ffd60a);
+  background: linear-gradient(135deg, rgba(255,214,10,0.07), transparent);
 }
 
 /* Alert list card always visible */

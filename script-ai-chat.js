@@ -161,9 +161,9 @@
       --aic-text: #e8eaf0;
       --aic-text-muted: #7c8299;
       --aic-border: rgba(255,255,255,0.08);
-      --aic-accent: #f5a623;
-      --aic-accent-text: #1a1d22;
-      --aic-accent-soft: rgba(245,166,35,0.16);
+      --aic-accent: #e63946;
+      --aic-accent-text: #ffffff;
+      --aic-accent-soft: rgba(230,57,70,0.16);
       --aic-blue: #4cc9f0;
       --aic-blue-soft: rgba(76,201,240,0.08);
       --aic-blue-border: rgba(76,201,240,0.35);
@@ -189,7 +189,7 @@
       width: 56px;
       height: 56px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #f5a623 0%, #e63946 100%);
+      background: linear-gradient(135deg, #e63946 0%, #c01c28 100%);
       color: #fff;
       border: none;
       cursor: pointer;

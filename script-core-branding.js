@@ -163,7 +163,7 @@ async function supprimerLogoEntreprise() {
 
 // L3508 (script.js d'origine)
 function appliquerAccentColor() {
-  const color = document.getElementById('param-accent-color')?.value || '#f5a623';
+  const color = document.getElementById('param-accent-color')?.value || '#e63946';
   document.documentElement.style.setProperty('--accent', color);
   localStorage.setItem('accent_color', color);
   afficherToast('Couleur appliquée');
