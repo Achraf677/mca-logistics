@@ -47,7 +47,21 @@
       : null;
   }
 
+  // Phase 60 V7 — séparation stricte local/Supabase
+  function isLocalOnlyMode() {
+    try {
+      if (window.MCA_DISABLE_SUPABASE_SYNC === true) return true;
+      if (sessionStorage.getItem('disable_supabase_sync') === '1') return true;
+      var login = sessionStorage.getItem('admin_login') || '';
+      var mode = sessionStorage.getItem('auth_mode') || '';
+      if (login === 'dev-admin' || login.startsWith('dev-')) return true;
+      if (mode === 'local' || mode === 'dev') return true;
+    } catch (_) {}
+    return false;
+  }
+
   async function hasSession() {
+    if (isLocalOnlyMode()) return false;
     var client = getClient();
     if (!client) return false;
     try {
