@@ -4027,10 +4027,10 @@
           </label>
         </div>
         <div class="form-grid">
-          <div class="form-group"><label>Nom / Entreprise *</label><input type="text" id="cl-nom" placeholder="Nom / Raison sociale" oninput="window.detecterDoublonsClient && window.detecterDoublonsClient(false)" / aria-label="Nom / Raison sociale" /></div>
+          <div class="form-group"><label for="cl-nom">Nom / Entreprise *</label><input type="text" id="cl-nom" placeholder="Nom / Raison sociale" oninput="window.detecterDoublonsClient && window.detecterDoublonsClient(false)" /></div>
           <div class="form-group">
-            <label>Secteur d'activité *</label>
-            <select id="cl-secteur" aria-label="cl secteur">
+            <label for="cl-secteur">Secteur d'activité *</label>
+            <select id="cl-secteur">
               <option value="">-- Choisir --</option>
               <option value="transport">Transport / logistique</option>
               <option value="industrie">Industrie / usine</option>
@@ -4044,21 +4044,21 @@
               <option value="autre">Autre</option>
             </select>
           </div>
-          <div class="form-group"><label>Contact</label><input type="text" id="cl-prenom" placeholder="Contact" / aria-label="Contact" /></div>
-          <div class="form-group"><label>Téléphone</label><input type="tel" id="cl-tel" placeholder="T&eacute;l&eacute;phone" / aria-label="T&eacute;l&eacute;phone" /></div>
-          <div class="form-group"><label>Email</label><input type="email" id="cl-email" placeholder="Email" / aria-label="Email" /></div>
-          <div class="form-group"><label>Email facturation</label><input type="email" id="cl-email-fact" placeholder="compta@client.fr" / aria-label="compta@client.fr" /></div>
-          <div class="form-group full-width"><label>Adresse</label><input type="text" id="cl-adresse" placeholder="Numéro + rue" / aria-label="Numéro + rue" /></div>
-          <div class="form-group"><label>Code postal</label><input type="text" id="cl-cp" placeholder="75001" maxlength="5" / aria-label="75001" /></div>
-          <div class="form-group"><label>Ville</label><input type="text" id="cl-ville" placeholder="Paris" / aria-label="Paris" /></div>
+          <div class="form-group"><label for="cl-prenom">Contact</label><input type="text" id="cl-prenom" placeholder="Contact" /></div>
+          <div class="form-group"><label for="cl-tel">Téléphone</label><input type="tel" id="cl-tel" placeholder="T&eacute;l&eacute;phone" /></div>
+          <div class="form-group"><label for="cl-email">Email</label><input type="email" id="cl-email" placeholder="Email" /></div>
+          <div class="form-group"><label for="cl-email-fact">Email facturation</label><input type="email" id="cl-email-fact" placeholder="compta@client.fr" /></div>
+          <div class="form-group full-width"><label for="cl-adresse">Adresse</label><input type="text" id="cl-adresse" placeholder="Numéro + rue" /></div>
+          <div class="form-group"><label for="cl-cp">Code postal</label><input type="text" id="cl-cp" placeholder="75001" maxlength="5" /></div>
+          <div class="form-group"><label for="cl-ville">Ville</label><input type="text" id="cl-ville" placeholder="Paris" /></div>
         </div>
         <div id="cl-champs-pro" class="client-champs-pro">
           <div class="form-grid">
-            <div class="form-group"><label>SIREN</label><input type="text" id="cl-siren" placeholder="9 chiffres" maxlength="9" oninput="window.detecterDoublonsClient && window.detecterDoublonsClient(false)" / aria-label="9 chiffres" /></div>
-            <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="cl-tva-intra" placeholder="FR + 11 chiffres" / aria-label="FR + 11 chiffres" /></div>
-            <div class="form-group"><label>Délai paiement (jours)</label><input type="number" id="cl-delai-paiement" placeholder="30" min="0" max="180" value="30" / aria-label="30" /></div>
-            <div class="form-group"><label>Mode paiement préféré</label>
-              <select id="cl-mode-paiement" aria-label="cl mode paiement">
+            <div class="form-group"><label for="cl-siren">SIREN</label><input type="text" id="cl-siren" placeholder="9 chiffres" maxlength="9" oninput="window.detecterDoublonsClient && window.detecterDoublonsClient(false)" /></div>
+            <div class="form-group"><label for="cl-tva-intra">N° TVA intracom.</label><input type="text" id="cl-tva-intra" placeholder="FR + 11 chiffres" /></div>
+            <div class="form-group"><label for="cl-delai-paiement">Délai paiement (jours)</label><input type="number" id="cl-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
+            <div class="form-group"><label for="cl-mode-paiement">Mode paiement préféré</label>
+              <select id="cl-mode-paiement">
                 <option value="virement">Virement</option>
                 <option value="prelevement">Prélèvement SEPA</option>
                 <option value="cb">Carte bancaire</option>
@@ -4066,10 +4066,10 @@
                 <option value="especes">Espèces</option>
               </select>
             </div>
-            <div class="form-group full-width"><label>IBAN</label><input type="text" id="cl-iban" placeholder="FR76 …" / aria-label="FR76 …" /></div>
+            <div class="form-group full-width"><label for="cl-iban">IBAN</label><input type="text" id="cl-iban" placeholder="FR76 …" /></div>
           </div>
         </div>
-        <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="cl-notes" rows="2" placeholder="Remarques, préférences, historique particulier..." aria-label="Remarques, préférences, historique particulier..."></textarea></div>
+        <div class="form-group" style="margin-top:14px"><label for="cl-notes">Notes internes</label><textarea id="cl-notes" rows="2" placeholder="Remarques, préférences, historique particulier..."></textarea></div>
         <div id="cl-doublons-warning" class="doublons-warning" style="display:none"></div>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-client')">Annuler</button><button class="btn-primary" onclick="ajouterClient()">Enregistrer</button></div>

@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v189-a11y-frn-veh-merge-orange-palette';
+const CACHE_VERSION = 'mca-v2026-05-16-v190-a11y-modal-client-14-inputs';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
