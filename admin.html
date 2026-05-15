@@ -4724,9 +4724,9 @@
       <div class="modal-body">
         <input type="hidden" id="edit-liv-id" />
         <div class="form-grid">
-          <div class="form-group"><label>Client *</label><input type="text" id="edit-liv-client" aria-label="Nom du client" /></div>
-          <div class="form-group"><label>Date</label><input type="date" id="edit-liv-date" aria-label="Date de livraison" /></div>
-          <div class="form-group"><label>Heure début</label><input type="time" id="edit-liv-heure-debut" aria-label="Heure de début" /></div>
+          <div class="form-group"><label for="edit-liv-client">Client *</label><input type="text" id="edit-liv-client" /></div>
+          <div class="form-group"><label for="edit-liv-date">Date</label><input type="date" id="edit-liv-date" /></div>
+          <div class="form-group"><label for="edit-liv-heure-debut">Heure début</label><input type="time" id="edit-liv-heure-debut" /></div>
           <div class="form-group"><label>Statut</label>
             <select id="edit-liv-statut" aria-label="Statut de la livraison">
               <option value="en-attente">En attente</option>
@@ -4734,15 +4734,15 @@
               <option value="livre">Livré</option>
             </select>
           </div>
-          <div class="form-group"><label>Départ *</label><input type="text" id="edit-liv-depart" placeholder="Adresse de départ" aria-label="Adresse de départ" /></div>
-          <div class="form-group"><label>Arrivée *</label><input type="text" id="edit-liv-arrivee" placeholder="Adresse de livraison" aria-label="Adresse de livraison" /></div>
-          <div class="form-group"><label>Distance (km)</label><input type="number" id="edit-liv-distance" min="0" step="0.1" aria-label="Distance en km" /></div>
-          <div class="form-group"><label>Prix HT (€)</label><input type="number" id="edit-liv-prix-ht" min="0" step="0.01" oninput="calculerTTCDepuisHT('edit-liv')" aria-label="Prix HT en euros" /></div>
+          <div class="form-group"><label for="edit-liv-depart">Départ *</label><input type="text" id="edit-liv-depart" placeholder="Adresse de départ" /></div>
+          <div class="form-group"><label for="edit-liv-arrivee">Arrivée *</label><input type="text" id="edit-liv-arrivee" placeholder="Adresse de livraison" /></div>
+          <div class="form-group"><label for="edit-liv-distance">Distance (km)</label><input type="number" id="edit-liv-distance" min="0" step="0.1" /></div>
+          <div class="form-group"><label for="edit-liv-prix-ht">Prix HT (€)</label><input type="number" id="edit-liv-prix-ht" min="0" step="0.01" oninput="calculerTTCDepuisHT('edit-liv')" /></div>
           <div class="form-group"><label>Taux TVA</label>
             <input type="number" id="edit-liv-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" oninput="calculerTTCDepuisHT('edit-liv')" placeholder="20" aria-label="Taux TVA en %" />
             <div id="edit-liv-montant-tva" style="font-size:.78rem;color:var(--accent);margin-top:4px"></div>
           </div>
-          <div class="form-group"><label>Prix TTC (€)</label><input type="number" id="edit-liv-prix" min="0" step="0.01" oninput="calculerHTDepuisTTC('edit-liv')" aria-label="Prix TTC en euros" /></div>
+          <div class="form-group"><label for="edit-liv-prix">Prix TTC (€)</label><input type="number" id="edit-liv-prix" min="0" step="0.01" oninput="calculerHTDepuisTTC('edit-liv')" /></div>
           <div class="form-group"><label>Mode de paiement</label>
             <select id="edit-liv-mode-paiement" aria-label="Mode de paiement">
               <option value="">— Non renseigné —</option>
@@ -4762,7 +4762,7 @@
               <option value="">-- Choisir un véhicule --</option>
             </select>
           </div>
-          <div class="form-group full-width"><label>Notes</label><input type="text" id="edit-liv-notes" aria-label="Notes internes" /></div>
+          <div class="form-group full-width"><label for="edit-liv-notes">Notes</label><input type="text" id="edit-liv-notes" /></div>
         </div>
       </div>
       <!-- Historique modifications -->
@@ -4905,7 +4905,7 @@
       <div class="modal-header"><h3>Signaler un incident</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-incident')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
-          <div class="form-group"><label>Date *</label><input type="date" id="inc-date" / aria-label="inc date" /></div>
+          <div class="form-group"><label for="inc-date">Date *</label><input type="date" id="inc-date" /></div>
           <div class="form-group"><label>Gravité</label>
             <select id="inc-gravite" aria-label="inc gravite">
               <option value="faible">Faible</option>
@@ -4929,7 +4929,7 @@
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Véhicule *</label><select id="entr-veh" onchange="autoFillKmEntretien()" aria-label="entr veh"><option value="">— Choisir —</option></select></div>
-          <div class="form-group"><label>Date *</label><input type="date" id="entr-date" / aria-label="entr date" /></div>
+          <div class="form-group"><label for="entr-date">Date *</label><input type="date" id="entr-date" /></div>
           <div class="form-group"><label>Type *</label>
             <select id="entr-type" aria-label="entr type" required>
               <option value="" disabled selected>— Choisir un type —</option>
@@ -4943,16 +4943,16 @@
               <option value="autre">Autre</option>
             </select>
           </div>
-          <div class="form-group"><label>Coût HT (€)</label><input type="number" id="entr-cout-ht" placeholder="0.00" min="0" step="0.01" oninput="calculerTTCDepuisHT('entr')" / aria-label="0.00" /></div>
+          <div class="form-group"><label for="entr-cout-ht">Coût HT (€)</label><input type="number" id="entr-cout-ht" placeholder="0.00" min="0" step="0.01" oninput="calculerTTCDepuisHT('entr')" /></div>
           <div class="form-group"><label>Taux TVA</label>
             <input type="number" id="entr-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" oninput="calculerTTCDepuisHT('entr')" placeholder="20" / aria-label="20" />
             <div id="entr-montant-tva" style="font-size:.78rem;color:var(--accent);margin-top:4px"></div>
           </div>
-          <div class="form-group"><label>Coût TTC (€)</label><input type="number" id="entr-cout" placeholder="0.00" min="0" step="0.01" oninput="calculerHTDepuisTTC('entr')" / aria-label="0.00" /></div>
-          <div class="form-group"><label>Km actuel</label><input type="number" id="entr-km" placeholder="Km actuel" min="0" / aria-label="Km actuel" /></div>
-          <div class="form-group"><label>Prochain entretien (km)</label><input type="number" id="entr-prochain-km" placeholder="Prochain entretien km" min="0" / aria-label="Prochain entretien km" /></div>
-          <div class="form-group"><label>Prochain entretien (date)</label><input type="date" id="entr-prochain-date" aria-label="Prochain entretien date" /></div>
-          <div class="form-group full-width"><label>Description</label><input type="text" id="entr-desc" placeholder="Ex : Vidange + filtre huile, changement 4 pneus été..." / aria-label="Ex : Vidange + filtre huile, changement 4 pneus été..." /></div>
+          <div class="form-group"><label for="entr-cout">Coût TTC (€)</label><input type="number" id="entr-cout" placeholder="0.00" min="0" step="0.01" oninput="calculerHTDepuisTTC('entr')" /></div>
+          <div class="form-group"><label for="entr-km">Km actuel</label><input type="number" id="entr-km" placeholder="Km actuel" min="0" /></div>
+          <div class="form-group"><label for="entr-prochain-km">Prochain entretien (km)</label><input type="number" id="entr-prochain-km" placeholder="Prochain entretien km" min="0" /></div>
+          <div class="form-group"><label for="entr-prochain-date">Prochain entretien (date)</label><input type="date" id="entr-prochain-date" /></div>
+          <div class="form-group full-width"><label for="entr-desc">Description</label><input type="text" id="entr-desc" placeholder="Ex : Vidange + filtre huile, changement 4 pneus été..." /></div>
         </div>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-entretien')">Annuler</button><button class="btn-primary" onclick="ajouterEntretien()">Enregistrer</button></div>
@@ -5051,8 +5051,8 @@
       <div class="modal-body form-grid">
         <div class="form-group"><label>Salarié</label><select id="admin-insp-salarie" aria-label="admin insp salarie"><option value="">— Choisir —</option></select></div>
         <div class="form-group"><label>Véhicule</label><select id="admin-insp-vehicule" aria-label="admin insp vehicule"><option value="">— Aucun véhicule —</option></select></div>
-        <div class="form-group"><label>Date d'inspection</label><input type="date" id="admin-insp-date" / aria-label="admin insp date" /></div>
-        <div class="form-group"><label>Kilométrage relevé</label><input type="number" id="admin-insp-km" min="0" step="1" placeholder="Ex : 125000" / aria-label="Ex : 125000" /></div>
+        <div class="form-group"><label for="admin-insp-date">Date d'inspection</label><input type="date" id="admin-insp-date" /></div>
+        <div class="form-group"><label for="admin-insp-km">Kilométrage relevé</label><input type="number" id="admin-insp-km" min="0" step="1" placeholder="Ex : 125000" /></div>
         <!-- #47 audit Chrome : checkpoints inspection vehicule (DGITM controles
              depart/retour). Auto-creation incident pour chaque KO. -->
         <div class="form-group full-width">
