@@ -2406,38 +2406,38 @@
             <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px">Cette configuration pilote la date d’exigibilité de la TVA, la périodicité de déclaration et le comportement de l’onglet TVA.</p>
             <div class="form-grid">
               <div class="form-group">
-                <label>Régime TVA</label>
-                <select id="param-tva-regime" aria-label="param tva regime">
+                <label for="param-tva-regime">Régime TVA</label>
+                <select id="param-tva-regime">
                   <option value="franchise_base">Franchise en base</option>
                   <option value="reel_simplifie">Régime réel simplifié</option>
                   <option value="reel_normal">Régime réel normal</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>Nature principale</label>
-                <select id="param-tva-activite" aria-label="param tva activite">
+                <label for="param-tva-activite">Nature principale</label>
+                <select id="param-tva-activite">
                   <option value="service">Prestations de services</option>
                   <option value="goods">Livraisons de biens</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>Prestations de services</label>
-                <select id="param-tva-exigibilite" aria-label="param tva exigibilite">
+                <label for="param-tva-exigibilite">Prestations de services</label>
+                <select id="param-tva-exigibilite">
                   <option value="encaissements">TVA exigible à l'encaissement</option>
                   <option value="debits">TVA sur les débits</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>Périodicité déclarative</label>
-                <select id="param-tva-periodicite" aria-label="param tva periodicite">
+                <label for="param-tva-periodicite">Périodicité déclarative</label>
+                <select id="param-tva-periodicite">
                   <option value="mensuelle">Mensuelle</option>
                   <option value="trimestrielle">Trimestrielle</option>
                   <option value="annuelle">Annuelle</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>Taux TVA par défaut (%)</label>
-                <select id="param-tva-taux-defaut" aria-label="param tva taux defaut">
+                <label for="param-tva-taux-defaut">Taux TVA par défaut (%)</label>
+                <select id="param-tva-taux-defaut">
                   <option value="0">0 %</option>
                   <option value="2.1">2,1 %</option>
                   <option value="5.5">5,5 %</option>
@@ -2457,12 +2457,12 @@
             <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px">Cette configuration sert de base au Budget et à la trésorerie prévisionnelle.</p>
             <div class="form-grid">
               <div class="form-group">
-                <label>Base de trésorerie (€)</label>
-                <input type="number" id="param-treso-solde-depart" min="0" step="0.01" placeholder="0.00" / aria-label="0.00" />
+                <label for="param-treso-solde-depart">Base de trésorerie (€)</label>
+                <input type="number" id="param-treso-solde-depart" min="0" step="0.01" placeholder="0.00" />
               </div>
               <div class="form-group">
-                <label>Échéance TVA</label>
-                <input type="date" id="param-treso-echeance-tva" / aria-label="param treso echeance tva" />
+                <label for="param-treso-echeance-tva">Échéance TVA</label>
+                <input type="date" id="param-treso-echeance-tva" />
               </div>
             </div>
             <div id="param-treso-helper" style="margin-top:14px;font-size:.82rem;color:var(--text-muted)"></div>
@@ -2534,8 +2534,8 @@
             <div class="toggle-row"><div class="info"><div class="name">Verrouillage auto session</div><div class="desc">Après inactivité (min)</div></div><div class="toggle on"></div></div>
             <div class="toggle-row"><div class="info"><div class="name">Multi-device</div><div class="desc">Autoriser plusieurs sessions actives</div></div><div class="toggle"></div></div>
             <div style="height:1px;background:var(--border);margin:14px 0 10px"></div>
-            <div class="field"><label>Tentatives max avant blocage</label><input type="number" id="param-max-tentatives" value="5" min="1" max="20" / aria-label="param max tentatives" /></div>
-            <div class="field"><label>Déconnexion auto après inactivité (min)</label><input type="number" id="param-session-timeout" value="30" min="5" max="240" / aria-label="param session timeout" /></div>
+            <div class="field"><label for="param-max-tentatives">Tentatives max avant blocage</label><input type="number" id="param-max-tentatives" value="5" min="1" max="20" /></div>
+            <div class="field"><label for="param-session-timeout">Déconnexion auto après inactivité (min)</label><input type="number" id="param-session-timeout" value="30" min="5" max="240" /></div>
             <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px" onclick="sauvegarderMaxTentatives()">Enregistrer</button>
           </div>
         </div>
