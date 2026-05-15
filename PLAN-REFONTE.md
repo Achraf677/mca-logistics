@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-15
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : H3.6 empty catches logging + mobile focus/landscape CSS (commit 35439a0)
+> **Dernier commit** : Phase 64 palette cleanup — orange résiduel → tokens warning/brand (commit 5a9a3ad)
 
 ---
 
