@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-15
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : Phase 62 — Heures 88→93%, Paramètres 88→93% (commit cecf373)
+> **Dernier commit** : H3.6 empty catches logging + mobile focus/landscape CSS (commit 35439a0)
 
 ---
 
@@ -45,8 +45,8 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Paramètres | 93% | 100% | Phase 62 : h2→h3 card headers Entreprise (Informations entreprise/Identité visuelle/Postes) + Comptabilité (Fiscalité TVA→Paramétrage TVA/Trésorerie/Catégories). Nouvelle carte "Cabinet comptable" avec badge Sync OK, toggles FEC+sync, save localStorage. |
 | Brouillons IA | 90% | 100% | Phase 59 : chips filtrent vraiment (setStatusFilter) + sub-meta mockup + Valider/Rejeter sélection batch wired |
 | Planning | 90% | 100% | Phase 59 : exporterPlanningCSV + exporterPlanningExcel + exporterPlanningIcal (.ics) vraiment impl (étaient stubs alert) |
-| Mobile m.html | 78% | 100% | Phase 59 audit code-level : m-tabs déjà accessibles (aria-hidden SVG + text labels), 75% reflète manque mockup mobile. Polish visuel impossible sans mockup mobile dédié. |
-| Mobile salarie.html | 75% | 100% | Phase 59 audit code-level : 31/41 boutons ont aria-label (bonne couverture). Polish visuel impossible sans mockup mobile dédié. |
+| Mobile m.html | 80% | 100% | Phase 63 : :focus-visible tabs/drawer/header-action, @media (hover:hover), landscape compact, .m-loading abs positioning, disabled state. |
+| Mobile salarie.html | 77% | 100% | Phase 63 : idem m.html (CSS partagé style-design-mobile-refine.css). Polish DX/a11y sans mockup dédié. |
 
 ---
 
