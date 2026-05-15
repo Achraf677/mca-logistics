@@ -564,6 +564,75 @@
       });
     });
 
+    // ----- FACTURES ÉMISES (legacy) — Phase 60 V7 polish seed pour section Encaissement -----
+    const FACTURES_EMISES = LIVRAISONS.filter(l => l.statutPaiement === 'paye' || (l.dateFacture && chance(0.8))).map((l, idx) => ({
+      id: uid(),
+      numero: 'F-' + (2026000 + idx + 1),
+      livraisonId: l.id,
+      client: l.client,
+      clientId: l.clientId,
+      date: l.dateFacture || l.date,
+      montantHT: l.prixHT || (l.prixTTC ? Math.round(l.prixTTC / 1.2) : 0),
+      montantTTC: l.prixTTC || 0,
+      statut: l.statutPaiement === 'paye' ? 'payee' : 'en_attente'
+    }));
+
+    // ----- AVOIRS ÉMIS (legacy) — quelques avoirs ponctuels -----
+    const AVOIRS_EMIS = [];
+    for (let i = 0; i < 4; i++) {
+      const liv = pick(LIVRAISONS);
+      const d = new Date();
+      d.setDate(d.getDate() - randInt(5, 60));
+      AVOIRS_EMIS.push({
+        id: uid(),
+        numero: 'AV-2026-' + (i + 1).toString().padStart(3, '0'),
+        livraisonId: liv.id,
+        client: liv.client,
+        clientId: liv.clientId,
+        date: d.toISOString().slice(0, 10),
+        motif: pick(['Erreur facturation', 'Geste commercial', 'Livraison partielle', 'Litige résolu']),
+        montantHT: Math.round((liv.prixHT || 100) * 0.15),
+        montantTTC: Math.round((liv.prixTTC || 120) * 0.15)
+      });
+    }
+
+    // ----- ACOMPTES (legacy) — quelques acomptes reçus -----
+    const ACOMPTES = [];
+    for (let i = 0; i < 6; i++) {
+      const liv = pick(LIVRAISONS);
+      const d = new Date();
+      d.setDate(d.getDate() - randInt(3, 45));
+      ACOMPTES.push({
+        id: uid(),
+        livId: liv.id,
+        livRef: liv.numLiv || ('L-' + liv.id.slice(0, 6)),
+        client: liv.client,
+        date: d.toISOString().slice(0, 10),
+        montant: Math.round((liv.prixTTC || 500) * 0.3),
+        mode: pick(['Virement', 'Chèque', 'Espèces', 'CB']),
+        note: pick(['Acompte commande', '30% à la commande', 'Provision déplacement', ''])
+      });
+    }
+
+    // ----- RELANCES LOG (legacy) — historique relances envoyées -----
+    const RELANCES_LOG = [];
+    LIVRAISONS.filter(l => l.statutPaiement !== 'paye' && chance(0.3)).slice(0, 12).forEach((l, idx) => {
+      const d = new Date();
+      d.setDate(d.getDate() - randInt(1, 30));
+      RELANCES_LOG.push({
+        id: uid(),
+        livId: l.id,
+        livRef: l.numLiv || ('L-' + l.id.slice(0, 6)),
+        factureNum: 'F-' + (2026000 + idx + 100),
+        client: l.client,
+        clientId: l.clientId,
+        date: d.toISOString().slice(0, 10),
+        type: pick(['Standard', 'Standard', '2ème relance', 'Mise en demeure']),
+        canal: pick(['Email', 'Email', 'Téléphone', 'SMS']),
+        statut: 'envoyee'
+      });
+    });
+
     // ----- CONFIG ENTREPRISE -----
     const CONFIG = {
       nom: 'MCA Logistics',
@@ -599,6 +668,11 @@
     localStorage.setItem('heures_pointage', JSON.stringify(HEURES));
     localStorage.setItem('tva_declarations', JSON.stringify(TVA_DEC));
     localStorage.setItem('paiements', JSON.stringify(PAIEMENTS));
+    // Phase 60 V7 polish — seed legacy localStorage (factures émises, avoirs, acomptes, relances)
+    localStorage.setItem('factures_emises', JSON.stringify(FACTURES_EMISES));
+    localStorage.setItem('avoirs_emis', JSON.stringify(AVOIRS_EMIS));
+    localStorage.setItem('acomptes', JSON.stringify(ACOMPTES));
+    localStorage.setItem('relances_log', JSON.stringify(RELANCES_LOG));
 
     console.log('[mca-dev-seed MAX] Injected :');
     console.table({
@@ -616,6 +690,10 @@
       heures: HEURES.length,
       tva: TVA_DEC.length,
       paiements: PAIEMENTS.length,
+      factures: FACTURES_EMISES.length,
+      avoirs: AVOIRS_EMIS.length,
+      acomptes: ACOMPTES.length,
+      relances: RELANCES_LOG.length,
     });
   }
 })();

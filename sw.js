@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v171-hardcoded-brand-color-var';
+const CACHE_VERSION = 'mca-v2026-05-16-v172-seed-legacy-factures-avoirs-acomptes-relances';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
