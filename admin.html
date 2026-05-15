@@ -967,9 +967,9 @@
       <!-- Phase 38 refonte HTML : KPI grid clients (mockup-aligned) -->
       <div class="kpi-grid clients-kpi-grid" style="margin-bottom:14px">
         <div class="kpi"><div class="kpi-lbl">Clients actifs</div><div class="kpi-val" id="clients-kpi-actifs">—</div><div class="kpi-sub">90 derniers jours</div></div>
-        <div class="kpi"><div class="kpi-lbl">Top client (CA)</div><div class="kpi-val" id="clients-kpi-top-nom">—</div><div class="kpi-sub" id="clients-kpi-top-ca" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Top client (CA)</div><div class="kpi-val" id="clients-kpi-top-nom">—</div><div class="kpi-sub" id="clients-kpi-top-ca"></div></div>
         <div class="kpi"><div class="kpi-lbl">DSO global</div><div class="kpi-val" id="clients-kpi-dso">—</div><div class="kpi-sub">Délai paiement moyen</div></div>
-        <div class="kpi"><div class="kpi-lbl">Encours impayés</div><div class="kpi-val" id="clients-kpi-encours" style="font-size:1.15rem">—</div><div class="kpi-sub" id="clients-kpi-encours-nb"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Encours impayés</div><div class="kpi-val" id="clients-kpi-encours">—</div><div class="kpi-sub" id="clients-kpi-encours-nb"></div></div>
       </div>
       <!-- Phase 47 : chips toolbar + search inline (mockup-matched) -->
       <div class="ds-filter-chips-row" id="cli-chips-toolbar" style="margin-bottom:14px">
@@ -1827,7 +1827,7 @@
       </div>
 
       <div class="card" id="form-nouveau-salarie" style="display:none;margin-bottom:20px;">
-        <div class="card-header"><h2>Créer un salarié</h2><button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Fermer</button></div>
+        <div class="card-header"><h3>Créer un salarié</h3><button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Fermer</button></div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-group"><label for="nsal-nom">Nom *</label><input type="text" id="nsal-nom" placeholder="Nom" /></div>
@@ -2066,7 +2066,7 @@
 
       <!-- Historique traité -->
       <div class="card" id="card-alertes-traitees">
-        <div class="card-header" style="background:rgba(46,204,113,0.05)"><h2>Historique des alertes traitées</h2></div>
+        <div class="card-header" style="background:rgba(46,204,113,0.05)"><h3>Historique des alertes traitées</h3></div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead><tr><th>Type</th><th>Message</th><th>Salarié / Client</th><th>Traité le</th></tr></thead>
@@ -3611,8 +3611,8 @@
       </div>
 
       <div class="card planning-card" style="margin-bottom:16px">
-        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <h2>Organisation du planning</h2>
+        <div class="card-header" style="gap:12px;flex-wrap:wrap">
+          <h3>Organisation du planning</h3>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn-secondary" type="button" onclick="ouvrirPlanningRecurrence()">Horaires récurrents</button>
             <button class="btn-secondary" id="planning-toggle-quick-btn" onclick="togglePlanningQuickPanel()">+ Ajouter une période</button>

@@ -221,45 +221,82 @@ tr[data-impaye="1"] td {
   }
 }
 
-/* ============ Phase 47 : colonnes Ville (2) + SIREN (4) visibles ============ */
-/* Phase 34 masquait ces colonnes — Phase 47 les réactive avec les bons labels.
-   script-clients-table-polish.js remplace le contenu Contact/Adresse par Ville/SIREN. */
-.clients-table th.cli-col-ville,
-.clients-table td:nth-child(2),
-.clients-table th.cli-col-siren,
-.clients-table td:nth-child(4),
-.fournisseurs-table th.frn-col-ville,
-.fournisseurs-table td:nth-child(2),
-.fournisseurs-table th.frn-col-siren,
-.fournisseurs-table td:nth-child(4) {
-  display: table-cell;
-}
+/* ============ Phase 66 : colonnes avec indices corrects ============ */
+/* Clients     : Nom(1) Ville(2) SIREN(3) Tel(4) CA12m(5) Encours(6) Statut(7) Actions(8) */
+/* Fournisseurs: Nom(1) Catégorie(2) Ville(3) Tel(4) Dépenses(5) À régler(6) Actions(7) */
 
-/* Ville column : compact */
-.clients-table td:nth-child(2),
-.fournisseurs-table td:nth-child(2) {
+/* Ville — clients col 2 */
+.clients-table th.cli-col-ville,
+.clients-table td:nth-child(2) {
   font-size: 0.85rem;
   color: var(--text-muted);
   white-space: nowrap;
 }
 
-/* SIREN column : mono + compact */
-.clients-table td:nth-child(4),
-.fournisseurs-table td:nth-child(4) {
-  font-size: 0.82rem;
+/* Ville — fournisseurs col 3 */
+.fournisseurs-table th.frn-col-ville,
+.fournisseurs-table td:nth-child(3) {
+  font-size: 0.85rem;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
-/* Hide Ville + SIREN on narrow screens */
+/* SIREN — clients col 3 — monospace */
+.clients-table th.cli-col-siren,
+.clients-table td:nth-child(3) {
+  font-size: 0.82rem;
+  white-space: nowrap;
+  font-family: var(--font-mono, 'DM Mono', monospace);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Téléphone — clients col 4, fournisseurs col 4 */
+.clients-table th.cli-col-tel,
+.clients-table td:nth-child(4),
+.fournisseurs-table th.frn-col-tel,
+.fournisseurs-table td:nth-child(4) {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  font-family: var(--font-mono, 'DM Mono', monospace);
+  letter-spacing: 0.01em;
+}
+
+/* Amount columns — right-aligned monospace */
+/* clients: CA 12m (5) + Encours (6) */
+/* fournisseurs: Dépenses 12m (5) + À régler (6) */
+.clients-table th:nth-child(5),
+.clients-table td:nth-child(5),
+.clients-table th:nth-child(6),
+.clients-table td:nth-child(6),
+.fournisseurs-table th:nth-child(5),
+.fournisseurs-table td:nth-child(5),
+.fournisseurs-table th:nth-child(6),
+.fournisseurs-table td:nth-child(6) {
+  text-align: right;
+  font-family: var(--font-mono, 'DM Mono', monospace);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  font-size: 0.85rem;
+}
+
+/* Actions column — centered + compact */
+.clients-table th.cli-col-actions,
+.clients-table td:nth-child(8),
+.fournisseurs-table th.frn-col-actions,
+.fournisseurs-table td:nth-child(7) {
+  text-align: center;
+  width: 80px;
+}
+
+/* Responsive: hide Ville + SIREN on narrow screens */
 @media (max-width: 900px) {
   .clients-table th.cli-col-ville,
   .clients-table td:nth-child(2),
   .clients-table th.cli-col-siren,
-  .clients-table td:nth-child(4),
+  .clients-table td:nth-child(3),
   .fournisseurs-table th.frn-col-ville,
-  .fournisseurs-table td:nth-child(2),
-  .fournisseurs-table th.frn-col-siren,
-  .fournisseurs-table td:nth-child(4) {
+  .fournisseurs-table td:nth-child(3) {
     display: none !important;
   }
 }
@@ -320,4 +357,17 @@ tr[data-impaye="1"] td {
 .ds-menu-item svg {
   flex-shrink: 0;
   opacity: 0.6;
+}
+
+/* ============ Phase 66 : KPI grid fixes — inline styles → CSS ============ */
+/* Encours KPI : légèrement plus petit pour accommoder les gros montants €  */
+.clients-kpi-grid .kpi:nth-child(4) .kpi-val {
+  font-size: 1.15rem;
+}
+
+/* Top client CA sub : ellipsis si nom long */
+#clients-kpi-top-ca {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
