@@ -3652,8 +3652,8 @@
                   <select id="absence-sal" style="display:none" tabindex="-1" aria-hidden="true" aria-label="absence sal"><option value="">-- Choisir un salarié --</option></select>
                 </div>
                 <div class="planning-field planning-field-type">
-                  <label>Type</label>
-                  <select id="absence-type" onchange="toggleAbsenceTypeFields()" aria-label="absence type">
+                  <label for="absence-type">Type</label>
+                  <select id="absence-type" onchange="toggleAbsenceTypeFields()">
                     <option value="travail">Travail</option>
                     <option value="conge">Congé</option>
                     <option value="maladie">Maladie</option>
@@ -3666,13 +3666,13 @@
                     <div class="planning-inline-item">
                       <div class="planning-inline-control">
                         <span class="planning-inline-label">Du</span>
-                        <input type="date" id="absence-debut" / aria-label="absence debut" />
+                        <input type="date" id="absence-debut" aria-label="Date début absence" />
                       </div>
                     </div>
                     <div class="planning-inline-item">
                       <div class="planning-inline-control">
                         <span class="planning-inline-label">Au</span>
-                        <input type="date" id="absence-fin" / aria-label="absence fin" />
+                        <input type="date" id="absence-fin" aria-label="Date fin absence" />
                       </div>
                     </div>
                   </div>
@@ -3683,13 +3683,13 @@
                     <div class="planning-inline-item" id="absence-heure-debut-wrap">
                       <div class="planning-inline-control">
                         <span class="planning-inline-label">Début</span>
-                        <input type="time" id="absence-heure-debut" / aria-label="absence heure debut" />
+                        <input type="time" id="absence-heure-debut" aria-label="Heure début absence" />
                       </div>
                     </div>
                     <div class="planning-inline-item" id="absence-heure-fin-wrap">
                       <div class="planning-inline-control">
                         <span class="planning-inline-label">Fin</span>
-                        <input type="time" id="absence-heure-fin" / aria-label="absence heure fin" />
+                        <input type="time" id="absence-heure-fin" aria-label="Heure fin absence" />
                       </div>
                     </div>
                   </div>
@@ -3945,13 +3945,13 @@
               <div class="form-grid fp-grid fp-grid-dense">
                 <div class="form-group">
                   <label>Chauffeur</label>
-                  <select id="liv-chauffeur" onchange="autoRemplirVehicule();window.mcaLivForm&&window.mcaLivForm.onInput('liv-chauffeur')" aria-label="liv chauffeur">
+                  <select id="liv-chauffeur" onchange="autoRemplirVehicule();window.mcaLivForm&&window.mcaLivForm.onInput('liv-chauffeur')" aria-label="Chauffeur affecté">
                     <option value="">-- Choisir --</option>
                   </select>
                 </div>
                 <div class="form-group">
                   <label>Véhicule</label>
-                  <select id="liv-vehicule" onchange="autoRemplirChauffeurDepuisVehicule();window.mcaLivForm&&window.mcaLivForm.onInput('liv-vehicule')" aria-label="liv vehicule"><option value="">-- Choisir --</option></select>
+                  <select id="liv-vehicule" onchange="autoRemplirChauffeurDepuisVehicule();window.mcaLivForm&&window.mcaLivForm.onInput('liv-vehicule')" aria-label="Véhicule affecté"><option value="">-- Choisir --</option></select>
                 </div>
               </div>
             </section>
@@ -3997,11 +3997,11 @@
 
               <div class="fp-subsection-title" style="margin-top:14px">Matières dangereuses (ADR)</div>
               <div class="form-grid fp-grid fp-grid-dense">
-                <div class="form-group full-width"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;margin:0"><input type="checkbox" id="liv-adr-est" onchange="document.getElementById('liv-adr-details').style.display=this.checked?'grid':'none'" / aria-label="liv adr est" /><span>Transport ADR — matières dangereuses</span></label></div>
+                <div class="form-group full-width"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;margin:0"><input type="checkbox" id="liv-adr-est" onchange="document.getElementById('liv-adr-details').style.display=this.checked?'grid':'none'" /><span>Transport ADR — matières dangereuses</span></label></div>
                 <div class="form-grid full-width fp-grid fp-grid-dense" id="liv-adr-details" style="display:none;grid-column:1/-1">
                   <div class="form-group"><label>Code ONU</label><input type="text" id="liv-adr-onu" placeholder="UN1202" maxlength="10" / aria-label="UN1202" /></div>
                   <div class="form-group"><label>Classe</label><input type="text" id="liv-adr-classe" placeholder="3" maxlength="5" / aria-label="3" /></div>
-                  <div class="form-group"><label>Emballage</label><select id="liv-adr-groupe" aria-label="liv adr groupe"><option value="">—</option><option value="I">I</option><option value="II">II</option><option value="III">III</option></select></div>
+                  <div class="form-group"><label for="liv-adr-groupe">Emballage</label><select id="liv-adr-groupe"><option value="">—</option><option value="I">I</option><option value="II">II</option><option value="III">III</option></select></div>
                 </div>
               </div>
             </section>
@@ -4302,7 +4302,7 @@
           <div class="form-group"><label for="veh-conso">Consommation (L/100 km)</label><input type="number" id="veh-conso" placeholder="8.5" min="0" step="0.1" /></div>
           <div class="form-group"><label for="veh-capacite-reservoir">Capacité réservoir (L)</label><input type="number" id="veh-capacite-reservoir" placeholder="80" min="0" step="1" /></div>
           <div class="form-group"><label>Mode d'acquisition</label>
-            <select id="veh-mode-acquisition" onchange="mettreAJourFormulaireVehicule()" aria-label="veh mode acquisition">
+            <select id="veh-mode-acquisition" onchange="mettreAJourFormulaireVehicule()" aria-label="Mode d'acquisition véhicule">
               <option value="achat">Achat comptant</option>
               <option value="occasion">Achat occasion</option>
               <option value="lld">LCD / LMD / LLD</option>
@@ -4315,7 +4315,7 @@
           <div class="form-group"><label>Entretien tous les X km</label><input type="number" id="veh-entretien-interval-km" placeholder="Ex : 15000" min="0" step="100" / aria-label="Ex : 15000" /></div>
           <div class="form-group"><label>Entretien tous les X mois</label><input type="number" id="veh-entretien-interval-mois" placeholder="Ex : 12" min="0" step="1" / aria-label="Ex : 12" /></div>
           <div class="form-group"><label>TVA carburant déductible (%)</label><input type="number" id="veh-tva-carburant" min="0" max="100" step="1" placeholder="Ex : 100" value="100" / aria-label="Ex : 100" /></div>
-          <div class="form-group full-width"><label>Affecter à un salarié (optionnel)</label><select id="veh-salarie" aria-label="veh salarie"><option value="">-- Aucun --</option></select></div>
+          <div class="form-group full-width"><label for="veh-salarie">Affecter à un salarié (optionnel)</label><select id="veh-salarie"><option value="">-- Aucun --</option></select></div>
         </div>
         <!-- BUG-046 fix : données flotte métier transport (carte grise + Crit'Air + TVA) -->
         <details id="veh-transport-section" style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
@@ -4323,8 +4323,8 @@
           </summary>
           <div class="u-card-section">
             <div class="form-grid">
-              <div class="form-group"><label>Genre</label>
-                <select id="veh-genre" onchange="ajusterTVACarburantSelonGenre()" aria-label="veh genre">
+              <div class="form-group"><label for="veh-genre">Genre</label>
+                <select id="veh-genre" onchange="ajusterTVACarburantSelonGenre()">
                   <option value="">—</option>
                   <option value="VP">VP — Voiture particulière</option>
                   <option value="VU">VU — Véhicule utilitaire ≤ 3,5 t</option>
@@ -4335,8 +4335,8 @@
                   <option value="SREM">SREM — Semi-remorque</option>
                 </select>
               </div>
-              <div class="form-group"><label>Carburant</label>
-                <select id="veh-carburant" onchange="ajusterTVACarburantSelonGenre()" aria-label="veh carburant">
+              <div class="form-group"><label for="veh-carburant">Carburant</label>
+                <select id="veh-carburant" onchange="ajusterTVACarburantSelonGenre()">
                   <option value="">—</option>
                   <option value="diesel">Diesel / Gazole</option>
                   <option value="essence">Essence</option>
@@ -4346,11 +4346,11 @@
                   <option value="h2">Hydrogène</option>
                 </select>
               </div>
-              <div class="form-group"><label>PTAC (kg)</label><input type="number" id="veh-ptac" min="0" step="1" placeholder="Ex : 7500" / aria-label="Ex : 7500" /></div>
-              <div class="form-group"><label>PTRA (kg)</label><input type="number" id="veh-ptra" min="0" step="1" placeholder="Ex : 44000" / aria-label="Ex : 44000" /></div>
-              <div class="form-group"><label>Nombre d'essieux</label><input type="number" id="veh-essieux" min="1" max="10" step="1" placeholder="2" / aria-label="2" /></div>
-              <div class="form-group"><label>Vignette Crit'Air</label>
-                <select id="veh-critair" aria-label="veh critair">
+              <div class="form-group"><label for="veh-ptac">PTAC (kg)</label><input type="number" id="veh-ptac" min="0" step="1" placeholder="Ex : 7500" /></div>
+              <div class="form-group"><label for="veh-ptra">PTRA (kg)</label><input type="number" id="veh-ptra" min="0" step="1" placeholder="Ex : 44000" /></div>
+              <div class="form-group"><label for="veh-essieux">Nombre d'essieux</label><input type="number" id="veh-essieux" min="1" max="10" step="1" placeholder="2" /></div>
+              <div class="form-group"><label for="veh-critair">Vignette Crit'Air</label>
+                <select id="veh-critair">
                   <option value="">—</option>
                   <option value="E">E — 100% électrique / H₂</option>
                   <option value="1">1 — Essence Euro 5-6, GNV</option>
