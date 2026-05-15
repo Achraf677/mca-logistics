@@ -297,17 +297,32 @@
         var d = new Date(l.date || l.dateLivraison || '');
         return d.getFullYear() === m.year && d.getMonth() === m.month;
       }).reduce(function (s, l) {
+        // Phase 60 V7 polish — préfère tva direct (seed le calcule), sinon ht * taux.
+        var tva = parseFloat(l.tva);
+        if (!isNaN(tva) && tva > 0) return s + tva;
         var ht = parseFloat(l.prixHT || l.prix || 0);
-        var taux = parseFloat(l.tauxTva || 20);
+        var ttc = parseFloat(l.prixTTC || l.ttc);
+        if (!isNaN(ttc) && ttc > ht) return s + (ttc - ht);
+        var taux = parseFloat(l.tauxTVA || l.tauxTva || 20);
         return s + (ht * taux / 100);
       }, 0);
     });
     var deductible = months.map(function (m) {
       return charges.filter(function (c) {
         if (!c) return false;
-        var d = new Date(c.date || '');
+        var d = new Date(c.date || c.dateCharge || '');
         return d.getFullYear() === m.year && d.getMonth() === m.month;
-      }).reduce(function (s, c) { return s + (parseFloat(c.tva) || 0); }, 0);
+      }).reduce(function (s, c) {
+        // Phase 60 V7 polish — fix : c.tva n'existe pas dans le data shape.
+        // Calcul correct : montantTTC - montantHT (si présents) sinon montantHT * tauxTVA / 100.
+        var tva = parseFloat(c.tva);
+        if (!isNaN(tva) && tva > 0) return s + tva;
+        var ht = parseFloat(c.montantHT || c.montant || 0);
+        var ttc = parseFloat(c.montantTTC);
+        if (!isNaN(ttc) && ttc > ht) return s + (ttc - ht);
+        var taux = parseFloat(c.tauxTVA || c.tauxTva || 20);
+        return s + (ht * taux / 100);
+      }, 0);
     });
     window._chartTva = new Chart(canvas, {
       type: 'bar',
