@@ -438,6 +438,9 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 100);
 
+  // Phase 60 V7 polish — Expose render() pour permettre aux autres scripts (modal-paiement, encaissement-legacy) de trigger un refresh après mutation.
+  window.refonteEncaissementRender = render;
+
   window.encaissement = { render: render, relancerEnLot: relancerEnLot };
 
   // #94 audit Chrome : Encaissement n'avait NI bouton CSV NI Rapport. Ajoute

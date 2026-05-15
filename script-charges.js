@@ -668,7 +668,7 @@ function afficherCharges() {
     <td>${statutCell}</td>
     <td>
       <button class="btn-icon" onclick="ouvrirEditCharge('${c.id}')" title="Modifier">✏️</button>
-      <button class="btn-icon danger" onclick="supprimerCharge('${c.id}')">🗑️</button>
+      <button class="btn-icon danger" onclick="supprimerCharge('${c.id}')" title="Supprimer" aria-label="Supprimer la charge">🗑️</button>
     </td>
   </tr>`;
   }).join('');
