@@ -4361,9 +4361,9 @@
                   <option value="hc">Hors classement — interdit ZFE</option>
                 </select>
               </div>
-              <div class="form-group"><label>1ʳᵉ MEC</label><input type="date" id="veh-date-1immat" / aria-label="veh date 1immat" /></div>
-              <div class="form-group"><label>N° VIN / châssis</label><input type="text" id="veh-vin" maxlength="17" placeholder="17 caractères" / aria-label="17 caractères" /></div>
-              <div class="form-group"><label>N° carte grise</label><input type="text" id="veh-carte-grise" placeholder="ex : 123ABC456" / aria-label="ex : 123ABC456" /></div>
+              <div class="form-group"><label for="veh-date-1immat">1ʳᵉ MEC</label><input type="date" id="veh-date-1immat" /></div>
+              <div class="form-group"><label for="veh-vin">N° VIN / châssis</label><input type="text" id="veh-vin" maxlength="17" placeholder="17 caractères" /></div>
+              <div class="form-group"><label for="veh-carte-grise">N° carte grise</label><input type="text" id="veh-carte-grise" placeholder="ex : 123ABC456" /></div>
               <div class="form-group">
                 <label>Carte grise (PDF / image)</label>
                 <label class="file-upload-button" for="veh-carte-grise-fichier">
@@ -4375,9 +4375,9 @@
             </div>
             <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Assurance / Carte verte</div>
             <div class="form-grid">
-              <div class="form-group"><label>Compagnie d'assurance</label><input type="text" id="veh-assurance-compagnie" placeholder="ex : AXA, MAIF, Allianz..." / aria-label="ex : AXA, MAIF, Allianz..." /></div>
-              <div class="form-group"><label>N° contrat / carte verte</label><input type="text" id="veh-assurance-numero" placeholder="N° de police" / aria-label="N° de police" /></div>
-              <div class="form-group"><label>Date expiration carte verte</label><input type="date" id="veh-assurance-date-exp" / aria-label="veh assurance date exp" /></div>
+              <div class="form-group"><label for="veh-assurance-compagnie">Compagnie d'assurance</label><input type="text" id="veh-assurance-compagnie" placeholder="ex : AXA, MAIF, Allianz..." /></div>
+              <div class="form-group"><label for="veh-assurance-numero">N° contrat / carte verte</label><input type="text" id="veh-assurance-numero" placeholder="N° de police" /></div>
+              <div class="form-group"><label for="veh-assurance-date-exp">Date expiration carte verte</label><input type="date" id="veh-assurance-date-exp" /></div>
             </div>
           </div>
         </details>
@@ -4385,20 +4385,20 @@
           <div class="card-header"><h2>Achat & amortissement</h2></div>
           <div class="modal-body">
             <div class="form-grid">
-              <div class="form-group"><label style="color: var(--text-muted)">Prix achat HT</label><input type="number" id="veh-acq-prix-ht" placeholder="Ex : 25 000" value="" min="0" step="0.01" oninput="calculerTTCDepuisHT('veh-acq');mettreAJourInfosVehiculeFinancement()" / aria-label="Ex : 25 000" /></div>
-              <div class="form-group"><label style="color: var(--text-muted)">Taux TVA achat (%)</label><input type="number" id="veh-acq-taux-tva" placeholder="Ex : 20" value="" min="0" step="0.01" oninput="calculerTTCDepuisHT('veh-acq');mettreAJourInfosVehiculeFinancement()" / aria-label="Ex : 20" /></div>
-              <div class="form-group"><label style="color: var(--text-muted)">Prix achat TTC</label><input type="number" id="veh-acq-prix" placeholder="Ex : 30 000" value="" min="0" step="0.01" oninput="calculerHTDepuisTTC('veh-acq');mettreAJourInfosVehiculeFinancement()" / aria-label="Ex : 30 000" /></div>
-              <div class="form-group"><label style="color: var(--text-muted)">Durée amortissement (années)</label><input type="number" id="veh-duree-amortissement" placeholder="Ex : 5" value="" min="0" step="1" oninput="mettreAJourInfosVehiculeFinancement()" / aria-label="Ex : 5" /></div>
-              <div class="form-group"><label>Mode d'amortissement</label>
-                <select id="veh-mode-amortissement" aria-label="veh mode amortissement">
+              <div class="form-group"><label for="veh-acq-prix-ht" style="color: var(--text-muted)">Prix achat HT</label><input type="number" id="veh-acq-prix-ht" placeholder="Ex : 25 000" value="" min="0" step="0.01" oninput="calculerTTCDepuisHT('veh-acq');mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group"><label for="veh-acq-taux-tva" style="color: var(--text-muted)">Taux TVA achat (%)</label><input type="number" id="veh-acq-taux-tva" placeholder="Ex : 20" value="" min="0" step="0.01" oninput="calculerTTCDepuisHT('veh-acq');mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group"><label for="veh-acq-prix" style="color: var(--text-muted)">Prix achat TTC</label><input type="number" id="veh-acq-prix" placeholder="Ex : 30 000" value="" min="0" step="0.01" oninput="calculerHTDepuisTTC('veh-acq');mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group"><label for="veh-duree-amortissement" style="color: var(--text-muted)">Durée amortissement (années)</label><input type="number" id="veh-duree-amortissement" placeholder="Ex : 5" value="" min="0" step="1" oninput="mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group"><label for="veh-mode-amortissement">Mode d'amortissement</label>
+                <select id="veh-mode-amortissement">
                   <option value="lineaire">Linéaire</option>
                   <option value="degressif">Dégressif</option>
                 </select>
               </div>
-              <div class="form-group"><label>Date de mise au rebut</label><input type="date" id="veh-date-rebut" / aria-label="veh date rebut" /></div>
-              <div class="form-group"><label>Valeur de mise au rebut HT</label><input type="number" id="veh-valeur-rebut" placeholder="Ex : 2500" min="0" step="0.01" / aria-label="Ex : 2500" /></div>
-              <div class="form-group" id="veh-occasion-km-wrap" style="display:none"><label>Kilométrage au rachat</label><input type="number" id="veh-km-rachat" min="0" step="1" / aria-label="veh km rachat" /></div>
-              <div class="form-group" id="veh-occasion-annee-wrap" style="display:none"><label>Année du véhicule</label><input type="number" id="veh-annee-vehicule" min="1900" step="1" / aria-label="veh annee vehicule" /></div>
+              <div class="form-group"><label for="veh-date-rebut">Date de mise au rebut</label><input type="date" id="veh-date-rebut" /></div>
+              <div class="form-group"><label for="veh-valeur-rebut">Valeur de mise au rebut HT</label><input type="number" id="veh-valeur-rebut" placeholder="Ex : 2500" min="0" step="0.01" /></div>
+              <div class="form-group" id="veh-occasion-km-wrap" style="display:none"><label for="veh-km-rachat">Kilométrage au rachat</label><input type="number" id="veh-km-rachat" min="0" step="1" /></div>
+              <div class="form-group" id="veh-occasion-annee-wrap" style="display:none"><label for="veh-annee-vehicule">Année du véhicule</label><input type="number" id="veh-annee-vehicule" min="1900" step="1" /></div>
             </div>
           </div>
         </div>
@@ -4406,14 +4406,14 @@
           <div class="card-header"><h2>Contrat de location</h2></div>
           <div class="modal-body">
             <div class="form-grid">
-              <div class="form-group" id="veh-prix-catalogue-wrap" style="display:none"><label>Prix catalogue HT</label><input type="number" id="veh-prix-catalogue-ht" min="0" step="0.01" / aria-label="veh prix catalogue ht" /></div>
-              <div class="form-group"><label>Loyer mensuel HT</label><input type="number" id="veh-loyer-mensuel-ht" min="0" step="0.01" oninput="mettreAJourInfosVehiculeFinancement()" / aria-label="veh loyer mensuel ht" /></div>
-              <div class="form-group" id="veh-apport-wrap" style="display:none"><label>Apport initial HT</label><input type="number" id="veh-apport-initial-ht" min="0" step="0.01" oninput="mettreAJourInfosVehiculeFinancement()" / aria-label="veh apport initial ht" /></div>
-              <div class="form-group"><label>Durée du contrat (mois)</label><input type="number" id="veh-duree-contrat-mois" min="0" step="1" oninput="mettreAJourFinContratVehicule();mettreAJourInfosVehiculeFinancement()" / aria-label="veh duree contrat mois" /></div>
-              <div class="form-group"><label>Km inclus au contrat</label><input type="number" id="veh-km-inclus-contrat" min="0" step="1" / aria-label="veh km inclus contrat" /></div>
-              <div class="form-group"><label>Date de fin de contrat</label><input type="date" id="veh-date-fin-contrat" readonly / aria-label="veh date fin contrat" /></div>
-              <div class="form-group"><label>Dépôt de garantie HT</label><input type="number" id="veh-depot-garantie-ht" min="0" step="0.01" / aria-label="veh depot garantie ht" /></div>
-              <div class="form-group"><label>Coût km excédentaire (€/km)</label><input type="number" id="veh-cout-km-excedentaire" min="0" step="0.01" / aria-label="veh cout km excedentaire" /></div>
+              <div class="form-group" id="veh-prix-catalogue-wrap" style="display:none"><label for="veh-prix-catalogue-ht">Prix catalogue HT</label><input type="number" id="veh-prix-catalogue-ht" min="0" step="0.01" /></div>
+              <div class="form-group"><label for="veh-loyer-mensuel-ht">Loyer mensuel HT</label><input type="number" id="veh-loyer-mensuel-ht" min="0" step="0.01" oninput="mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group" id="veh-apport-wrap" style="display:none"><label for="veh-apport-initial-ht">Apport initial HT</label><input type="number" id="veh-apport-initial-ht" min="0" step="0.01" oninput="mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group"><label for="veh-duree-contrat-mois">Durée du contrat (mois)</label><input type="number" id="veh-duree-contrat-mois" min="0" step="1" oninput="mettreAJourFinContratVehicule();mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group"><label for="veh-km-inclus-contrat">Km inclus au contrat</label><input type="number" id="veh-km-inclus-contrat" min="0" step="1" /></div>
+              <div class="form-group"><label for="veh-date-fin-contrat">Date de fin de contrat</label><input type="date" id="veh-date-fin-contrat" readonly /></div>
+              <div class="form-group"><label for="veh-depot-garantie-ht">Dépôt de garantie HT</label><input type="number" id="veh-depot-garantie-ht" min="0" step="0.01" /></div>
+              <div class="form-group"><label for="veh-cout-km-excedentaire">Coût km excédentaire (€/km)</label><input type="number" id="veh-cout-km-excedentaire" min="0" step="0.01" /></div>
             </div>
             <div class="rent-import-hint" id="veh-location-info"></div>
           </div>
@@ -4422,11 +4422,11 @@
           <div class="card-header"><h2>Financement crédit</h2></div>
           <div class="modal-body">
             <div class="form-grid">
-              <div class="form-group"><label>Apport initial HT</label><input type="number" id="veh-credit-apport-ht" min="0" step="0.01" oninput="mettreAJourInfosVehiculeFinancement()" / aria-label="veh credit apport ht" /></div>
-              <div class="form-group"><label>Mensualité HT</label><input type="number" id="veh-credit-mensualite-ht" min="0" step="0.01" oninput="mettreAJourInfosVehiculeFinancement()" / aria-label="veh credit mensualite ht" /></div>
-              <div class="form-group"><label>Durée du crédit (mois)</label><input type="number" id="veh-credit-duree-mois" min="0" step="1" oninput="mettreAJourInfosVehiculeFinancement()" / aria-label="veh credit duree mois" /></div>
-              <div class="form-group"><label>TAEG (%)</label><input type="number" id="veh-credit-taeg" min="0" step="0.01" oninput="mettreAJourInfosVehiculeFinancement()" / aria-label="veh credit taeg" /></div>
-              <div class="form-group"><label>Coût total du crédit HT</label><input type="number" id="veh-credit-cout-total-ht" readonly / aria-label="veh credit cout total ht" /></div>
+              <div class="form-group"><label for="veh-credit-apport-ht">Apport initial HT</label><input type="number" id="veh-credit-apport-ht" min="0" step="0.01" oninput="mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group"><label for="veh-credit-mensualite-ht">Mensualité HT</label><input type="number" id="veh-credit-mensualite-ht" min="0" step="0.01" oninput="mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group"><label for="veh-credit-duree-mois">Durée du crédit (mois)</label><input type="number" id="veh-credit-duree-mois" min="0" step="1" oninput="mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group"><label for="veh-credit-taeg">TAEG (%)</label><input type="number" id="veh-credit-taeg" min="0" step="0.01" oninput="mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group"><label for="veh-credit-cout-total-ht">Coût total du crédit HT</label><input type="number" id="veh-credit-cout-total-ht" readonly /></div>
             </div>
             <div class="rent-import-hint" id="veh-credit-info"></div>
           </div>
@@ -4435,7 +4435,7 @@
           <div class="card-header"><h2>Option d'achat LOA</h2></div>
           <div class="modal-body">
             <div class="form-grid">
-              <div class="form-group"><label>Option d'achat HT</label><input type="number" id="veh-loa-option-achat-ht" min="0" step="0.01" / aria-label="veh loa option achat ht" /></div>
+              <div class="form-group"><label for="veh-loa-option-achat-ht">Option d'achat HT</label><input type="number" id="veh-loa-option-achat-ht" min="0" step="0.01" /></div>
             </div>
           </div>
         </div>
