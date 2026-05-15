@@ -192,10 +192,95 @@ function ajusterCategorieCharge() {
 // L7032 (script.js d'origine)
 function ouvrirModalCharge() {
   resetFormulaireCharge();
+  peuplerSelectCategoriesCharge();
   ajusterCategorieCharge();
   attacherSmartUploadCharge();
   openModal('modal-charge');
 }
+
+// Phase 60 V7 polish — Peuple le select catégorie depuis charges_categories.
+// Garde les 8 options hardcoded comme base + ajoute les custom du user.
+function peuplerSelectCategoriesCharge() {
+  var sel = document.getElementById('charge-cat');
+  if (!sel) return;
+  // Sauver la sélection courante pour la re-sélectionner après reset
+  var selectionCourante = sel.value;
+  // Catégories canoniques (slugs utilisés ailleurs dans le code : carburant, peage, etc.)
+  var canoniques = [
+    { value: 'carburant',  label: 'Carburant' },
+    { value: 'peage',      label: 'Péage' },
+    { value: 'entretien',  label: 'Entretien' },
+    { value: 'assurance',  label: 'Assurance' },
+    { value: 'salaires',   label: 'Salaires' },
+    { value: 'lld_credit', label: 'LLD / Crédit' },
+    { value: 'tva',        label: 'TVA' },
+    { value: 'autre',      label: 'Autre' }
+  ];
+  // Custom user via Paramètres > Comptabilité (charges_categories)
+  var custom = [];
+  try {
+    var raw = localStorage.getItem('charges_categories');
+    if (raw) {
+      var arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        arr.forEach(function (c) {
+          if (!c || typeof c !== 'string') return;
+          var slug = c.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+          if (!slug) return;
+          // Éviter doublon avec canoniques
+          if (canoniques.some(function (k) { return k.value === slug; })) return;
+          custom.push({ value: slug, label: c });
+        });
+      }
+    }
+  } catch (_) {}
+  var all = canoniques.concat(custom);
+  sel.innerHTML = all.map(function (o) {
+    return '<option value="' + o.value + '">' + o.label.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</option>';
+  }).join('');
+  if (selectionCourante) sel.value = selectionCourante;
+}
+window.peuplerSelectCategoriesCharge = peuplerSelectCategoriesCharge;
+
+// Phase 60 V7 polish — Peuple le filtre catégorie de la page Charges depuis charges_categories.
+function peuplerFiltreCategoriesCharge() {
+  var sel = document.getElementById('filtre-charge-cat');
+  if (!sel) return;
+  var selectionCourante = sel.value;
+  var canoniques = [
+    { value: '',           label: 'Toutes catégories' },
+    { value: 'carburant',  label: 'Carburant' },
+    { value: 'peage',      label: 'Péage' },
+    { value: 'entretien',  label: 'Entretien' },
+    { value: 'assurance',  label: 'Assurance' },
+    { value: 'salaires',   label: 'Salaires' },
+    { value: 'lld_credit', label: 'LLD / Crédit' },
+    { value: 'tva',        label: 'TVA' },
+    { value: 'autre',      label: 'Autre' }
+  ];
+  var custom = [];
+  try {
+    var raw = localStorage.getItem('charges_categories');
+    if (raw) {
+      var arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        arr.forEach(function (c) {
+          if (!c || typeof c !== 'string') return;
+          var slug = c.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+          if (!slug) return;
+          if (canoniques.some(function (k) { return k.value === slug; })) return;
+          custom.push({ value: slug, label: c });
+        });
+      }
+    }
+  } catch (_) {}
+  var all = canoniques.concat(custom);
+  sel.innerHTML = all.map(function (o) {
+    return '<option value="' + o.value + '">' + o.label.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</option>';
+  }).join('');
+  if (selectionCourante) sel.value = selectionCourante;
+}
+window.peuplerFiltreCategoriesCharge = peuplerFiltreCategoriesCharge;
 
 // PR Smart Upload Phase 2 : cable SmartUpload mode auto au modal-charge.
 // Drop unique -> Gemini detecte facture / ticket_carburant / autre et
@@ -293,6 +378,10 @@ function ouvrirEditCharge(id) {
   } else {
     effacerLivraisonCharge();
   }
+  peuplerSelectCategoriesCharge();
+  // Re-applique la valeur après population (peuplerSelectCategoriesCharge peut écraser)
+  var selCat = document.getElementById('charge-cat');
+  if (selCat) selCat.value = charge.categorie || 'autre';
   ajusterCategorieCharge();
   toggleChargeStatutPaiement();
   attacherSmartUploadCharge();
@@ -462,6 +551,8 @@ function afficherCharges() {
   if (typeof _chargesPeriode === 'undefined' || !_chargesPeriode) {
     window._chargesPeriode = { mode: 'mois', offset: 0 };
   }
+  // Phase 60 V7 polish — Peuple aussi le filtre catégorie (charges_categories custom)
+  peuplerFiltreCategoriesCharge();
   var range = getChargesPeriodeRange();
   var periodSelect = document.getElementById('vue-charges-select');
   if (periodSelect) periodSelect.value = _chargesPeriode.mode;
