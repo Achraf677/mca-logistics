@@ -46,9 +46,13 @@
       : null;
   }
 
-  // Phase 60 V7 — séparation stricte local/Supabase
+  // Phase 60 V7 — séparation stricte local/Supabase (origin-based + override)
   function isLocalOnlyMode() {
     try {
+      var host = (window.location && window.location.hostname) || '';
+      if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' ||
+          host.endsWith('.local') || host.endsWith('.localhost') ||
+          window.location.protocol === 'file:') return true;
       if (window.MCA_DISABLE_SUPABASE_SYNC === true) return true;
       if (sessionStorage.getItem('disable_supabase_sync') === '1') return true;
       var login = sessionStorage.getItem('admin_login') || '';

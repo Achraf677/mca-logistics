@@ -71,12 +71,34 @@
   }
 
   // Phase 60 V7 — séparation stricte local/Supabase :
-  // En mode dev/local (admin_login='dev-admin' OR auth_mode='local' OR flag MCA_DISABLE_SUPABASE_SYNC),
-  // les adapters ne s'initialisent JAMAIS → localStorage reste indépendant de Supabase.
+  // Les adapters ne s'initialisent JAMAIS si :
+  //   - origin = localhost / 127.0.0.1 / file:// (dev local, peu importe l'auth)
+  //   - window.MCA_DISABLE_SUPABASE_SYNC === true
+  //   - sessionStorage.disable_supabase_sync === '1'
+  //   - admin_login='dev-admin' ou commence par 'dev-'
+  //   - auth_mode='local' ou 'dev'
+  //
+  // RAISON CRITIQUE : Supabase project unique (lkbfvgnhwgbapdtitglu) partagé entre
+  // prod (mca-logistics.pages.dev) et dev (127.0.0.1). Si on activait l'adapter
+  // sur localhost, un login valide tirerait TOUTES les données prod dans le
+  // localStorage local — pollution dev avec data réelle.
   function isLocalOnlyMode() {
     try {
+      // 1. Détection automatique localhost (origin-based, le plus fiable)
+      var host = (window.location && window.location.hostname) || '';
+      if (
+        host === 'localhost' ||
+        host === '127.0.0.1' ||
+        host === '0.0.0.0' ||
+        host.endsWith('.local') ||
+        host.endsWith('.localhost') ||
+        window.location.protocol === 'file:'
+      ) return true;
+      // 2. Override explicite via flag global
       if (window.MCA_DISABLE_SUPABASE_SYNC === true) return true;
+      // 3. Override via sessionStorage
       if (sessionStorage.getItem('disable_supabase_sync') === '1') return true;
+      // 4. Auth mode local / dev account
       var login = sessionStorage.getItem('admin_login') || '';
       var mode = sessionStorage.getItem('auth_mode') || '';
       if (login === 'dev-admin' || login.startsWith('dev-')) return true;
