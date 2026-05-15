@@ -2257,7 +2257,7 @@
 
         <!-- Entreprise -->
         <div class="card params-card-wide">
-          <div class="card-header"><h2>Informations entreprise</h2></div>
+          <div class="card-header"><h3>Informations entreprise</h3></div>
           <div class="modal-body">
             <div class="form-section-title" style="margin-bottom:10px">Identification</div>
             <div class="form-grid">
@@ -2341,7 +2341,7 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h2>Identité visuelle</h2></div>
+          <div class="card-header"><h3>Identité visuelle</h3></div>
           <div class="modal-body">
             <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
               <div id="param-logo-preview" style="width:72px;height:72px;border-radius:14px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg-dark);font-size:2rem">🚐</div>
@@ -2358,7 +2358,7 @@
 
         <!-- Gestion des postes -->
         <div class="card">
-          <div class="card-header"><h2>Postes / Fonctions</h2></div>
+          <div class="card-header"><h3>Postes / Fonctions</h3></div>
           <div class="modal-body">
             <div id="liste-postes" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
             <div style="display:flex;gap:8px">
@@ -2375,8 +2375,31 @@
       <div class="param-panel" id="ptab-comptable">
       <div class="params-grid">
 
+        <!-- Cabinet comptable (mockup-aligned Phase 62) -->
+        <div class="card" style="margin:0">
+          <div class="card-header"><h3>Cabinet comptable</h3><span class="badge ok" id="param-cabinet-sync-badge">Sync OK</span></div>
+          <div style="padding:18px 20px">
+            <div class="form-grid">
+              <div class="form-group full-width"><label>Nom du cabinet</label><input type="text" id="param-cabinet-nom" placeholder="ex : EXCO Eurasud" aria-label="Nom du cabinet comptable" /></div>
+              <div class="form-group"><label>Email export compta</label><input type="email" id="param-cabinet-email" placeholder="compta@cabinet.fr" aria-label="Email export comptable" /></div>
+              <div class="form-group"><label>Plateforme comptable</label>
+                <select id="param-cabinet-plateforme" aria-label="Plateforme comptable">
+                  <option value="pennylane">Pennylane</option>
+                  <option value="sage">Sage</option>
+                  <option value="cegid">Cegid</option>
+                  <option value="quickbooks">QuickBooks</option>
+                  <option value="autre">Autre</option>
+                </select>
+              </div>
+            </div>
+            <div class="toggle-row"><div class="info"><div class="name">Export FEC mensuel auto</div><div class="desc">Envoie le FEC le 1er de chaque mois</div></div><div class="toggle on" id="param-fec-auto-toggle"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">Synchronisation factures</div><div class="desc">Push automatique vers Pennylane</div></div><div class="toggle on" id="param-sync-factures-toggle"></div></div>
+            <button class="btn-primary" style="margin-top:14px" onclick="(function(){var n=document.getElementById('param-cabinet-nom'),e=document.getElementById('param-cabinet-email'),p=document.getElementById('param-cabinet-plateforme');if(!n||!e)return;try{var d=JSON.parse(localStorage.getItem('app_state')||'{}');d.cabinet={nom:n.value,email:e.value,plateforme:p?p.value:'pennylane'};localStorage.setItem('app_state',JSON.stringify(d));if(typeof afficherToast==='function')afficherToast('Cabinet enregistré','success');}catch(ex){console.warn('cabinet save',ex);}})()">Enregistrer</button>
+          </div>
+        </div>
+
         <div class="card">
-          <div class="card-header"><h2>Fiscalité TVA</h2></div>
+          <div class="card-header"><h3>Paramétrage TVA</h3></div>
           <div class="modal-body">
             <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px">Cette configuration pilote la date d’exigibilité de la TVA, la périodicité de déclaration et le comportement de l’onglet TVA.</p>
             <div class="form-grid">
@@ -2427,7 +2450,7 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h2>Trésorerie</h2></div>
+          <div class="card-header"><h3>Trésorerie</h3></div>
           <div class="modal-body">
             <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px">Cette configuration sert de base au Budget et à la trésorerie prévisionnelle.</p>
             <div class="form-grid">
@@ -2447,7 +2470,7 @@
 
         <!-- Phase 60 V7 polish — Catégories charges custom (réintègre charges_categories) -->
         <div class="card" style="grid-column:1/-1">
-          <div class="card-header"><h2>Catégories de charges custom</h2></div>
+          <div class="card-header"><h3>Catégories de charges custom</h3></div>
           <div class="modal-body">
             <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:14px">Les catégories utilisées pour classer les charges d'exploitation. Ajoute des catégories métier spécifiques à ton activité (péages, badges, formations…).</p>
             <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
@@ -3314,6 +3337,7 @@
           </div>
         </div>
         <div class="ds-section-head__actions">
+          <button class="btn-secondary" onclick="(window.exporterHeuresPaie||window.exporterHeuresExcel||window.exporterRecapHeures||function(){})()">Export paie</button>
           <div class="ds-export-wrap" style="position:relative">
             <button class="btn-secondary ds-export-btn" id="heures-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('heures-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -3350,7 +3374,7 @@
         <div class="kpi"><div class="kpi-lbl">Heures totales</div><div class="kpi-val" id="heures-kpi-total">—</div><div class="kpi-sub">Planning semaine</div></div>
         <div class="kpi"><div class="kpi-lbl">Heures sup.</div><div class="kpi-val" id="heures-kpi-sup">—</div><div class="kpi-sub">25% + 50% inclus</div></div>
         <div class="kpi"><div class="kpi-lbl">Km parcourus</div><div class="kpi-val" id="heures-kpi-km">—</div><div class="kpi-sub">Livraisons ce mois</div></div>
-        <div class="kpi"><div class="kpi-lbl">CE 561 alertes</div><div class="kpi-val" id="heures-kpi-ce561">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">CE 561 alertes</div><div class="kpi-val" id="heures-kpi-ce561">—</div><div class="kpi-sub" id="heures-kpi-ce561-sub" style="color:var(--brand)"></div></div>
       </div>
 
       <!-- Phase 51 : combined period nav row (mockup-aligned) -->
@@ -3378,6 +3402,9 @@
         </div>
       </div>
 
+      <!-- Chips par chauffeur (peuplées dynamiquement par script-heures-counts.js) -->
+      <div id="heures-chauffeur-chips" class="chips-toolbar" style="margin-bottom:14px"></div>
+
       <div class="filters" style="margin-bottom:16px">
         <div class="searchbar searchbar-heures">
           <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
@@ -3388,7 +3415,7 @@
       <!-- Layout horizontal : Compteur heures (gauche) | Relevés kilométriques (droite) -->
       <div class="heures-km-layout" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px">
         <div class="card">
-          <div class="card-header"><h2>Compteur d'heures</h2><span id="heures-periode-label" class="u-muted-sm"></span></div>
+          <div class="card-header"><h3>Heures travaillées</h3><span id="heures-card-badge" class="badge ok"></span></div>
           <div class="table-wrapper">
             <table class="data-table">
               <thead><tr><th>Salarié</th><th>Poste</th><th id="heures-col-total">H/semaine</th><th id="heures-col-detail">Détail par jour</th><th>Congés / Absences</th><th>Actions</th></tr></thead>
@@ -3398,7 +3425,7 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h2>Relevés kilométriques</h2></div>
+          <div class="card-header"><h3>Kilométrage flotte</h3><span id="heures-km-badge" class="badge"></span></div>
           <div class="table-wrapper">
             <table class="data-table">
               <thead><tr><th>Salarié</th><th>Véhicule</th><th>Date</th><th>Km début</th><th>Km fin</th><th>Distance</th><th>Actions</th></tr></thead>

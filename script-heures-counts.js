@@ -69,12 +69,65 @@
 
     // CE 561 alertes (alertes de type dépassement CE561)
     if (kpiCe561) {
-      var ce561 = alertes.filter(function (a) {
+      var ce561Alertes = alertes.filter(function (a) {
         if (!a || a.traitee) return false;
         var t = (a.type || '').toLowerCase();
         return t.includes('ce561') || t.includes('561') || t.includes('depassement') || t.includes('conduite');
-      }).length;
-      kpiCe561.textContent = ce561 > 0 ? ce561 : '—';
+      });
+      var ce561Count = ce561Alertes.length;
+      kpiCe561.textContent = ce561Count > 0 ? ce561Count : '—';
+      // kpi-sub : afficher le nom abrégé du premier chauffeur concerné
+      var subCe561 = document.getElementById('heures-kpi-ce561-sub');
+      if (subCe561) {
+        if (ce561Count > 0) {
+          var nomChauffeur = ce561Alertes[0].chauffeur || ce561Alertes[0].conducteur || '';
+          var parts = String(nomChauffeur).trim().split(/\s+/);
+          var abrev = parts.length >= 2 ? parts[0] + ' ' + parts[1][0] + '.' : nomChauffeur;
+          subCe561.textContent = abrev ? abrev + ' (×' + ce561Count + ')' : '×' + ce561Count + ' alertes';
+          subCe561.style.display = '';
+        } else {
+          subCe561.textContent = '';
+          subCe561.style.display = 'none';
+        }
+      }
+    }
+
+    // Phase 62 — badge cards heures & km
+    var cardBadge = document.getElementById('heures-card-badge');
+    var kmBadge = document.getElementById('heures-km-badge');
+    if (cardBadge && totalH > 0) cardBadge.textContent = totalH + 'h ce mois';
+    if (kmBadge) {
+      var kmVal = document.getElementById('heures-kpi-km');
+      var kmTxt = kmVal ? kmVal.textContent : '—';
+      kmBadge.textContent = kmTxt !== '—' ? kmTxt + ' ce mois' : '';
+    }
+
+    // Phase 62 — chips chauffeur (Tous + un chip par salarié)
+    var chipsContainer = document.getElementById('heures-chauffeur-chips');
+    if (chipsContainer && !chipsContainer.dataset.built) {
+      var salaries = lire('salaries');
+      var nomsBySalId = {};
+      salaries.forEach(function(s) {
+        if (s && s.id && (s.nom || s.prenom)) {
+          nomsBySalId[s.id] = ((s.prenom || '') + ' ' + (s.nom || '')).trim();
+        }
+      });
+      // Collecter IDs chauffeurs ayant des plannings
+      var chaufIdsAvecPlannings = [];
+      plannings.forEach(function(p) {
+        if (p && p.salId && nomsBySalId[p.salId] && chaufIdsAvecPlannings.indexOf(p.salId) === -1) {
+          chaufIdsAvecPlannings.push(p.salId);
+        }
+      });
+      var html = '<button class="btn-chip active" onclick="window.__heuresFiltreChauf=\'\';this.parentNode.querySelectorAll(\'.btn-chip\').forEach(function(b){b.classList.remove(\'active\')});this.classList.add(\'active\');var f=document.getElementById(\'filtre-heures-salarie\');if(f){f.value=\'\';var e=new Event(\'input\');f.dispatchEvent(e)}">Tous</button>';
+      chaufIdsAvecPlannings.forEach(function(salId) {
+        var nom = nomsBySalId[salId] || salId;
+        var parts = nom.trim().split(/\s+/);
+        var label = parts.length >= 2 ? parts[0] + ' ' + parts[parts.length-1][0] + '.' : nom;
+        html += '<button class="btn-chip" data-sal-id="' + salId + '" onclick="(function(btn,n){window.__heuresFiltreChauf=n;btn.parentNode.querySelectorAll(\'.btn-chip\').forEach(function(b){b.classList.remove(\'active\')});btn.classList.add(\'active\');var f=document.getElementById(\'filtre-heures-salarie\');if(f){f.value=n;var e=new Event(\'input\');f.dispatchEvent(e)}})(this,\'' + nom.replace(/'/g, "\\'") + '\')">' + label + '</button>';
+      });
+      chipsContainer.innerHTML = html;
+      chipsContainer.dataset.built = '1';
     }
 
     // Phase 59 — sub-meta format mockup (X chauffeurs · Y jours pointés)
@@ -124,4 +177,11 @@
   }
 
   window.refonteHeuresUpdateCounts = update;
+
+  // Alias export paie (bouton "Export paie" dans section-head)
+  window.exporterHeuresPaie = function() {
+    if (typeof window.exporterHeuresExcel === 'function') return window.exporterHeuresExcel();
+    if (typeof window.exporterRecapHeures === 'function') return window.exporterRecapHeures();
+    console.warn('[heures] exporterHeuresPaie: aucune fonction export disponible');
+  };
 })();
