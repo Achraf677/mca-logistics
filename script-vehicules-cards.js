@@ -56,19 +56,24 @@
     var sal = v.salId ? salaries.find(function (s) { return s.id === v.salId; }) : null;
     var chauffeur = sal ? ((sal.prenom || '') + ' ' + (sal.nom || '')).trim() : '—';
 
-    // Consommation 30j réelle
+    // Consommation 30j réelle — Phase 60 V7 polish : accepte vehiculeId/kmCompteur (seed) ET vehId/km (legacy)
     var now = new Date();
     var d30 = new Date(now - 30 * 86400000);
+    function pVehId(p) { return p.vehId || p.vehiculeId; }
+    function pKm(p) { return parseFloat(p.km != null ? p.km : p.kmCompteur) || 0; }
     var pleins = carburant.filter(function (p) {
-      return p.vehId === v.id && p.litres && p.km;
+      return p && pVehId(p) === v.id && p.litres && pKm(p) > 0;
     }).sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
     var consoStr = v.conso ? (v.conso + ' L/100') : '—';
-    var consoHighPct = 0; // % above baseline
+    var consoHighPct = 0;
     if (pleins.length >= 2) {
       var totalL = 0, totalKm = 0;
       for (var i = 1; i < pleins.length; i++) {
-        var delta = (pleins[i].km || 0) - (pleins[i - 1].km || 0);
-        if (delta > 0 && pleins[i].litres) { totalL += pleins[i].litres; totalKm += delta; }
+        var delta = pKm(pleins[i]) - pKm(pleins[i - 1]);
+        if (delta > 0 && delta < 5000 && pleins[i].litres) {
+          totalL += parseFloat(pleins[i].litres) || 0;
+          totalKm += delta;
+        }
       }
       if (totalKm > 0) {
         var realConso = totalL / totalKm * 100;

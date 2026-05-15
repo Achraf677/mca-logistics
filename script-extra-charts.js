@@ -69,21 +69,24 @@
     if (!canvas) return;
     destroyIfExists('_chartCarbEvol');
     var carburant = lire('carburant');
-    // Pré-calcul des deltas par véhicule sur l'ensemble des pleins (1 passe)
+    // Phase 60 V7 polish — Accepte les 2 schémas data (vehId/km ou vehiculeId/kmCompteur).
+    // Le seed dev-seed.js utilise vehiculeId/kmCompteur, le code legacy utilise vehId/km.
+    function pVehId(p) { return p.vehId || p.vehiculeId; }
+    function pKm(p) { return parseFloat(p.km != null ? p.km : p.kmCompteur) || 0; }
     var pleinsParVeh = {};
     carburant.forEach(function (p) {
-      if (!p || !p.vehId || !p.litres || !p.km || !p.date) return;
-      if (!pleinsParVeh[p.vehId]) pleinsParVeh[p.vehId] = [];
-      pleinsParVeh[p.vehId].push(p);
+      if (!p || !pVehId(p) || !p.litres || !pKm(p) || !p.date) return;
+      var vid = pVehId(p);
+      if (!pleinsParVeh[vid]) pleinsParVeh[vid] = [];
+      pleinsParVeh[vid].push(p);
     });
-    // Pour chaque véhicule, calcule delta km entre pleins consécutifs (triés par km)
     var deltasPleins = [];  // [{ date, litres, distance }]
     Object.keys(pleinsParVeh).forEach(function (vid) {
       var pleins = pleinsParVeh[vid].sort(function (a, b) {
-        return (parseFloat(a.km) || 0) - (parseFloat(b.km) || 0);
+        return pKm(a) - pKm(b);
       });
       for (var i = 1; i < pleins.length; i++) {
-        var delta = (parseFloat(pleins[i].km) || 0) - (parseFloat(pleins[i - 1].km) || 0);
+        var delta = pKm(pleins[i]) - pKm(pleins[i - 1]);
         if (delta > 0 && delta < 5000) {
           deltasPleins.push({ date: pleins[i].date, litres: parseFloat(pleins[i].litres) || 0, distance: delta });
         }
@@ -135,26 +138,26 @@
     destroyIfExists('_chartCarbVeh');
     var carburant = lire('carburant');
     var vehicules = lire('vehicules');
-    // Group pleins par véhicule, trier par km croissant
+    // Accepte les 2 schémas data (vehId/km ou vehiculeId/kmCompteur)
+    function pVehId(p) { return p.vehId || p.vehiculeId; }
+    function pKm(p) { return parseFloat(p.km != null ? p.km : p.kmCompteur) || 0; }
     var pleinsParVeh = {};
     carburant.forEach(function (p) {
-      if (!p || !p.vehId || !p.litres || !p.km) return;
-      if (!pleinsParVeh[p.vehId]) pleinsParVeh[p.vehId] = [];
-      pleinsParVeh[p.vehId].push(p);
+      if (!p || !pVehId(p) || !p.litres || !pKm(p)) return;
+      var vid = pVehId(p);
+      if (!pleinsParVeh[vid]) pleinsParVeh[vid] = [];
+      pleinsParVeh[vid].push(p);
     });
     var consoParVeh = {};
     Object.keys(pleinsParVeh).forEach(function (vid) {
       var v = vehicules.find(function (x) { return x && x.id === vid; });
       if (!v) return;
       var key = v.modele || v.immat || v.id;
-      var pleins = pleinsParVeh[vid].sort(function (a, b) {
-        return (parseFloat(a.km) || 0) - (parseFloat(b.km) || 0);
-      });
+      var pleins = pleinsParVeh[vid].sort(function (a, b) { return pKm(a) - pKm(b); });
       var totalL = 0, totalDistance = 0;
-      // Pour chaque plein > 1er, calcule delta km
       for (var i = 1; i < pleins.length; i++) {
-        var delta = (parseFloat(pleins[i].km) || 0) - (parseFloat(pleins[i - 1].km) || 0);
-        if (delta > 0 && delta < 5000) {  // Skip outliers (>5000km entre 2 pleins = anomalie)
+        var delta = pKm(pleins[i]) - pKm(pleins[i - 1]);
+        if (delta > 0 && delta < 5000) {
           totalDistance += delta;
           totalL += parseFloat(pleins[i].litres) || 0;
         }

@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v177-fix-conso-charts-deltas-pleins-corrects';
+const CACHE_VERSION = 'mca-v2026-05-16-v178-fix-carburant-vehId-vehiculeId-dualkey';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
