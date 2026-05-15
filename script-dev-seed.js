@@ -657,6 +657,8 @@
     localStorage.setItem('fournisseurs', JSON.stringify(FOURNISSEURS));
     localStorage.setItem('vehicules', JSON.stringify(VEHICULES));
     localStorage.setItem('salaries', JSON.stringify(SALARIES));
+    // Phase 60 V7 polish — Maintenir 'chauffeurs' synchrone avec salaries (legacy compat script-stats.js + script-salaries.js).
+    localStorage.setItem('chauffeurs', JSON.stringify(chauffeurs));
     localStorage.setItem('carburant', JSON.stringify(CARBURANT));
     localStorage.setItem('charges', JSON.stringify(CHARGES));
     localStorage.setItem('alertes_admin', JSON.stringify(ALERTES));
