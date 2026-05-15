@@ -64,7 +64,7 @@ Ces clés EXISTENT dans le code (lues ou écrites) mais semblent **orphelines** 
 | `encaissements` / `encaissements_manuels` | Encaissement | UI form ? | **Fusionner** avec `paiements` (source unique) |
 | `avoirs` / `avoirs_emis` | ✅ RÉINTÉGRÉ 2026-05-15 — section "Avoirs émis" page Encaissement (script-encaissement-legacy.js). |
 | `acomptes` | ✅ RÉINTÉGRÉ 2026-05-15 — section "Acomptes reçus" page Encaissement (script-encaissement-legacy.js). |
-| `relances` / `relances_log` | Encaissement (relances.js) | bouton "Relancer" | **Intégrer** : historique relances sur drawer client |
+| `relances` / `relances_log` | ✅ RÉINTÉGRÉ 2026-05-15 — section "Historique des relances" page Encaissement (script-encaissement-legacy.js). |
 
 ### RH legacy
 | Clé | Statut | Action |
@@ -81,7 +81,7 @@ Ces clés EXISTENT dans le code (lues ou écrites) mais semblent **orphelines** 
 |---|---|---|
 | `documents_livraison_<id>` | Pièces jointes par livraison | **Réintégrer** : onglet Documents drawer livraison (existe déjà — vérifier wiring) |
 | `logo_entreprise` / `logo_entreprise_path` / `logo_entreprise_url` | ✅ DÉJÀ propre (verified 2026-05-15) — `url` = canonique display, `path` = path Supabase Storage pour re-signing, `logo_entreprise` = fallback legacy data URL pré-Supabase. Pattern intentionnel. |
-| `notes_internes` | Notes admin globales | **Réintégrer** : encart notes Dashboard ou Paramètres |
+| `notes_internes` | ✅ DÉJÀ intégré (verified 2026-05-15) — notes par salarié via `modal-note-interne` + `confirmerNoteInterne()` (script-core-ui.js:347). Pattern : map salId → {texte, date}, pas global. |
 
 ### Audit/Agent IA
 | Clé | Statut | Action |
@@ -137,20 +137,20 @@ _(Aucun pour l'instant — toutes les clés ont au moins un read ou un write que
 5. **Chauffeurs** : supprimer `chauffeurs` (redondant avec `salaries`)
 
 ### Priorité 2 — Réintégrer fonctionnalités orphelines
-6. **Page TVA section "Historique déclarations"** (`tva_declarations`)
-7. **Page Encaissement section "Acomptes"** (`acomptes`)
-8. **Page Encaissement section "Avoirs émis"** (`avoirs`)
-9. **Page Encaissement section "Factures émises"** (`factures_emises`)
-10. **Drawer client onglet "Relances"** (`relances` + `relances_log`)
+6. ✅ **Page TVA section "Historique déclarations"** (`tva_declarations`) — DONE 2026-05-15 (script-tva-historique.js)
+7. ✅ **Page Encaissement section "Acomptes"** (`acomptes`) — DONE 2026-05-15 (script-encaissement-legacy.js)
+8. ✅ **Page Encaissement section "Avoirs émis"** (`avoirs`) — DONE 2026-05-15 (script-encaissement-legacy.js)
+9. ✅ **Page Encaissement section "Factures émises"** (`factures_emises`) — DONE 2026-05-15 (script-encaissement-legacy.js + export CSV)
+10. ✅ **Page Encaissement section "Historique relances"** (`relances` + `relances_log`) — DONE 2026-05-15 (script-encaissement-legacy.js)
 11. **Drawer livraison onglet "Documents"** vérifier wiring (`documents_livraison_*`)
 12. **Drawer salarié onglet "Messages"** (`messages_<id>`)
 13. **Drawer salarié onglet "Notifications"** (`notifs_sal_<id>`)
 14. **Heures&Km section "Relevé km par salarié"** (`km_sal_<id>`)
-15. **Dashboard widget "Objectif CA"** (`objectif_ca_mensuel`)
-16. **Dashboard widget "Objectif livraisons"** (`objectif_livraisons_mensuel`)
+15. ✅ **Dashboard widget "Objectif CA"** (`objectif_ca_mensuel`) — DONE 2026-05-15 (Paramètres input + script-core-storage save)
+16. ✅ **Dashboard widget "Objectif livraisons"** (`objectif_livraisons_mensuel`) — DONE 2026-05-15 (idem)
 17. **Paramètres>Comptabilité config "Catégories charges custom"** (`charges_categories`)
-18. **Brouillons IA section "Décisions agent"** (`agent_decisions`)
-19. **Dashboard encart "Notes internes"** (`notes_internes`)
+18. ✅ **Brouillons IA / Panneau agent "Décisions"** (`agent_decisions`) — VERIFIED 2026-05-15 (déjà via panneau-agent #agent-decisions-list)
+19. ✅ **Notes internes** (`notes_internes`) — VERIFIED 2026-05-15 (modal per-employee, pas global)
 
 ### Priorité 3 — Documentation / nettoyage
 20. Documenter chaque clé dans un fichier `STORAGE-KEYS.md` avec contrat (shape, durée vie, source de vérité)

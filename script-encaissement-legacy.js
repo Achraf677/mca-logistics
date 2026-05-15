@@ -31,6 +31,7 @@
   function statutBadge(statut) {
     var s = (statut || '').toLowerCase();
     if (s === 'payee' || s === 'payé' || s === 'paye' || s === 'payée') return '<span class="badge ok">Payée</span>';
+    if (s === 'envoyee' || s === 'envoyée' || s === 'envoye') return '<span class="badge ok">Envoyée</span>';
     if (s === 'partielle' || s === 'partiel') return '<span class="badge warn">Partielle</span>';
     if (s === 'annulee' || s === 'annulée') return '<span class="badge alert">Annulée</span>';
     return '<span class="badge warn">En attente</span>';
@@ -159,10 +160,35 @@
   }
   window.exporterFacturesEmisesCSV = exporterFacturesEmisesCSV;
 
+  function renderRelances() {
+    var tb = document.getElementById('tb-enc-relances');
+    if (!tb) return;
+    var relances = lire('relances_log');
+    if (!relances.length) relances = lire('relances');  // fallback
+    var count = document.getElementById('enc-relances-count');
+    if (count) count.textContent = relances.length;
+    if (!relances.length) {
+      tb.innerHTML = '<tr><td colspan="6" class="empty-row">Aucune relance envoyée</td></tr>';
+      return;
+    }
+    relances.sort(function (a, b) { return new Date(b.date || b.envoyeLe || 0) - new Date(a.date || a.envoyeLe || 0); });
+    tb.innerHTML = relances.map(function (r) {
+      return '<tr>'
+        + '<td>' + fmtDate(r.date || r.envoyeLe) + '</td>'
+        + '<td>' + escapeHtml(r.client || r.clientNom || '—') + '</td>'
+        + '<td>' + escapeHtml(r.type || r.niveau || 'Standard') + '</td>'
+        + '<td>' + escapeHtml(r.canal || r.via || 'Email') + '</td>'
+        + '<td class="mono">' + escapeHtml(r.factureNum || r.livRef || '—') + '</td>'
+        + '<td>' + statutBadge(r.statut || 'envoyee') + '</td>'
+        + '</tr>';
+    }).join('');
+  }
+
   function renderAll() {
     try { renderFacturesEmises(); } catch (e) { console.warn('[enc-legacy-factures]', e); }
     try { renderAvoirs(); } catch (e) { console.warn('[enc-legacy-avoirs]', e); }
     try { renderAcomptes(); } catch (e) { console.warn('[enc-legacy-acomptes]', e); }
+    try { renderRelances(); } catch (e) { console.warn('[enc-legacy-relances]', e); }
   }
 
   // Re-render quand page-encaissement devient active
