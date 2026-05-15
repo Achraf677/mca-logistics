@@ -1,5 +1,5 @@
-/* Phase 60 V7 H5+H6+H7 — Charts manquants Carburant + Encaissement + TVA.
-   5 charts Chart.js qui complètent les charts existants (Charges, Stats, Rentabilité).
+/* Phase 60 V7 H5+H6+H7+H8 — Charts manquants Carburant + Encaissement + TVA + Rentabilité.
+   7 charts Chart.js qui complètent les charts existants (Charges, Stats).
 
    Charts couverts :
    - chart-carb-evol-6m            : Évolution conso flotte L/100km 6 mois
@@ -7,6 +7,8 @@
    - chart-enc-vs-impayes-6m       : Encaissements vs Impayés 6 mois (double courbe)
    - chart-enc-vieillissement      : Vieillissement créances (0-30/31-60/61-90/+90j)
    - chart-tva-coll-vs-ded         : TVA collectée vs déductible 6 mois (bar group)
+   - chart-rent-evol-6m            : Évolution CA vs charges 6 mois (double courbe)
+   - chart-rent-charges-donut      : Répartition charges par catégorie (donut)
 */
 (function () {
   'use strict';
@@ -286,6 +288,115 @@
     });
   }
 
+  // ============ RENTABILITÉ : Évolution CA vs charges 6m ============
+  function renderRentEvol6m() {
+    var canvas = document.getElementById('chart-rent-evol-6m');
+    if (!canvas) return;
+    destroyIfExists('_chartRentEvol');
+    var livraisons = lire('livraisons');
+    var charges = lire('charges');
+    var carburant = lire('carburant');
+    var months = last6Months();
+    var caData = months.map(function (m) {
+      return livraisons.filter(function (l) {
+        if (!l) return false;
+        var d = new Date(l.date || l.dateLivraison || '');
+        return d.getFullYear() === m.year && d.getMonth() === m.month;
+      }).reduce(function (s, l) {
+        var prix = parseFloat(l.prixHT || l.prix || l.montant || 0);
+        return s + (isNaN(prix) ? 0 : prix);
+      }, 0);
+    });
+    var chargesData = months.map(function (m) {
+      var chCh = charges.filter(function (c) {
+        if (!c) return false;
+        var d = new Date(c.date || c.dateCharge || '');
+        return d.getFullYear() === m.year && d.getMonth() === m.month;
+      }).reduce(function (s, c) {
+        return s + (parseFloat(c.montantHT || c.montant || 0) || 0);
+      }, 0);
+      var chCarb = carburant.filter(function (p) {
+        if (!p) return false;
+        var d = new Date(p.date || '');
+        return d.getFullYear() === m.year && d.getMonth() === m.month;
+      }).reduce(function (s, p) {
+        return s + (parseFloat(p.montantHT || p.montant || 0) || 0);
+      }, 0);
+      return chCh + chCarb;
+    });
+    window._chartRentEvol = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: months.map(function (m) { return m.label; }),
+        datasets: [
+          {
+            label: 'CA HT',
+            data: caData,
+            borderColor: COLORS.success,
+            backgroundColor: COLORS.successBg,
+            tension: 0.3, fill: true, pointRadius: 4, pointBackgroundColor: COLORS.success
+          },
+          {
+            label: 'Charges',
+            data: chargesData,
+            borderColor: COLORS.brand,
+            backgroundColor: COLORS.bg,
+            tension: 0.3, fill: true, pointRadius: 4, pointBackgroundColor: COLORS.brand
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: true, position: 'top', labels: { color: COLORS.muted } } },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: COLORS.muted, callback: function (v) { return v.toLocaleString('fr-FR') + ' €'; } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          x: { ticks: { color: COLORS.muted }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // ============ RENTABILITÉ : Donut répartition charges ============
+  function renderRentChargesDonut() {
+    var canvas = document.getElementById('chart-rent-charges-donut');
+    if (!canvas) return;
+    destroyIfExists('_chartRentDonut');
+    var charges = lire('charges');
+    var carburant = lire('carburant');
+    var seuil = Date.now() - 180 * 86400000;  // 6 derniers mois
+    var groupes = {};
+    charges.forEach(function (c) {
+      if (!c) return;
+      var d = new Date(c.date || c.dateCharge || '');
+      if (isNaN(d.getTime()) || d.getTime() < seuil) return;
+      var cat = (c.categorie || c.type || 'Autres').toString();
+      groupes[cat] = (groupes[cat] || 0) + (parseFloat(c.montantHT || c.montant || 0) || 0);
+    });
+    var totalCarb = carburant.filter(function (p) {
+      if (!p) return false;
+      var d = new Date(p.date || '');
+      return !isNaN(d.getTime()) && d.getTime() >= seuil;
+    }).reduce(function (s, p) {
+      return s + (parseFloat(p.montantHT || p.montant || 0) || 0);
+    }, 0);
+    if (totalCarb > 0) groupes['Carburant'] = (groupes['Carburant'] || 0) + totalCarb;
+    var labels = Object.keys(groupes).sort(function (a, b) { return groupes[b] - groupes[a]; });
+    var data = labels.map(function (l) { return Math.round(groupes[l]); });
+    var palette = [COLORS.brand, COLORS.success, COLORS.warning, COLORS.info, COLORS.purple, COLORS.muted, '#e67e22', '#1abc9c'];
+    var colors = labels.map(function (_, i) { return palette[i % palette.length]; });
+    window._chartRentDonut = new Chart(canvas, {
+      type: 'doughnut',
+      data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 0 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '60%',
+        plugins: {
+          legend: { display: true, position: 'right', labels: { color: COLORS.muted, font: { size: 11 } } },
+          tooltip: { callbacks: { label: function (ctx) { return ctx.label + ' : ' + fmtEur(ctx.parsed); } } }
+        }
+      }
+    });
+  }
+
   // ============ Trigger render quand la page devient active ============
   function renderAll() {
     try { renderCarbEvol6m(); } catch (e) { console.warn('[chart-carb-evol]', e); }
@@ -293,6 +404,8 @@
     try { renderEncVsImpayes6m(); } catch (e) { console.warn('[chart-enc-vs-imp]', e); }
     try { renderEncVieillissement(); } catch (e) { console.warn('[chart-enc-vieil]', e); }
     try { renderTvaCollVsDed(); } catch (e) { console.warn('[chart-tva]', e); }
+    try { renderRentEvol6m(); } catch (e) { console.warn('[chart-rent-evol]', e); }
+    try { renderRentChargesDonut(); } catch (e) { console.warn('[chart-rent-donut]', e); }
   }
 
   // Re-render quand on switch de page (MutationObserver sur .page.active)

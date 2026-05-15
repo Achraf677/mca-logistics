@@ -1339,6 +1339,17 @@
         <div class="kpi"><div class="kpi-lbl">Marge brute</div><div class="kpi-val" id="rent-kpi-marge">—</div></div>
         <div class="kpi"><div class="kpi-lbl">Coût/km moyen</div><div class="kpi-val" id="rent-kpi-cout-km">—</div></div>
       </div>
+      <!-- Phase 60 V7 H8 — Charts rentabilité : Évolution CA/charges 6m + Donut charges -->
+      <div class="chart-row" style="margin-bottom:18px">
+        <div class="chart-card">
+          <h3>Évolution CA vs charges<span class="chart-legend">6 derniers mois</span></h3>
+          <div style="position:relative;height:240px;width:100%"><canvas id="chart-rent-evol-6m"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Répartition charges<span class="chart-legend">par catégorie</span></h3>
+          <div style="position:relative;height:240px;width:100%"><canvas id="chart-rent-charges-donut"></canvas></div>
+        </div>
+      </div>
       <!-- Phase 59 polish : tabs-bar mockup-aligned (rent-tab-btn underline style au lieu de btn-secondary) -->
       <nav class="rent-tabs-bar" role="tablist" style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding:0 2px;flex-wrap:wrap">
         <button id="rent-tab-btn-vehicule"  class="rent-tab-btn active" role="tab" onclick="changerSousOngletRentabilite('vehicule')">Par véhicule</button>

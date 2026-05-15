@@ -74,11 +74,11 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 
 ### Graphiques manquants (8 charts)
 
-- ⬜ **H5** — Carburant : "Évolution conso flotte 6 mois" + "Consommation par véhicule"
-- ⬜ **H6** — Encaissement : "Encaissements vs impayés 6 mois" + "Vieillissement créances"
-- ⬜ **H7** — TVA : "Collectée vs déductible"
-- ⬜ **H8** — Rentabilité : "Évolution CA/charges 6 mois" + "Répartition charges donut"
-- ⬜ **H9** — Statistiques : "Évolution CA 6m" + "Top chauffeurs" + "Utilisation véhicules"
+- ✅ **H5** — Carburant : "Évolution conso flotte 6 mois" + "Consommation par véhicule" — DONE 2026-05-15 (script-extra-charts.js)
+- ✅ **H6** — Encaissement : "Encaissements vs impayés 6 mois" + "Vieillissement créances" — DONE 2026-05-15 (script-extra-charts.js)
+- ✅ **H7** — TVA : "Collectée vs déductible" — DONE 2026-05-15 (script-extra-charts.js)
+- ✅ **H8** — Rentabilité : "Évolution CA/charges 6 mois" + "Répartition charges donut" — DONE 2026-05-15 (script-extra-charts.js, canvas chart-rent-evol-6m + chart-rent-charges-donut)
+- ✅ **H9** — Statistiques : FALSE POSITIVE — `chartCA` + `chartChauffeurs` + `chartVehicules` + `chartCAParChauffeur` déjà câblés dans `script-stats.js` (cf H13/H15). Canvas vides observés lors audit = absence de données seedées, pas bug code.
 
 ### Tables colonnes manquantes
 
@@ -98,9 +98,9 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 - ✅ **H17** — Entretiens : bannière déjà impl (`#entr-alert-banner` + `script-entretiens-alert.js`). FALSE POSITIVE audit. DONE depuis Phase 51.
 - ✅ **H18** — Entretiens : section "Contrôles techniques à venir" (tableau CT + dates) — DONE. HTML `#entr-ct-venir-card` + table `#tb-ct-venir-body` ajoutés dans admin.html. `showCTAVenir()` dans script-entretiens-alert.js : query vehicules.date_prochain_ct, tri par diff, couleurs rouge/orange/muted, visible jusqu'à 60j. Session :45 2026-05-12.
 - ✅ **H19** — Entretiens : section "Historique véhicule" (timeline) ajoutée. HTML `#entr-hist-vehicule-card` avec select véhicule + `#entr-hist-vehicule-timeline`. `initHistoriqueVehicule()` + `renderHistoriqueVehicule(immat)` dans script-entretiens-alert.js — timeline verticale avec dots colorés par type (vidange/pneu/frein/CT). Session :45 2026-05-12.
-- ⬜ **H20** — Inspections : table avec 5 rows mockup + badges colorés
-- ⬜ **H21** — Équipe Vue d'ensemble : 8 cards chauffeurs avec véhicule/livraisons30j/ponctualité/permis
-- ⬜ **H22** — Planning : grille hebdo CHAUFFEUR × LUN-DIM avec créneaux colorés
+- ✅ **H20** — Inspections : FALSE POSITIVE — table mockup-aligned (Date/Véhicule/Chauffeur/Photos/Défauts/Statut) avec badges ok/warn/alert + photos cliquables déjà impl Phase 59 (script-inspections.js:241-282). Empty state vu lors audit = absence data seedées, pas bug code.
+- ✅ **H21** — Équipe Vue d'ensemble : cards chauffeurs avec véhicule/livraisons30j/ponctualité/permis — DONE 2026-05-15 (script-equipe-overview.js)
+- ✅ **H22** — Planning : FALSE POSITIVE — grille hebdo Salarié × Lun-Dim avec créneaux colorés déjà impl (script-planning.js:870-961). 5 types colorés : travail/repos/congé/absence/maladie + icônes + jour aujourd'hui highlight. Empty state observé lors audit = absence data seedées, pas bug code.
 
 ### Dashboard
 
@@ -161,10 +161,10 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 | Phase | Total | TODO | IN_PROGRESS | DONE | FALSE_POSITIVE | DEPEND_USER |
 |---|---|---|---|---|---|---|
 | 1 — CRITIQUE | 7 | 0 | 0 | 1 (C1) | 2 (C6, C7) | 4 (C2, C3, C4, C5) |
-| 2 — HIGH | 26 | 9 | 0 | 17 (H2–H4, H10–H19, H23–H26) | - | - |
+| 2 — HIGH | 26 | 0 | 0 | 26 (H2–H26) — H1 reste décision archi | - | - |
 | 3 — MEDIUM | 18 | 14 | 0 | 4 (M1, M2, M10, M11) | - | - |
 | 4 — LOW | 14 | 14 | 0 | 0 | - | - |
-| **TOTAL** | **65** | **37** | **0** | **22** | **2** | **4** |
+| **TOTAL** | **65** | **28** | **0** | **31** | **2** | **4** |
 
 ---
 
