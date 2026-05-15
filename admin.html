@@ -128,6 +128,8 @@
   <script defer src="script-equipe-overview.js?v=1"></script>
   <!-- Phase 60 V7 H5/H6/H7 — Charts manquants Carburant/Encaissement/TVA -->
   <script defer src="script-extra-charts.js?v=1"></script>
+  <!-- Phase 60 V7 polish — Inspections exports (PDF/CSV/Excel) qui manquaient -->
+  <script defer src="script-exports-inspections.js?v=1"></script>
   <!-- Phase 2 HTML refonte Vehicules : counts total + alertes CT/assurance. -->
   <script defer src="script-vehicules-counts.js?v=1"></script>
   <!-- Phase 48 : Véhicules card grid (fleet view, mockup-aligned). -->
@@ -1103,11 +1105,11 @@
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
                 <div><div style="font-weight:600;font-size:13px">Export PDF</div><div style="font-size:11px;color:var(--text-muted)">État flotte + échéances</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="(window.exporterVehiculesCSV||function(){alert('Export CSV véhicules: bientôt — fallback PDF')})();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+              <button class="liv-dropdown-item" onclick="window.exporterVehiculesCSV&&window.exporterVehiculesCSV();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
                 <div><div style="font-weight:600;font-size:13px">Export CSV</div><div style="font-size:11px;color:var(--text-muted)">Plaques, km, conso</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="(window.exporterVehiculesExcel||window.exporterVehiculesCSV||function(){alert('Export Excel véhicules: bientôt')})();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+              <button class="liv-dropdown-item" onclick="(window.exporterVehiculesExcel||window.exporterVehiculesCSV)();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 <div><div style="font-weight:600;font-size:13px">Export Excel</div><div style="font-size:11px;color:var(--text-muted)">Onglet par véhicule</div></div>
               </button>
@@ -1323,11 +1325,11 @@
                 <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Rapport PDF multi-axes
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterRentabiliteCSV||function(){alert('Export CSV: bientôt — fallback PDF disponible')})();document.getElementById('rent-export-menu').classList.remove('open')">
+              <button class="ds-menu-item" role="menuitem" onclick="window.exporterRentabiliteCSV&&window.exporterRentabiliteCSV();document.getElementById('rent-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV (marges par mission)
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterRentabiliteExcel||window.exporterRentabiliteCSV||function(){alert('Export Excel: bientôt — fallback PDF/CSV disponible')})();document.getElementById('rent-export-menu').classList.remove('open')">
+              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterRentabiliteExcel||window.exporterRentabiliteCSV)();document.getElementById('rent-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel (avec simulateur)
               </button>
@@ -1667,11 +1669,11 @@
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
                 <div><div class="liv-di-name">Export PDF</div><div class="liv-di-sub">Rapport mensuel</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="(window.exporterStatsCSV||function(){alert('Export CSV stats: bientôt — fallback PDF dispo')})();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+              <button class="liv-dropdown-item" onclick="window.exporterStatsCSV&&window.exporterStatsCSV();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
                 <div><div class="liv-di-name">Export CSV</div><div class="liv-di-sub">Données brutes</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="(window.exporterStatsExcel||window.exporterStatsCSV||function(){alert('Export Excel stats: bientôt')})();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+              <button class="liv-dropdown-item" onclick="(window.exporterStatsExcel||window.exporterStatsCSV)();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 <div><div class="liv-di-name">Export Excel</div><div class="liv-di-sub">Onglets par catégorie</div></div>
               </button>
@@ -1760,11 +1762,11 @@
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ds-dropdown-menu" id="equipe-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:210px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterEquipeCSV||function(){alert('Export CSV équipe : bientôt')})();document.getElementById('equipe-export-menu').classList.remove('open')">
+              <button class="ds-menu-item" role="menuitem" onclick="window.exporterEquipeCSV&&window.exporterEquipeCSV();document.getElementById('equipe-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV (équipe)
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterEquipeExcel||window.exporterEquipeCSV||function(){alert('Export Excel : bientôt')})();document.getElementById('equipe-export-menu').classList.remove('open')">
+              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterEquipeExcel||window.exporterEquipeCSV)();document.getElementById('equipe-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel
               </button>
@@ -1971,11 +1973,11 @@
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ds-dropdown-menu" id="alertes-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:200px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterAlertesCSV||function(){alert('Export CSV alertes : bientôt')})();document.getElementById('alertes-export-menu').classList.remove('open')">
+              <button class="ds-menu-item" role="menuitem" onclick="window.exporterAlertesCSV&&window.exporterAlertesCSV();document.getElementById('alertes-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterAlertesExcel||window.exporterAlertesCSV||function(){alert('Export Excel : bientôt')})();document.getElementById('alertes-export-menu').classList.remove('open')">
+              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterAlertesExcel||window.exporterAlertesCSV)();document.getElementById('alertes-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel
               </button>
@@ -2278,6 +2280,13 @@
               <div class="form-group"><label>Gestionnaire de transport</label><input type="text" id="param-gestionnaire-nom" placeholder="Nom et prénom" / aria-label="Nom et prénom" /></div>
               <div class="form-group"><label>N° attestation capacité professionnelle</label><input type="text" id="param-capacite-pro-numero" placeholder="Capacité transport léger — titulaire : gestionnaire" / aria-label="Capacité transport léger — titulaire : gestionnaire" /></div>
               <div class="form-group"><label>Date obtention capacité</label><input type="date" id="param-capacite-pro-date" / aria-label="param capacite pro date" /></div>
+            </div>
+
+            <!-- Phase 60 V7 polish — Objectifs mensuels (réintègre clés legacy objectif_ca_mensuel + objectif_livraisons_mensuel) -->
+            <div class="form-section-title u-section-spacer">Objectifs mensuels (pilotage Dashboard)</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Objectif CA HT mensuel (€)</label><input type="number" id="param-objectif-ca" placeholder="ex : 25000" min="0" step="100" aria-label="Objectif CA mensuel" /></div>
+              <div class="form-group"><label>Objectif livraisons mensuel</label><input type="number" id="param-objectif-livraisons" placeholder="ex : 80" min="0" step="1" aria-label="Objectif livraisons mensuel" /></div>
             </div>
 
             <div class="form-section-title u-section-spacer">Coordonnées bancaires & facturation</div>
@@ -3419,15 +3428,15 @@
                 <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Planning semaine PDF
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterPlanningCSV||function(){alert('Export CSV planning: bientôt')})();document.getElementById('planning-export-menu').classList.remove('open')">
+              <button class="ds-menu-item" role="menuitem" onclick="window.exporterPlanningCSV&&window.exporterPlanningCSV();document.getElementById('planning-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV (créneaux)
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterPlanningExcel||window.exporterPlanningCSV||function(){alert('Export Excel planning: bientôt')})();document.getElementById('planning-export-menu').classList.remove('open')">
+              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterPlanningExcel||window.exporterPlanningCSV)();document.getElementById('planning-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel (par salarié)
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterPlanningIcal||function(){alert('Export iCal: bientôt — intégration agenda')})();document.getElementById('planning-export-menu').classList.remove('open')">
+              <button class="ds-menu-item" role="menuitem" onclick="window.exporterPlanningIcal&&window.exporterPlanningIcal();document.getElementById('planning-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
                 Export iCal (.ics)
               </button>
@@ -3625,7 +3634,7 @@
                 <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterInspectionsExcel||window.exporterInspectionsCSV||function(){alert('Excel non disponible — fallback CSV bientôt')})();document.getElementById('insp-export-menu').classList.remove('open')">
+              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterInspectionsExcel||window.exporterInspectionsCSV)();document.getElementById('insp-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel
               </button>

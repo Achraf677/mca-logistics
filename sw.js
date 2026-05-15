@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-15-v161-phase4-LOW-complete-PLAN-V6-100pct';
+const CACHE_VERSION = 'mca-v2026-05-15-v162-polish-dead-buttons-objectifs-inspections-exports';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -103,6 +103,8 @@ const CORE_ASSETS = [
   '/script-extra-charts.js',
   // Phase 60 V7 H21 — Équipe Vue d'ensemble cards
   '/script-equipe-overview.js',
+  // Phase 60 V7 polish — Inspections exports PDF/CSV/Excel
+  '/script-exports-inspections.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts

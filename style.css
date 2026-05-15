@@ -1811,7 +1811,7 @@ body.light-mode .badge-inactif {
 .livraisons-table thead .bulk-col { vertical-align: middle !important; }
 .livraisons-table tbody td.bulk-col { padding: 10px 0 !important; }
 tr.bulk-selected {
-  background: rgba(245, 166, 35, 0.08) !important;
+  background: rgba(230, 57, 70, 0.08) !important;
 }
 tr.bulk-selected td { border-top-color: rgba(230,57,70,0.2); }
 
@@ -2378,7 +2378,7 @@ body.light-mode .stat-pill { background: #fff; border-color: rgba(0,0,0,0.08); }
 .cmd-entity-row:hover,
 .cmd-action-row.cmd-row-active,
 .cmd-entity-row.cmd-row-active {
-  background: rgba(245, 166, 35, 0.10);
+  background: rgba(230, 57, 70, 0.10);
 }
 .cmd-action-row.cmd-row-active,
 .cmd-entity-row.cmd-row-active {
@@ -2391,7 +2391,7 @@ body.light-mode .stat-pill { background: #fff; border-color: rgba(0,0,0,0.08); }
   align-items: center;
   justify-content: center;
   font-size: 1.05rem;
-  background: rgba(245, 166, 35, 0.12);
+  background: rgba(230, 57, 70, 0.12);
   border-radius: 8px;
   flex-shrink: 0;
 }
@@ -2442,7 +2442,7 @@ body.light-mode .cmd-action-row:hover,
 body.light-mode .cmd-entity-row:hover,
 body.light-mode .cmd-action-row.cmd-row-active,
 body.light-mode .cmd-entity-row.cmd-row-active {
-  background: rgba(245, 166, 35, 0.15);
+  background: rgba(230, 57, 70, 0.15);
 }
 
 /* ===== TOOLTIP ===== */

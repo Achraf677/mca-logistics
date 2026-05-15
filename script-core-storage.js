@@ -153,7 +153,9 @@ function chargerParametres() {
     'param-bic':                   params.bic || '',
     'param-banque':                params.banque || '',
     'param-delai-paiement':        params.delaiPaiementDefaut != null ? params.delaiPaiementDefaut : 30,
-    'param-taux-penalites':        params.tauxPenalitesRetard != null ? params.tauxPenalitesRetard : 10.15
+    'param-taux-penalites':        params.tauxPenalitesRetard != null ? params.tauxPenalitesRetard : 10.15,
+    'param-objectif-ca':           localStorage.getItem('objectif_ca_mensuel') || '',
+    'param-objectif-livraisons':   localStorage.getItem('objectif_livraisons_mensuel') || ''
   };
   Object.entries(map).forEach(([id,val]) => { const el=document.getElementById(id); if(el) el.value=val; });
   const colorEl = document.getElementById('param-accent-color');
@@ -375,6 +377,15 @@ function sauvegarderParametres() {
     rcs: [getParamVal('param-rcs-ville'), getParamVal('param-rcs-numero').replace(/\s+/g,'')].filter(Boolean).join(' ')
   });
   sauvegarder('params_entreprise', params);
+
+  // Phase 60 V7 polish — Objectifs mensuels persistés en clés legacy lues par dashboard
+  const objCa = getParamNum('param-objectif-ca');
+  const objLiv = getParamNum('param-objectif-livraisons');
+  if (objCa != null && objCa >= 0) localStorage.setItem('objectif_ca_mensuel', String(objCa));
+  else localStorage.removeItem('objectif_ca_mensuel');
+  if (objLiv != null && objLiv >= 0) localStorage.setItem('objectif_livraisons_mensuel', String(objLiv));
+  else localStorage.removeItem('objectif_livraisons_mensuel');
+
   const comptes = getAdminAccounts();
   const idx = comptes.findIndex(c => c.identifiant === sessionAdmin.identifiant);
   if (idx > -1) {
