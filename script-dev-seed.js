@@ -101,11 +101,53 @@
   function chance(p) { return Math.random() < p; }
 
   function clearAll() {
-    const keys = ['livraisons', 'clients', 'fournisseurs', 'vehicules', 'salaries',
-      'carburant', 'charges', 'alertes_admin', 'plannings_hebdo', 'config_entreprise',
-      'entretiens', 'inspections', 'incidents', 'heures_pointage', 'tva_declarations',
-      'paiements', 'mca_dev_seeded'];
-    keys.forEach(k => localStorage.removeItem(k));
+    // Phase 60 V7 — clearAll EXHAUSTIF pour éliminer toute data fantôme legacy
+    // Couvre TOUTES les clés utilisées par toutes les versions historiques.
+    const exactKeys = [
+      // Entités métier principales
+      'livraisons', 'clients', 'fournisseurs', 'vehicules', 'salaries',
+      'carburant', 'charges', 'entretiens', 'inspections', 'incidents',
+      'paiements', 'alertes_admin', 'plannings_hebdo', 'plannings',
+      'absences_periodes', 'postes', 'chauffeurs',
+      // Encaissement / facturation legacy (différentes versions)
+      'encaissements', 'encaissements_manuels', 'factures_emises',
+      'avoirs', 'avoirs_emis', 'acomptes', 'relances', 'relances_log',
+      // Heures / temps
+      'heures', 'heures_pointage',
+      // TVA / config compta
+      'tva_declarations', 'tva_config',
+      // Logs et brouillons
+      'audit_log', 'agent_decisions',
+      // Config entreprise / params
+      'config_entreprise', 'params', 'params_entreprise',
+      'config_anomalies_carburant', 'config_rentabilite',
+      'charges_categories', 'taux_tva', 'max_tentatives',
+      'session_timeout_min', 'relance_delai',
+      'objectif_ca_mensuel', 'objectif_livraisons_mensuel',
+      'rentabilite_calculateur_v2',
+      // Notes / messages
+      'notes_internes',
+      // Logos
+      'logo_entreprise', 'logo_entreprise_path', 'logo_entreprise_url',
+      // Admin / accounts
+      'admin_accounts',
+      // Flags / cleanup
+      'mca_dev_seeded', 'mca_setup_done', 'mca_setup_skipped_until',
+      'mca_setup_completed', 'mca_debug', 'mca_pagination_mode',
+      'mca_mobile_theme', 'mca_legacy_docs_migrated_v1',
+      'delivpro_modifs_cleanup_at', 'backup_admin_last_export',
+      // Migration flags (tous les *_migrated_v1)
+      // Ces clés bloquent les re-migrations
+    ];
+    exactKeys.forEach(k => localStorage.removeItem(k));
+
+    // Préfixes (clés dynamiques)
+    const prefixes = ['km_sal_', 'notifs_sal_', 'messages_', 'documents_livraison_'];
+    Object.keys(localStorage).forEach(k => {
+      if (prefixes.some(p => k.startsWith(p))) localStorage.removeItem(k);
+      // Migration flags génériques
+      if (k.endsWith('_migrated_v1') || k.endsWith('_migrated_v2')) localStorage.removeItem(k);
+    });
   }
 
   function expose() {
