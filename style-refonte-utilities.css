@@ -294,3 +294,33 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Phase 71 : chart area utilities */
+.card-padded { padding: 18px; }
+
+.chart-canvas {
+  position: relative;
+  height: 240px;
+  width: 100%;
+}
+
+.chart-title {
+  font-family: var(--font-display, 'Syne', sans-serif);
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 14px;
+  color: var(--text, #e8eaf0);
+}
+
+.chart-title-compact {
+  font-family: var(--font-display, 'Syne', sans-serif);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text, #e8eaf0);
+}
+
+.card-subtitle {
+  font-size: 11px;
+  color: var(--text-muted, #7c8299);
+  margin-top: 2px;
+}

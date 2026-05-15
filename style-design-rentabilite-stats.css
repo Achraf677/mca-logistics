@@ -400,3 +400,23 @@
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* Phase 71 : tabs-bar wrappers (removes inline styles from HTML) */
+.rent-tabs-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+  padding: 0 2px;
+  flex-wrap: wrap;
+}
+
+.tva-tabs-bar {
+  display: flex;
+  gap: 4px;
+  margin-top: 18px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+  padding: 0 2px;
+  flex-wrap: wrap;
+}

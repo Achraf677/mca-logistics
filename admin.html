@@ -1263,13 +1263,13 @@
 
       <!-- Phase 60 V7 H5 — Charts mockup (Évolution conso 6m + Conso par véhicule) -->
       <div class="charts-2col">
-        <div class="card" style="padding:18px">
-          <div style="font-family:var(--font-display);font-size:15px;font-weight:800;margin-bottom:14px">Évolution conso flotte — 6 derniers mois</div>
-          <div style="position:relative;height:240px;width:100%"><canvas id="chart-carb-evol-6m"></canvas></div>
+        <div class="card card-padded">
+          <div class="chart-title">Évolution conso flotte — 6 derniers mois</div>
+          <div class="chart-canvas"><canvas id="chart-carb-evol-6m"></canvas></div>
         </div>
-        <div class="card" style="padding:18px">
-          <div style="font-family:var(--font-display);font-size:15px;font-weight:800;margin-bottom:14px">Consommation par véhicule</div>
-          <div style="position:relative;height:240px;width:100%"><canvas id="chart-carb-par-vehicule"></canvas></div>
+        <div class="card card-padded">
+          <div class="chart-title">Consommation par véhicule</div>
+          <div class="chart-canvas"><canvas id="chart-carb-par-vehicule"></canvas></div>
         </div>
       </div>
 
@@ -1364,15 +1364,15 @@
       <div class="chart-row" style="margin-bottom:18px">
         <div class="chart-card">
           <h3>Évolution CA vs charges<span class="chart-legend">6 derniers mois</span></h3>
-          <div style="position:relative;height:240px;width:100%"><canvas id="chart-rent-evol-6m"></canvas></div>
+          <div class="chart-canvas"><canvas id="chart-rent-evol-6m"></canvas></div>
         </div>
         <div class="chart-card">
           <h3>Répartition charges<span class="chart-legend">par catégorie</span></h3>
-          <div style="position:relative;height:240px;width:100%"><canvas id="chart-rent-charges-donut"></canvas></div>
+          <div class="chart-canvas"><canvas id="chart-rent-charges-donut"></canvas></div>
         </div>
       </div>
       <!-- Phase 59 polish : tabs-bar mockup-aligned (rent-tab-btn underline style au lieu de btn-secondary) -->
-      <nav class="rent-tabs-bar" role="tablist" style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding:0 2px;flex-wrap:wrap">
+      <nav class="rent-tabs-bar" role="tablist">
         <button id="rent-tab-btn-vehicule"  class="rent-tab-btn active" role="tab" onclick="changerSousOngletRentabilite('vehicule')">Par véhicule</button>
         <button id="rent-tab-btn-client"    class="rent-tab-btn"        role="tab" onclick="changerSousOngletRentabilite('client')">Par client</button>
         <button id="rent-tab-btn-chauffeur" class="rent-tab-btn"        role="tab" onclick="changerSousOngletRentabilite('chauffeur')">Par chauffeur</button>
@@ -2166,13 +2166,13 @@
       </div>
 
       <!-- Phase 60 V7 H7 — Chart TVA Collectée vs Déductible (mockup) -->
-      <div class="card mt-20" style="padding:18px">
-        <div style="font-family:var(--font-display);font-size:15px;font-weight:800;margin-bottom:14px">TVA Collectée vs Déductible — 6 derniers mois</div>
-        <div style="position:relative;height:260px;width:100%"><canvas id="chart-tva-coll-vs-ded"></canvas></div>
+      <div class="card mt-20 card-padded">
+        <div class="chart-title">TVA Collectée vs Déductible — 6 derniers mois</div>
+        <div class="chart-canvas-wrap"><canvas id="chart-tva-coll-vs-ded"></canvas></div>
       </div>
 
       <!-- Phase 59 polish (BUG-026) : tabs Collectée/Déductible mockup-aligned -->
-      <nav class="tva-tabs-bar" role="tablist" style="display:flex;gap:4px;margin-top:18px;margin-bottom:14px;border-bottom:1px solid var(--border);padding:0 2px;flex-wrap:wrap">
+      <nav class="tva-tabs-bar" role="tablist">
         <button class="tva-tab-btn active" id="tva-tab-btn-collectee" role="tab" aria-selected="true" onclick="window.switchTvaTab&&window.switchTvaTab('collectee')">TVA collectée <span class="tva-tab-count" id="tva-tab-count-collectee">0</span></button>
         <button class="tva-tab-btn" id="tva-tab-btn-deductible" role="tab" aria-selected="false" onclick="window.switchTvaTab&&window.switchTvaTab('deductible')">TVA déductible <span class="tva-tab-count" id="tva-tab-count-deductible">0</span></button>
       </nav>
@@ -2803,13 +2803,13 @@
 
       <!-- Phase 60 V7 H6 — Charts mockup (Encaissements vs impayés 6m + Vieillissement créances) -->
       <div class="charts-2col">
-        <div class="card" style="padding:18px">
-          <div style="font-family:var(--font-display);font-size:15px;font-weight:800;margin-bottom:14px">Encaissements vs Impayés — 6 derniers mois</div>
-          <div style="position:relative;height:240px;width:100%"><canvas id="chart-enc-vs-impayes-6m"></canvas></div>
+        <div class="card card-padded">
+          <div class="chart-title">Encaissements vs Impayés — 6 derniers mois</div>
+          <div class="chart-canvas"><canvas id="chart-enc-vs-impayes-6m"></canvas></div>
         </div>
-        <div class="card" style="padding:18px">
-          <div style="font-family:var(--font-display);font-size:15px;font-weight:800;margin-bottom:14px">Vieillissement des créances</div>
-          <div style="position:relative;height:240px;width:100%"><canvas id="chart-enc-vieillissement"></canvas></div>
+        <div class="card card-padded">
+          <div class="chart-title">Vieillissement des créances</div>
+          <div class="chart-canvas"><canvas id="chart-enc-vieillissement"></canvas></div>
         </div>
       </div>
 
@@ -2817,10 +2817,10 @@
 
       <!-- Phase 60 V7 polish — Réintégration legacy localStorage (factures_emises + avoirs_emis + acomptes) -->
       <div class="card" id="enc-factures-emises-card" style="margin-top:16px">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <div class="card-header">
           <div>
-            <div style="font-family:var(--font-display);font-size:15px;font-weight:800">Factures émises</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><span id="enc-fact-count">0</span> facture(s) générée(s) — <span id="enc-fact-total">0 €</span> TTC total</div>
+            <div class="chart-title-compact">Factures émises</div>
+            <div class="card-subtitle"><span id="enc-fact-count">0</span> facture(s) générée(s) — <span id="enc-fact-total">0 €</span> TTC total</div>
           </div>
           <button class="btn-secondary" onclick="window.exporterFacturesEmisesCSV&&window.exporterFacturesEmisesCSV()" title="Export CSV factures émises" style="font-size:12px;padding:6px 10px">Export CSV</button>
         </div>
@@ -2833,10 +2833,10 @@
       </div>
 
       <div class="card" id="enc-avoirs-card" style="margin-top:16px">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <div class="card-header">
           <div>
-            <div style="font-family:var(--font-display);font-size:15px;font-weight:800">Avoirs émis</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><span id="enc-avoirs-count">0</span> avoir(s) — <span id="enc-avoirs-total">0 €</span> TTC déduit</div>
+            <div class="chart-title-compact">Avoirs émis</div>
+            <div class="card-subtitle"><span id="enc-avoirs-count">0</span> avoir(s) — <span id="enc-avoirs-total">0 €</span> TTC déduit</div>
           </div>
         </div>
         <div class="table-wrapper">
@@ -2848,10 +2848,10 @@
       </div>
 
       <div class="card" id="enc-acomptes-card" style="margin-top:16px">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <div class="card-header">
           <div>
-            <div style="font-family:var(--font-display);font-size:15px;font-weight:800">Acomptes reçus</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><span id="enc-acomptes-count">0</span> acompte(s) — <span id="enc-acomptes-total">0 €</span> reçus</div>
+            <div class="chart-title-compact">Acomptes reçus</div>
+            <div class="card-subtitle"><span id="enc-acomptes-count">0</span> acompte(s) — <span id="enc-acomptes-total">0 €</span> reçus</div>
           </div>
         </div>
         <div class="table-wrapper">
@@ -2863,10 +2863,10 @@
       </div>
 
       <div class="card" id="enc-relances-card" style="margin-top:16px">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <div class="card-header">
           <div>
-            <div style="font-family:var(--font-display);font-size:15px;font-weight:800">Historique des relances</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><span id="enc-relances-count">0</span> relance(s) envoyée(s)</div>
+            <div class="chart-title-compact">Historique des relances</div>
+            <div class="card-subtitle"><span id="enc-relances-count">0</span> relance(s) envoyée(s)</div>
           </div>
         </div>
         <div class="table-wrapper">
