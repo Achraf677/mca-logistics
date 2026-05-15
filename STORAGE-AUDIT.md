@@ -72,7 +72,7 @@ Ces clés EXISTENT dans le code (lues ou écrites) mais semblent **orphelines** 
 | `chauffeurs` | Alias historique de `salaries` | **Supprimer** : redondant |
 | `plannings` (vs `plannings_hebdo`) | Ancien format planning | **Vérifier** : si vide, supprimer |
 | `heures_pointage` (vs `heures`) | 2 formats coexistants | **Fusionner** : garder un seul |
-| `km_sal_<id>` | Préfixe par salarié | **Réintégrer** : afficher dans Heures&Km |
+| `km_sal_<id>` | ✅ DÉJÀ intégré (verified 2026-05-15) — page Heures&Km section "Relevés kilométriques" + table `tb-releve-km` + `afficherReleveKm()` (script.js:1324) + edit modal `modal-edit-km`. |
 | `notifs_sal_<id>` | Notifications par salarié | **Réintégrer** : centre notif salarié espace mobile |
 | `messages_<id>` | Chat par salarié | **Réintégrer** : chat admin↔salarié dans drawer |
 
@@ -93,7 +93,7 @@ Ces clés EXISTENT dans le code (lues ou écrites) mais semblent **orphelines** 
 | Clé | Statut | Action |
 |---|---|---|
 | `tva_declarations` | ✅ RÉINTÉGRÉ 2026-05-15 — page TVA section "Historique des déclarations TVA" (admin.html `#tva-historique-card` + script-tva-historique.js). |
-| `charges_categories` | Custom catégories charges | **Réintégrer** : Paramètres > Comptabilité |
+| `charges_categories` | ✅ RÉINTÉGRÉ 2026-05-16 — Paramètres > Comptabilité section "Catégories charges custom" + CRUD chip-based (script-charges-categories.js). |
 | `config_anomalies_carburant` | Seuils détection anomalies | ✅ DÉJÀ : modal "Configurer anomalies" |
 | `config_rentabilite` | Config calcul rentabilité | ✅ DÉJÀ : modal "Config" Rentabilité |
 | `rentabilite_calculateur_v2` | State du simulateur Rentabilité | ✅ DÉJÀ : tab Simulateur |
@@ -145,10 +145,10 @@ _(Aucun pour l'instant — toutes les clés ont au moins un read ou un write que
 11. **Drawer livraison onglet "Documents"** vérifier wiring (`documents_livraison_*`)
 12. **Drawer salarié onglet "Messages"** (`messages_<id>`)
 13. **Drawer salarié onglet "Notifications"** (`notifs_sal_<id>`)
-14. **Heures&Km section "Relevé km par salarié"** (`km_sal_<id>`)
+14. ✅ **Heures&Km section "Relevé km par salarié"** (`km_sal_<id>`) — VERIFIED 2026-05-15 (déjà via afficherReleveKm() + tb-releve-km)
 15. ✅ **Dashboard widget "Objectif CA"** (`objectif_ca_mensuel`) — DONE 2026-05-15 (Paramètres input + script-core-storage save)
 16. ✅ **Dashboard widget "Objectif livraisons"** (`objectif_livraisons_mensuel`) — DONE 2026-05-15 (idem)
-17. **Paramètres>Comptabilité config "Catégories charges custom"** (`charges_categories`)
+17. ✅ **Paramètres>Comptabilité config "Catégories charges custom"** (`charges_categories`) — DONE 2026-05-16 (script-charges-categories.js + chips CRUD)
 18. ✅ **Brouillons IA / Panneau agent "Décisions"** (`agent_decisions`) — VERIFIED 2026-05-15 (déjà via panneau-agent #agent-decisions-list)
 19. ✅ **Notes internes** (`notes_internes`) — VERIFIED 2026-05-15 (modal per-employee, pas global)
 

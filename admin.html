@@ -134,6 +134,8 @@
   <script defer src="script-encaissement-legacy.js?v=1"></script>
   <!-- Phase 60 V7 polish — TVA Historique déclarations -->
   <script defer src="script-tva-historique.js?v=1"></script>
+  <!-- Phase 60 V7 polish — Paramètres Catégories charges custom -->
+  <script defer src="script-charges-categories.js?v=1"></script>
   <!-- Phase 2 HTML refonte Vehicules : counts total + alertes CT/assurance. -->
   <script defer src="script-vehicules-counts.js?v=1"></script>
   <!-- Phase 48 : Véhicules card grid (fleet view, mockup-aligned). -->
@@ -2436,6 +2438,19 @@
             </div>
             <div id="param-treso-helper" style="margin-top:14px;font-size:.82rem;color:var(--text-muted)"></div>
             <button class="btn-primary" style="margin-top:16px" onclick="sauvegarderConfigurationTresorerie()">Enregistrer la trésorerie</button>
+          </div>
+        </div>
+
+        <!-- Phase 60 V7 polish — Catégories charges custom (réintègre charges_categories) -->
+        <div class="card" style="grid-column:1/-1">
+          <div class="card-header"><h2>Catégories de charges custom</h2></div>
+          <div class="modal-body">
+            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:14px">Les catégories utilisées pour classer les charges d'exploitation. Ajoute des catégories métier spécifiques à ton activité (péages, badges, formations…).</p>
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+              <input type="text" id="param-cat-charge-new" placeholder="Nouvelle catégorie (ex : péages)" style="flex:1;min-width:240px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-dark);color:var(--text-primary)" aria-label="Nouvelle catégorie de charge" />
+              <button class="btn-primary" onclick="window.ajouterCategorieCharge&&window.ajouterCategorieCharge()" style="padding:8px 14px">Ajouter</button>
+            </div>
+            <div id="param-cat-charges-list" style="display:flex;flex-wrap:wrap;gap:6px;min-height:40px"></div>
           </div>
         </div>
 
