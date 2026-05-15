@@ -792,7 +792,7 @@
       </div>
 
       <!-- Select période legacy caché — drivers script.js -->
-      <select class="period-selector" id="liv-periode-mode" onchange="changerVuePeriodeLivraisons(this.value)" aria-label="liv periode mode" hidden>
+      <select class="period-selector" id="liv-periode-mode" onchange="changerVuePeriodeLivraisons(this.value)" aria-label="Mode période livraisons" hidden>
         <option value="jour">Par jour</option>
         <option value="semaine">Par semaine</option>
         <option value="mois" selected>Par mois</option>
@@ -1231,7 +1231,7 @@
           <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="carb-mois-dates"></div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
-          <select class="period-selector" id="vue-carb-select" onchange="changerVueCarburant(this.value)" aria-label="vue carb select" style="display:none">
+          <select class="period-selector" id="vue-carb-select" onchange="changerVueCarburant(this.value)" aria-label="Vue période carburant" style="display:none">
             <option value="jour">Par jour</option>
             <option value="semaine">Par semaine</option>
             <option value="mois" selected>Par mois</option>
@@ -2138,7 +2138,7 @@
           <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="tva-mois-dates"></div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
-          <select class="period-selector" id="vue-tva-select" onchange="changerVueTVA(this.value)" aria-label="vue tva select" style="display:none">
+          <select class="period-selector" id="vue-tva-select" onchange="changerVueTVA(this.value)" aria-label="Vue période TVA" style="display:none">
             <option value="jour">Par jour</option>
             <option value="semaine">Par semaine</option>
             <option value="mois" selected>Par mois</option>
@@ -2263,9 +2263,9 @@
           <div class="modal-body">
             <div class="form-section-title" style="margin-bottom:10px">Identification</div>
             <div class="form-grid">
-              <div class="form-group full-width"><label>Dénomination sociale *</label><input type="text" id="param-nom-entreprise" placeholder="ex : MCA LOGISTICS" / aria-label="ex : MCA LOGISTICS" /></div>
-              <div class="form-group"><label>Forme juridique</label>
-                <select id="param-forme-juridique" aria-label="param forme juridique">
+              <div class="form-group full-width"><label for="param-nom-entreprise">Dénomination sociale *</label><input type="text" id="param-nom-entreprise" placeholder="ex : MCA LOGISTICS" /></div>
+              <div class="form-group"><label for="param-forme-juridique">Forme juridique</label>
+                <select id="param-forme-juridique">
                   <option value="">—</option>
                   <option value="SAS">SAS</option>
                   <option value="SASU">SASU</option>
@@ -2332,7 +2332,7 @@
               <span id="param-rib-status" style="font-size:.85rem;color:var(--text-muted)">Aucun document chargé</span>
               <label class="btn-primary" style="cursor:pointer;margin:0">
                 Importer / Remplacer RIB
-                <input type="file" id="param-rib-file" accept="application/pdf,image/jpeg,image/png,image/webp" style="display:none" onchange="uploaderRibEntreprise(this)" / aria-label="param rib file" />
+                <input type="file" id="param-rib-file" accept="application/pdf,image/jpeg,image/png,image/webp" style="display:none" onchange="uploaderRibEntreprise(this)" aria-label="Importer un RIB" />
               </label>
               <button type="button" class="btn-secondary" id="param-rib-view-btn" onclick="voirRibEntreprise()" style="display:none">Voir</button>
             </div>
@@ -2350,7 +2350,7 @@
               <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <label class="btn-primary" style="cursor:pointer;margin:0">
                   Importer
-                  <input type="file" id="param-logo-file" accept="image/*" style="display:none" onchange="changerLogoEntreprise(this)" / aria-label="param logo file" />
+                  <input type="file" id="param-logo-file" accept="image/*" style="display:none" onchange="changerLogoEntreprise(this)" aria-label="Importer un logo entreprise" />
                 </label>
                 <button class="btn-secondary" onclick="supprimerLogoEntreprise()">Supprimer</button>
               </div>
@@ -2597,7 +2597,7 @@
             </div>
             <div class="field"><label>Couleur d'accent</label>
               <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-                <input type="color" id="param-accent-color" value="#e63946" style="width:36px;height:36px;border:2px solid var(--border-strong);border-radius:8px;cursor:pointer;background:none;padding:2px" / aria-label="param accent color" />
+                <input type="color" id="param-accent-color" value="#e63946" style="width:36px;height:36px;border:2px solid var(--border-strong);border-radius:8px;cursor:pointer;background:none;padding:2px" aria-label="Couleur d'accent personnalisée" />
                 <button class="btn btn-primary" onclick="appliquerAccentColor()" style="padding:7px 14px;font-size:12px">Appliquer</button>
               </div>
             </div>
@@ -2650,7 +2650,7 @@
               <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="exporterSauvegardeAdmin()">Télécharger snapshot</button>
               <label class="btn btn-secondary" style="width:100%;justify-content:center;cursor:pointer;margin:0">
                 Restaurer snapshot
-                <input type="file" id="param-backup-file" accept=".json,application/json" style="display:none" onchange="importerSauvegardeAdmin(this)" / aria-label="param backup file" />
+                <input type="file" id="param-backup-file" accept=".json,application/json" style="display:none" onchange="importerSauvegardeAdmin(this)" aria-label="Importer un fichier de sauvegarde JSON" />
               </label>
             </div>
           </div>
@@ -2959,7 +2959,7 @@
           <button class="chip-period active" data-period="mois">Mois</button>
           <button class="chip-period" data-period="annee">Année</button>
         </div>
-        <select class="period-selector" id="vue-charges-select" onchange="changerVueCharges(this.value)" aria-label="vue charges select" hidden>
+        <select class="period-selector" id="vue-charges-select" onchange="changerVueCharges(this.value)" aria-label="Vue période charges" hidden>
           <option value="jour">Par jour</option>
           <option value="semaine">Par semaine</option>
           <option value="mois" selected>Par mois</option>
@@ -3032,7 +3032,7 @@
       </div>
 
       <div class="filters" style="margin-bottom:16px">
-        <select id="filtre-charge-cat" onchange="afficherCharges()" aria-label="filtre charge cat">
+        <select id="filtre-charge-cat" onchange="afficherCharges()" aria-label="Filtrer charge par catégorie">
           <option value="">Toutes catégories</option>
           <option value="carburant">Carburant</option>
           <option value="peage">Péage</option>
@@ -3240,7 +3240,7 @@
           <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="entr-mois-dates"></div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
-          <select class="period-selector" id="vue-entr-select" onchange="changerVueEntretiens(this.value)" aria-label="vue entr select" style="display:none">
+          <select class="period-selector" id="vue-entr-select" onchange="changerVueEntretiens(this.value)" aria-label="Vue période entretiens" style="display:none">
             <option value="jour">Par jour</option>
             <option value="semaine">Par semaine</option>
             <option value="mois" selected>Par mois</option>
@@ -3389,7 +3389,7 @@
           <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="heures-semaine-dates"></div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
-          <select class="period-selector" id="filtre-heures-vue" onchange="changerVueHeures(this.value)" aria-label="filtre heures vue" style="display:none">
+          <select class="period-selector" id="filtre-heures-vue" onchange="changerVueHeures(this.value)" aria-label="Vue période heures" style="display:none">
             <option value="jour">Par jour</option>
             <option value="semaine" selected>Par semaine</option>
             <option value="mois">Par mois</option>
@@ -3595,7 +3595,7 @@
           <button class="btn-secondary" onclick="ouvrirMenuCopiesSemainePlanning()" style="min-height:34px;padding:6px 10px;font-size:12px;margin-left:4px" title="Copier/vider semaine" aria-label="Plus d'actions sur le planning">⋯</button>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
-          <select class="period-selector" id="vue-planning-select" onchange="changerVuePlanning(this.value)" aria-label="vue planning select" style="display:none">
+          <select class="period-selector" id="vue-planning-select" onchange="changerVuePlanning(this.value)" aria-label="Vue période planning" style="display:none">
             <option value="jour">Par jour</option>
             <option value="semaine" selected>Par semaine</option>
             <option value="mois">Par mois</option>
@@ -3789,7 +3789,7 @@
           <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="insp-semaine-dates"></div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
-          <select class="period-selector" id="vue-insp-select" onchange="changerVueInspections(this.value)" aria-label="vue insp select" style="display:none">
+          <select class="period-selector" id="vue-insp-select" onchange="changerVueInspections(this.value)" aria-label="Vue période inspections" style="display:none">
             <option value="jour">Par jour</option>
             <option value="semaine" selected>Par semaine</option>
             <option value="mois">Par mois</option>
