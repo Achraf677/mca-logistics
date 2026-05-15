@@ -1115,15 +1115,15 @@
             <div class="liv-dropdown-menu">
               <button class="liv-dropdown-item" onclick="exporterVehiculesPDF();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
-                <div><div style="font-weight:600;font-size:13px">Export PDF</div><div style="font-size:11px;color:var(--text-muted)">État flotte + échéances</div></div>
+                <div><div class="ld-name">Export PDF</div><div class="ld-sub">État flotte + échéances</div></div>
               </button>
               <button class="liv-dropdown-item" onclick="window.exporterVehiculesCSV&&window.exporterVehiculesCSV();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
-                <div><div style="font-weight:600;font-size:13px">Export CSV</div><div style="font-size:11px;color:var(--text-muted)">Plaques, km, conso</div></div>
+                <div><div class="ld-name">Export CSV</div><div class="ld-sub">Plaques, km, conso</div></div>
               </button>
               <button class="liv-dropdown-item" onclick="(window.exporterVehiculesExcel||window.exporterVehiculesCSV)();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-                <div><div style="font-weight:600;font-size:13px">Export Excel</div><div style="font-size:11px;color:var(--text-muted)">Onglet par véhicule</div></div>
+                <div><div class="ld-name">Export Excel</div><div class="ld-sub">Onglet par véhicule</div></div>
               </button>
             </div>
           </div>
@@ -1262,7 +1262,7 @@
       </div>
 
       <!-- Phase 60 V7 H5 — Charts mockup (Évolution conso 6m + Conso par véhicule) -->
-      <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px">
+      <div class="charts-2col">
         <div class="card" style="padding:18px">
           <div style="font-family:var(--font-display);font-size:15px;font-weight:800;margin-bottom:14px">Évolution conso flotte — 6 derniers mois</div>
           <div style="position:relative;height:240px;width:100%"><canvas id="chart-carb-evol-6m"></canvas></div>
@@ -2802,7 +2802,7 @@
       </div>
 
       <!-- Phase 60 V7 H6 — Charts mockup (Encaissements vs impayés 6m + Vieillissement créances) -->
-      <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px">
+      <div class="charts-2col">
         <div class="card" style="padding:18px">
           <div style="font-family:var(--font-display);font-size:15px;font-weight:800;margin-bottom:14px">Encaissements vs Impayés — 6 derniers mois</div>
           <div style="position:relative;height:240px;width:100%"><canvas id="chart-enc-vs-impayes-6m"></canvas></div>
@@ -3503,7 +3503,7 @@
             <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
           <div id="cal16-label" style="font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize"></div>
-          <div id="cal16-sub" style="font-size:11px;color:var(--text-muted)"></div>
+          <div id="cal16-sub"></div>
         </div>
         <div class="period-chips" data-period-target="cal16-vue" style="display:flex;gap:6px">
           <button class="chip-period" data-period="jour">Jour</button>
@@ -4413,7 +4413,7 @@
           </div>
         </details>
         <div class="card" id="veh-bloc-achat" style="margin-top:16px">
-          <div class="card-header"><h2>Achat & amortissement</h2></div>
+          <div class="card-header"><h3>Achat & amortissement</h3></div>
           <div class="modal-body">
             <div class="form-grid">
               <div class="form-group"><label for="veh-acq-prix-ht" style="color: var(--text-muted)">Prix achat HT</label><input type="number" id="veh-acq-prix-ht" placeholder="Ex : 25 000" value="" min="0" step="0.01" oninput="calculerTTCDepuisHT('veh-acq');mettreAJourInfosVehiculeFinancement()" /></div>
@@ -4434,7 +4434,7 @@
           </div>
         </div>
         <div class="card" id="veh-bloc-location" style="margin-top:16px;display:none">
-          <div class="card-header"><h2>Contrat de location</h2></div>
+          <div class="card-header"><h3>Contrat de location</h3></div>
           <div class="modal-body">
             <div class="form-grid">
               <div class="form-group" id="veh-prix-catalogue-wrap" style="display:none"><label for="veh-prix-catalogue-ht">Prix catalogue HT</label><input type="number" id="veh-prix-catalogue-ht" min="0" step="0.01" /></div>
@@ -4450,7 +4450,7 @@
           </div>
         </div>
         <div class="card" id="veh-bloc-credit" style="margin-top:16px;display:none">
-          <div class="card-header"><h2>Financement crédit</h2></div>
+          <div class="card-header"><h3>Financement crédit</h3></div>
           <div class="modal-body">
             <div class="form-grid">
               <div class="form-group"><label for="veh-credit-apport-ht">Apport initial HT</label><input type="number" id="veh-credit-apport-ht" min="0" step="0.01" oninput="mettreAJourInfosVehiculeFinancement()" /></div>
@@ -4463,7 +4463,7 @@
           </div>
         </div>
         <div class="card" id="veh-bloc-loa" style="margin-top:16px;display:none">
-          <div class="card-header"><h2>Option d'achat LOA</h2></div>
+          <div class="card-header"><h3>Option d'achat LOA</h3></div>
           <div class="modal-body">
             <div class="form-grid">
               <div class="form-group"><label for="veh-loa-option-achat-ht">Option d'achat HT</label><input type="number" id="veh-loa-option-achat-ht" min="0" step="0.01" /></div>

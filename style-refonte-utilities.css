@@ -280,3 +280,17 @@
   font-variant-numeric: tabular-nums slashed-zero;
   font-feature-settings: "tnum", "zero";
 }
+
+/* Phase 70 : charts 2-col grid (carburant + encaissement) */
+.charts-2col {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 1024px) {
+  .charts-2col {
+    grid-template-columns: 1fr;
+  }
+}
