@@ -476,6 +476,84 @@
   line-height: 1.5;
 }
 
+/* ============ SALARIE.HTML VISUAL POLISH ============ */
+/* Greeting section — display font + spacing (complète les inline styles) */
+#accueil-bonjour {
+  font-family: var(--ds-font-display, 'Syne', sans-serif);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+/* Tab SVG icons — remove need for per-SVG inline styles */
+.tabs .tab svg,
+.tabs-wrapper .tab svg {
+  vertical-align: -3px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Photo upload drop zone — adds hover + focus states missing from inline */
+label[for="carb-photo"] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg2, rgba(255,255,255,0.04));
+  border: 2px dashed var(--border, rgba(255,255,255,0.12));
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s ease-out;
+}
+label[for="carb-photo"]:hover {
+  border-color: var(--accent, #e63946);
+}
+
+/* Tab notification badges — targets existing inline-styled spans */
+#badge-accueil,
+#badge-msg-sal,
+#badge-msg-action {
+  background: var(--accent, #e63946);
+  color: #fff;
+  border-radius: 20px;
+  font-size: .7rem;
+  padding: 1px 6px;
+  font-weight: 700;
+  vertical-align: middle;
+  margin-left: 4px;
+  line-height: 1.2;
+  display: inline-block;
+}
+
+/* Offline queue badge CSS (removes need for 10 inline props) */
+#offline-queue-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent, #e63946);
+  color: #fff;
+  border-radius: 20px;
+  font-size: .7rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  margin-right: 6px;
+  min-width: 18px;
+  height: 18px;
+}
+
+/* Form label uppercase pattern (replaces repeated inline label styles) */
+.form-label-caps {
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--muted, #adb5bd);
+  font-weight: 700;
+  display: block;
+  margin-bottom: 8px;
+}
+
 /* ============ FOCUS VISIBLE (a11y clavier) ============ */
 .m-header-action:focus-visible {
   outline: 2px solid var(--ds-brand, #e63946);
@@ -555,4 +633,72 @@
   opacity: 0.4;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* ============ HEADER AGENT-IA BUTTON + BADGE ============ */
+.m-header-agent-ia {
+  position: relative;
+}
+
+.m-header-agent-ia-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 10px;
+  background: var(--ds-brand, #e63946);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* ============ TAB NOTIFICATION BADGE ============ */
+.m-tab-badge {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 18px);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--ds-brand, #e63946);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--ds-bg-elevated, #1a1d22);
+  pointer-events: none;
+}
+
+/* ============ DRAWER ITEM BADGE ============ */
+.m-drawer-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--ds-brand, #e63946);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  margin-left: 6px;
+}
+
+/* ============ DRAWER LINK FEATURED (Recherche globale) ============ */
+.m-drawer-link-featured {
+  font-weight: 700 !important;
+  color: var(--ds-text, #f1f3f5) !important;
 }

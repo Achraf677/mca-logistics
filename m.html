@@ -79,9 +79,9 @@
     <button class="m-header-action m-header-chatbot" id="m-chatbot-btn" aria-label="Chatbot Gemini" title="Chatbot Gemini" type="button">
       <svg viewBox="0 0 24 24"><path d="M12 8V4l-3 3"/><rect x="2" y="8" width="20" height="14" rx="2"/><circle cx="8" cy="14" r="1.5"/><circle cx="16" cy="14" r="1.5"/><path d="M9 18h6"/></svg>
     </button>
-    <button class="m-header-action m-header-agent-ia" id="m-agent-ia-btn" aria-label="Agent IA — décisions à examiner" type="button" style="position:relative">
+    <button class="m-header-action m-header-agent-ia" id="m-agent-ia-btn" aria-label="Agent IA — décisions à examiner" type="button">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6m11-11h-6m-10 0H1m15.5-7.5l-4 4m-7 7l-4 4m15 0l-4-4m-7-7l-4-4"/></svg>
-      <span class="m-header-agent-ia-badge" id="m-agent-ia-badge" hidden style="position:absolute;top:4px;right:4px;background:var(--m-accent,#e63946);color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;line-height:1">0</span>
+      <span class="m-header-agent-ia-badge" id="m-agent-ia-badge" hidden>0</span>
     </button>
   </header>
 
@@ -128,7 +128,7 @@
       </button>
     </header>
     <nav class="m-drawer-nav">
-      <button class="m-drawer-link" data-page="recherche" style="font-weight:600">
+      <button class="m-drawer-link m-drawer-link-featured" data-page="recherche">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <span>Recherche globale</span>
       </button>
