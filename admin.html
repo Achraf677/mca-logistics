@@ -609,19 +609,19 @@
       <!-- 2-col grid legacy (cache via CSS, conserve pour compat script.js) -->
       <div class="dashboard-2col" style="display:none">
         <div class="card">
-          <div class="card-header"><h2>Qui travaille aujourd'hui ?</h2><span class="kpi-value" id="kpi-travaillent" style="font-size:1.1rem;color:var(--accent)">0</span></div>
+          <div class="card-header"><h3>Qui travaille aujourd'hui ?</h3><span class="kpi-value" id="kpi-travaillent">0</span></div>
           <div style="padding:12px 18px;display:flex;flex-wrap:wrap;gap:6px" id="liste-travaillent">
             <span class="u-muted-sm">Chargement...</span>
           </div>
         </div>
         <div class="card">
-          <div class="card-header"><h2>Activité des 7 derniers jours</h2></div>
+          <div class="card-header"><h3>Activité des 7 derniers jours</h3></div>
           <div class="chart-container"><canvas id="chartActivite"></canvas></div>
         </div>
       </div>
 
       <div class="card mt-20">
-        <div class="card-header"><h2>Livraisons récentes</h2></div>
+        <div class="card-header"><h3>Livraisons récentes</h3></div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead><tr><th>Client</th><th>Chauffeur</th><th>HT</th><th>TTC</th><th>Statut</th><th>Date</th></tr></thead>
@@ -1222,15 +1222,15 @@
       </div>
 
       <!-- Phase 49 : période nav mockup-aligned (combined row) -->
-      <div class="carb-period-nav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:8px">
+      <div class="carb-period-nav">
+        <div class="period-left">
           <button class="btn-secondary" onclick="navCarburantPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
           <button class="btn-secondary" onclick="reinitialiserCarburantPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
           <button class="btn-secondary" onclick="navCarburantPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
-          <div style="font-family:var(--font-display);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize" id="carb-mois-label"></div>
-          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="carb-mois-dates"></div>
+          <div class="period-label" id="carb-mois-label"></div>
+          <div class="period-dates" id="carb-mois-dates"></div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center">
+        <div class="period-right">
           <select class="period-selector" id="vue-carb-select" onchange="changerVueCarburant(this.value)" aria-label="Vue période carburant" style="display:none">
             <option value="jour">Par jour</option>
             <option value="semaine">Par semaine</option>
@@ -1293,7 +1293,7 @@
       <!-- Pleins table (Registre complet) — cols nettoyées Phase 49 -->
       <div class="card">
         <div class="card-header" style="padding:12px 16px">
-          <h3 style="font-size:14px;font-weight:700;margin:0">Registre des pleins</h3>
+          <h3>Registre des pleins</h3>
         </div>
         <div class="table-wrapper">
           <table class="data-table carburant-table">
@@ -1694,8 +1694,8 @@
         </div>
       </div>
       <!-- Phase 45 : period nav bar mockup-aligned (prev/today/next + period-chips Jour/Semaine/Mois/Année) -->
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-        <div style="display:flex;align-items:center;gap:8px">
+      <div class="carb-period-nav">
+        <div class="period-left">
           <button class="btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" onclick="navStatsPeriode(-1)" aria-label="Précédent">
             <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
@@ -1703,10 +1703,10 @@
           <button class="btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" onclick="navStatsPeriode(1)" aria-label="Suivant">
             <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
-          <div id="stats-mois-label" style="font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize"></div>
-          <div id="stats-mois-dates" style="font-size:11px;color:var(--text-muted)"></div>
+          <div id="stats-mois-label" class="period-label"></div>
+          <div id="stats-mois-dates" class="period-dates"></div>
         </div>
-        <div class="period-chips" data-period-target="vue-stats-select" style="display:flex;gap:6px">
+        <div class="period-chips period-right" data-period-target="vue-stats-select">
           <button class="chip-period" data-period="jour">Jour</button>
           <button class="chip-period" data-period="semaine">Semaine</button>
           <button class="chip-period active" data-period="mois">Mois</button>
@@ -1792,8 +1792,8 @@
       <div class="kpi-grid" id="equipe-kpis-row" style="margin-bottom:18px">
         <div class="kpi"><div class="kpi-lbl">Chauffeurs actifs</div><div class="kpi-val" id="equipe-kpi-actifs">—</div><div class="kpi-sub">Salariés en activité</div></div>
         <div class="kpi"><div class="kpi-lbl">Heures travaillées</div><div class="kpi-val" id="equipe-kpi-heures">—</div><div class="kpi-sub">CE 561 suivi</div></div>
-        <div class="kpi"><div class="kpi-lbl">Incidents ouverts</div><div class="kpi-val" id="equipe-kpi-incidents" style="color:var(--brand)">—</div><div class="kpi-sub">Action requise</div></div>
-        <div class="kpi"><div class="kpi-lbl">Échéances permis</div><div class="kpi-val" id="equipe-kpi-permis" style="color:var(--warning)">—</div><div class="kpi-sub">Dans les 60j</div></div>
+        <div class="kpi"><div class="kpi-lbl">Incidents ouverts</div><div class="kpi-val" id="equipe-kpi-incidents">—</div><div class="kpi-sub">Action requise</div></div>
+        <div class="kpi"><div class="kpi-lbl">Échéances permis</div><div class="kpi-val" id="equipe-kpi-permis">—</div><div class="kpi-sub">Dans les 60j</div></div>
       </div>
 
       <!-- Phase 37/46 refonte HTML : tabs-bar mockup pattern + count badges -->
@@ -2001,8 +2001,8 @@
 
       <!-- Phase 36 refonte HTML : KPI grid (Critiques / Avertissements / Info) -->
       <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
-        <div class="kpi"><div class="kpi-lbl" style="color:var(--brand)">Critiques</div><div class="kpi-val" id="alertes-kpi-critiques" style="color:var(--brand)">—</div><div class="kpi-sub">Action immédiate requise</div></div>
-        <div class="kpi"><div class="kpi-lbl" style="color:#d4b67a">Avertissements</div><div class="kpi-val" id="alertes-kpi-alertes">—</div><div class="kpi-sub">À traiter cette semaine</div></div>
+        <div class="kpi"><div class="kpi-lbl">Critiques</div><div class="kpi-val" id="alertes-kpi-critiques">—</div><div class="kpi-sub">Action immédiate requise</div></div>
+        <div class="kpi"><div class="kpi-lbl">Avertissements</div><div class="kpi-val" id="alertes-kpi-alertes">—</div><div class="kpi-sub">À traiter cette semaine</div></div>
         <div class="kpi"><div class="kpi-lbl">Info</div><div class="kpi-val" id="alertes-kpi-info">—</div><div class="kpi-sub">Notifications légères</div></div>
       </div>
 
@@ -2129,15 +2129,15 @@
       </div>
 
       <!-- Phase 50 : période nav combined row (mockup-aligned) -->
-      <div class="carb-period-nav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:8px">
+      <div class="carb-period-nav">
+        <div class="period-left">
           <button class="btn-secondary" onclick="navTvaPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
           <button class="btn-secondary" onclick="reinitialiserTVAPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
           <button class="btn-secondary" onclick="navTvaPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
-          <div style="font-family:var(--font-display);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize" id="tva-mois-label"></div>
-          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="tva-mois-dates"></div>
+          <div class="period-label" id="tva-mois-label"></div>
+          <div class="period-dates" id="tva-mois-dates"></div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center">
+        <div class="period-right">
           <select class="period-selector" id="vue-tva-select" onchange="changerVueTVA(this.value)" aria-label="Vue période TVA" style="display:none">
             <option value="jour">Par jour</option>
             <option value="semaine">Par semaine</option>
@@ -2157,7 +2157,7 @@
       <div class="kpi-grid">
         <div class="kpi"><div class="kpi-lbl">TVA collectée</div><div class="kpi-val" id="tva-collectee">0 €</div><div class="kpi-sub">Sur ventes (CA HT)</div></div>
         <div class="kpi"><div class="kpi-lbl">TVA déductible</div><div class="kpi-val" id="tva-deductible">0 €</div><div class="kpi-sub">Sur achats (charges)</div></div>
-        <div class="kpi"><div class="kpi-lbl">TVA à payer</div><div class="kpi-val" id="tva-kpi-solde" style="color:var(--brand)">—</div><div class="kpi-sub">Solde net période</div></div>
+        <div class="kpi"><div class="kpi-lbl">TVA à payer</div><div class="kpi-val" id="tva-kpi-solde">—</div><div class="kpi-sub">Solde net période</div></div>
         <div class="kpi"><div class="kpi-lbl">Échéance</div><div class="kpi-val" id="tva-kpi-echeance">15/mois</div><div class="kpi-sub">Déclaration mensuelle</div></div>
       </div>
 
@@ -3124,15 +3124,15 @@
         </div>
       </div>
       <!-- Phase 65 : période nav incidents (mockup-aligned) -->
-      <div class="carb-period-nav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:8px">
+      <div class="carb-period-nav">
+        <div class="period-left">
           <button class="btn-secondary" onclick="navIncidentsPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
           <button class="btn-secondary" onclick="reinitialiserIncidentsPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
           <button class="btn-secondary" onclick="navIncidentsPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
-          <div style="font-family:var(--font-display);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize" id="inc-periode-label"></div>
-          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="inc-periode-dates"></div>
+          <div class="period-label" id="inc-periode-label"></div>
+          <div class="period-dates" id="inc-periode-dates"></div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center">
+        <div class="period-right">
           <select class="period-selector" id="filtre-inc-vue" onchange="changerVueIncidents(this.value)" aria-label="filtre incidents vue" style="display:none">
             <option value="jour">Par jour</option>
             <option value="semaine">Par semaine</option>
@@ -3256,15 +3256,15 @@
       </div>
 
       <!-- Phase 51 : combined period nav row (mockup-aligned) -->
-      <div class="carb-period-nav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:8px">
+      <div class="carb-period-nav">
+        <div class="period-left">
           <button class="btn-secondary" onclick="navEntretiensPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
           <button class="btn-secondary" onclick="reinitialiserEntretiensPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
           <button class="btn-secondary" onclick="navEntretiensPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
-          <div style="font-family:var(--font-display);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize" id="entr-mois-label"></div>
-          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="entr-mois-dates"></div>
+          <div class="period-label" id="entr-mois-label"></div>
+          <div class="period-dates" id="entr-mois-dates"></div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center">
+        <div class="period-right">
           <select class="period-selector" id="vue-entr-select" onchange="changerVueEntretiens(this.value)" aria-label="Vue période entretiens" style="display:none">
             <option value="jour">Par jour</option>
             <option value="semaine">Par semaine</option>

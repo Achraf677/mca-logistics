@@ -349,3 +349,7 @@ td.km {
 .member-head .badge.ok { color: #9bb1a4; }
 .member-head .badge.warn { color: #d4b67a; border-color: rgba(212, 182, 122, 0.4); background: rgba(212, 182, 122, 0.08); }
 .member-head .badge.alert { color: var(--brand, #e63946); border-color: rgba(230, 57, 70, 0.4); background: rgba(230, 57, 70, 0.08); }
+
+/* ============ Phase 69 : Équipe KPI colored values ============ */
+#equipe-kpi-incidents { color: var(--brand, #e63946); }
+#equipe-kpi-permis { color: var(--warning, #ffd60a); }

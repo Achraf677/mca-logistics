@@ -288,3 +288,8 @@
   display: block !important;
   padding-bottom: 14px;
 }
+
+/* ============ Phase 69 : Alertes KPI colored values ============ */
+#alertes-kpi-critiques { color: var(--brand, #e63946); }
+.kpi:has(#alertes-kpi-critiques) .kpi-lbl { color: var(--brand, #e63946); }
+.kpi:has(#alertes-kpi-alertes) .kpi-lbl { color: var(--ds-warning, #ffd60a); }

@@ -108,3 +108,49 @@ td.montant-positif,
   font-feature-settings: "tnum";
   font-weight: var(--ds-fw-bold);
 }
+
+/* ============ Phase 69 : carb-period-nav CSS (pattern cross-pages) ============ */
+/* Replaces repeated inline style on all 5 period nav bars (carburant/stats/TVA/entretiens/incidents) */
+
+.carb-period-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-card, #1e2230);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.carb-period-nav .period-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.carb-period-nav .period-label {
+  font-family: var(--font-display, 'Syne', sans-serif);
+  font-size: 14px;
+  font-weight: 800;
+  margin-left: 8px;
+  text-transform: capitalize;
+  color: var(--text, #e8eaf0);
+}
+
+.carb-period-nav .period-dates {
+  font-size: 11px;
+  color: var(--text-muted, #7c8299);
+  font-family: var(--font-mono, 'DM Mono', monospace);
+}
+
+.carb-period-nav .period-right {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* TVA KPI — solde net colored brand */
+#tva-kpi-solde { color: var(--brand, #e63946); }
