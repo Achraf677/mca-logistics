@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v169-css-polish-badges-empty-mono';
+const CACHE_VERSION = 'mca-v2026-05-16-v170-dead-buttons-fix-setEncVue-resetCompteur';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -111,6 +111,8 @@ const CORE_ASSETS = [
   '/script-tva-historique.js',
   // Phase 60 V7 polish — Paramètres Catégories charges custom (charges_categories)
   '/script-charges-categories.js',
+  // Phase 60 V7 polish — Fix boutons morts (5 fonctions undefined)
+  '/script-dead-buttons-fix.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
