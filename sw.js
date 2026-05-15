@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-15-v157-equipe-overview-cards-H21';
+const CACHE_VERSION = 'mca-v2026-05-15-v158-extra-charts-H5-H6-H7';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -99,6 +99,10 @@ const CORE_ASSETS = [
   '/script-charges-kpis-categorie.js',
   // Phase 48 refonte HTML — Charges charts (Évolution + Répartition)
   '/script-charges-charts.js',
+  // Phase 60 V7 H5/H6/H7 — Charts manquants Carburant/Encaissement/TVA
+  '/script-extra-charts.js',
+  // Phase 60 V7 H21 — Équipe Vue d'ensemble cards
+  '/script-equipe-overview.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
