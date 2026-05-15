@@ -433,7 +433,22 @@
       bootstrapPromise = (async function () {
         if (!(await hasAuthSession())) return;
         try {
-          await migrateFromAppStateIfNeeded();
+          // Phase 60 V7 — la migration auto localStorage → Supabase ressuscitait
+          // les données après un clear Supabase (table vide → adapter pousse
+          // localStorage qui contient encore les anciennes valeurs).
+          // Désormais OPT-IN explicite via flag :
+          //   window.MCA_ENABLE_LEGACY_MIGRATION = true  (à set avant load script)
+          //   ou localStorage 'mca_enable_legacy_migration' = '1'
+          // Sinon : adapter pull SEULEMENT, jamais push initial.
+          var legacyMigrationEnabled =
+            window.MCA_ENABLE_LEGACY_MIGRATION === true ||
+            (function () {
+              try { return localStorage.getItem('mca_enable_legacy_migration') === '1'; }
+              catch (_) { return false; }
+            })();
+          if (legacyMigrationEnabled) {
+            await migrateFromAppStateIfNeeded();
+          }
           await pullAll();
           hookSetItem();
           initialized = true;

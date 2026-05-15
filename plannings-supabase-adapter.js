@@ -361,7 +361,12 @@
     bootstrapPromise = (async function () {
       if (!(await hasSession())) return;
       try {
-        await migrateFromAppStateIfNeeded();
+        // Phase 60 V7 — migration auto OPT-IN (cf entity-supabase-adapter.js)
+        var legacyMigrationEnabled = window.MCA_ENABLE_LEGACY_MIGRATION === true ||
+          (function () { try { return localStorage.getItem('mca_enable_legacy_migration') === '1'; } catch (_) { return false; } })();
+        if (legacyMigrationEnabled) {
+          await migrateFromAppStateIfNeeded();
+        }
         await pullAll();
         hookSetItem();
         initialized = true;
