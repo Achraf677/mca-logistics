@@ -4470,13 +4470,13 @@
               <option value="hydrogene">Hydrogène</option>
             </select>
           </div>
-          <div class="form-group"><label>Litres *</label><input type="number" id="carb-litres" placeholder="40" min="0" step="0.1" / aria-label="40" /></div>
-          <div class="form-group"><label>Prix par litre (€) *</label><input type="number" id="carb-prix-litre" placeholder="1.85" min="0" step="0.01" / aria-label="1.85" /></div>
-          <div class="form-group"><label>Km compteur</label><input type="number" id="carb-km" placeholder="Kilométrage actuel" min="0" step="1" / aria-label="Kilométrage actuel" /></div>
+          <div class="form-group"><label for="carb-litres">Litres *</label><input type="number" id="carb-litres" placeholder="40" min="0" step="0.1" /></div>
+          <div class="form-group"><label for="carb-prix-litre">Prix par litre (€) *</label><input type="number" id="carb-prix-litre" placeholder="1.85" min="0" step="0.01" /></div>
+          <div class="form-group"><label for="carb-km">Km compteur</label><input type="number" id="carb-km" placeholder="Kilométrage actuel" min="0" step="1" /></div>
           <div class="form-group"><label>Taux TVA</label>
             <input type="number" id="carb-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" placeholder="20" / aria-label="20" />
           </div>
-          <div class="form-group"><label>Date</label><input type="date" id="carb-date" / aria-label="carb date" /></div>
+          <div class="form-group"><label for="carb-date">Date</label><input type="date" id="carb-date" /></div>
         </div>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-carburant')">Annuler</button><button class="btn-primary" onclick="ajouterCarburant()">Enregistrer</button></div>
@@ -4852,13 +4852,13 @@
             <input type="text" id="charge-fournisseur" placeholder="Rechercher un fournisseur (nom, secteur, SIREN...)" oninput="autoCompleteFournisseurCharge(this.value)" autocomplete="off" / aria-label="Rechercher un fournisseur (nom, secteur, SIREN...)" />
             <div id="fournisseur-suggestions" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:2px"></div>
           </div>
-          <div class="form-group full-width"><label>Description</label><input type="text" id="charge-desc" placeholder="Description" / aria-label="Description" /></div>
-          <div class="form-group"><label>Montant HT (€) *</label><input type="number" id="charge-montant-ht" placeholder="0.00" min="0" step="0.01" oninput="calculerTTCDepuisHT('charge')" / aria-label="0.00" /></div>
+          <div class="form-group full-width"><label for="charge-desc">Description</label><input type="text" id="charge-desc" placeholder="Description" /></div>
+          <div class="form-group"><label for="charge-montant-ht">Montant HT (€) *</label><input type="number" id="charge-montant-ht" placeholder="0.00" min="0" step="0.01" oninput="calculerTTCDepuisHT('charge')" /></div>
           <div class="form-group"><label>Taux TVA</label>
             <input type="number" id="charge-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" oninput="calculerTTCDepuisHT('charge')" placeholder="20" / aria-label="20" />
           </div>
-          <div class="form-group"><label>Montant TVA (€)</label><input type="number" id="charge-tva" placeholder="0.00" min="0" step="0.01" oninput="setChargeTvaManuelle(true); calculerTTCDepuisTVA('charge')" / aria-label="0.00" /><div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">Auto, ou saisi manuellement (facture mixte)</div></div>
-          <div class="form-group"><label>Montant TTC (€)</label><input type="number" id="charge-montant" placeholder="0.00" min="0" step="0.01" oninput="calculerHTDepuisTTC('charge')" / aria-label="0.00" /></div>
+          <div class="form-group"><label for="charge-tva">Montant TVA (€)</label><input type="number" id="charge-tva" placeholder="0.00" min="0" step="0.01" oninput="setChargeTvaManuelle(true); calculerTTCDepuisTVA('charge')" /><div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">Auto, ou saisi manuellement (facture mixte)</div></div>
+          <div class="form-group"><label for="charge-montant">Montant TTC (€)</label><input type="number" id="charge-montant" placeholder="0.00" min="0" step="0.01" oninput="calculerHTDepuisTTC('charge')" /></div>
           <div class="form-group" id="charge-tva-period-wrap" style="display:none"><label>Période TVA concernée</label><input type="month" id="charge-tva-period" / aria-label="charge tva period" /></div>
           <div class="form-group" id="charge-veh-wrap"><label>Véhicule concerné</label><select id="charge-veh" aria-label="charge veh"><option value="">— Général —</option></select></div>
           <div class="form-group" id="charge-carb-litres-wrap" style="display:none"><label>Litres <span class="u-muted-xs">(crée le plein dans Carburant)</span></label><input type="number" id="charge-carb-litres" placeholder="40" min="0" step="0.1" / aria-label="40" /></div>
