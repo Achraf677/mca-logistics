@@ -365,7 +365,10 @@
       'facture-groupee': () => {
         if (typeof window.genererFacturesPeriode === 'function') window.genererFacturesPeriode(selected.length > 0 ? selected : null);
         else if (typeof window.genererFacturesGroupees === 'function') window.genererFacturesGroupees(selected);
-        else alert('Fonction Facture groupée absente');
+        else {
+          var t4 = window.afficherToast; if (typeof t4 === 'function') t4('Génération facture groupée indisponible', 'error');
+          else alert('Génération facture groupée indisponible');
+        }
       },
     };
     if (dispatch[type]) dispatch[type]();

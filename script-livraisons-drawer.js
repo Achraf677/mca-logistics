@@ -225,7 +225,11 @@
   window.voirDocumentLivraison = function (livId, docId) {
     const docs = getLivDocuments(livId);
     const doc = docs.find(d => d.id === docId);
-    if (!doc) { alert('Document introuvable'); return; }
+    if (!doc) {
+      var t = window.afficherToast; if (typeof t === 'function') t('Document introuvable', 'error');
+      else alert('Document introuvable');
+      return;
+    }
     if (doc.url) { window.open(doc.url, '_blank'); return; }
     if (doc.blob) { window.open(URL.createObjectURL(doc.blob), '_blank'); return; }
     // Phase 91.22 — HTML capturé lors de la 1ère génération → blob URL (no re-trigger du générateur).
@@ -243,10 +247,14 @@
       if (doc.type === 'facture' && typeof window.genererFactureLivraison === 'function') window.genererFactureLivraison(livId);
       else if (doc.type === 'bl' && (typeof window.genererBonsLivraison === 'function' || typeof window.genererBonLivraison === 'function')) (window.genererBonsLivraison || window.genererBonLivraison)(livId);
       else if (doc.type === 'cmr' && (typeof window.genererLettreDeVoiture === 'function' || typeof window.genererLettreVoiture === 'function')) (window.genererLettreDeVoiture || window.genererLettreVoiture)(livId);
-      else alert('Document ' + (doc.name || doc.type) + ' — type non géré.');
+      else {
+        var t1 = window.afficherToast; if (typeof t1 === 'function') t1('Document ' + (doc.name || doc.type) + ' — type non géré', 'error');
+        else alert('Document ' + (doc.name || doc.type) + ' — type non géré.');
+      }
     } catch (e) {
       console.warn('[voirDocumentLivraison]', e);
-      alert('Erreur lors de la régénération du document.');
+      var t2 = window.afficherToast; if (typeof t2 === 'function') t2('Erreur lors de la régénération du document', 'error');
+      else alert('Erreur lors de la régénération du document.');
     }
   };
 
