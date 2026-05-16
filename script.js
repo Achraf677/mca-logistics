@@ -3,25 +3,7 @@
    ===================================================== */
 
 /* ===== UTILITAIRES ===== */
-// BUG-022 fix : toISOString() convertit en UTC → décalage d'un jour si fuseau != UTC.
-// toLocalISODate() retourne YYYY-MM-DD dans le fuseau local (utilisé partout à la place de toISOString().slice(0,10)).
-if (!Date.prototype.toLocalISODate) {
-  Date.prototype.toLocalISODate = function() {
-    if (isNaN(this.getTime())) return '';
-    const y = this.getFullYear();
-    const m = String(this.getMonth() + 1).padStart(2, '0');
-    const d = String(this.getDate()).padStart(2, '0');
-    return y + '-' + m + '-' + d;
-  };
-}
-if (!Date.prototype.toLocalISOMonth) {
-  Date.prototype.toLocalISOMonth = function() {
-    if (isNaN(this.getTime())) return '';
-    const y = this.getFullYear();
-    const m = String(this.getMonth() + 1).padStart(2, '0');
-    return y + '-' + m;
-  };
-}
+// MOVED -> script-core-date-prototype-extensions.js : 
 
 // BUG-012 fix : escape HTML/attribute centralisés — source unique de vérité pour prévenir XSS.
 // Exposés sur window + fonctions nommées hoistées (disponibles dans tous les scopes IIFE/helpers).
@@ -48,48 +30,9 @@ window.ouvrirPopupSecure = ouvrirPopupSecure;
 
 // MOVED -> script-core-storage-patches.js : emettreEvenementStockageLocal + STORAGE_CACHE
 
-function dupliquerValeurStockage(valeur) {
-  if (valeur === null || valeur === undefined) return valeur;
-  if (typeof valeur !== 'object') return valeur;
-  // PERF: JSON.parse(JSON.stringify) est ~3x plus rapide que structuredClone
-  // pour des données JSON pures (localStorage = toujours JSON-safe).
-  return JSON.parse(JSON.stringify(valeur));
-}
+// MOVED -> script-core-storage-readers.js : dupliquerValeurStockage + lireStockageJSON
 
-function lireStockageJSON(cle, fallback) {
-  const raw = localStorage.getItem(cle);
-  const cached = STORAGE_CACHE.get(cle);
-
-  // PERF: cache hit → JSON.parse direct sur le raw string mis en cache
-  // (saute l'étape JSON.stringify du deep-clone). ~2x plus rapide que l'ancien
-  // dupliquerValeurStockage(cached.value) qui faisait stringify→parse.
-  if (cached && cached.raw === raw) {
-    if (raw === null) return dupliquerValeurStockage(cached.value);
-    try { return JSON.parse(raw); } catch (_) { return dupliquerValeurStockage(cached.value); }
-  }
-
-  if (raw === null) {
-    STORAGE_CACHE.set(cle, { raw: null, value: fallback });
-    return dupliquerValeurStockage(fallback);
-  }
-
-  try {
-    const parsed = JSON.parse(raw);
-    STORAGE_CACHE.set(cle, { raw, value: parsed });
-    // 1ère lecture : retourne un nouveau parse (copie fraîche pour mutations sûres)
-    return JSON.parse(raw);
-  } catch (error) {
-    console.warn(`[DelivPro] Donnée locale invalide pour "${cle}", fallback utilisé.`, error);
-    STORAGE_CACHE.set(cle, { raw, value: fallback });
-    return dupliquerValeurStockage(fallback);
-  }
-}
-
-// logMCA — wrapper console.log conditionnel. Désactivé en prod (BUG-034).
-// Activer via : localStorage.setItem('mca_debug', '1') puis recharger.
-window.__MCA_DEBUG = window.__MCA_DEBUG || (function(){ try { return localStorage.getItem('mca_debug') === '1'; } catch(e){ return false; } })();
-function logMCA() { if (window.__MCA_DEBUG && typeof console !== 'undefined' && console.log) console.log.apply(console, arguments); }
-window.logMCA = logMCA;
+// MOVED -> script-core-log-mca.js : logMCA
 
 // MOVED -> script-core-storage.js : charger
 // loadSafe : alias global pour JSON.parse résilient du localStorage.
