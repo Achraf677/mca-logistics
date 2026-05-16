@@ -44,12 +44,21 @@ function compterAlertesNonLues() {
 function afficherBadgeAlertes() {
   const n = compterAlertesNonLues();
   // 2 badges a synchroniser : sidebar (#badge-alertes) et mobile bottom nav (#badge-alertes-mbn)
+  // Phase 91.85 a11y : tronque > 99 → "99+" + met à jour aria-label du bouton bell
+  const display = n > 99 ? '99+' : String(n);
   ['badge-alertes', 'badge-alertes-mbn', 'topbar-bell-count'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    el.textContent = n > 0 ? n : '';
+    el.textContent = n > 0 ? display : '';
     el.style.display = n > 0 ? 'inline-flex' : 'none';
   });
+  // Sync aria-label du bouton topbar bell pour annonce screen reader du count
+  const bell = document.querySelector('.topbar-bell');
+  if (bell) {
+    bell.setAttribute('aria-label', n > 0
+      ? 'Alertes — ' + display + ' non lue' + (n > 1 ? 's' : '')
+      : 'Alertes');
+  }
 }
 
 // Cooldown post-traitement/ignore : ~30 jours sans regen automatique du même couple (type, scope).
