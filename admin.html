@@ -343,7 +343,7 @@
   </aside>
 
   <main class="main-content" id="mainContent">
-    <div class="ptr-indicator" id="ptr-indicator"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M12 5v14"/><polyline points="19 12 12 19 5 12"/></svg> Relâchez pour actualiser...</div>
+    <div class="ptr-indicator" id="ptr-indicator"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><polyline points="19 12 12 19 5 12"/></svg> Relâchez pour actualiser...</div>
     <header class="topbar">
       <button class="btn-menu-mobile" id="menuMobile" aria-label="Ouvrir le menu mobile"><svg viewBox="0 0 24 24" width="18" height="18" class="u-svg-base"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
       <div class="topbar-branding" onclick="naviguerVers('dashboard')" title="Retour Dashboard">
@@ -358,7 +358,7 @@
         <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
         <span class="topbar-bell-badge" id="topbar-bell-count" style="display:none">0</span>
       </button>
-      <button class="btn-secondary" id="btn-install-pwa" type="button" onclick="declencherInstallPWA()" style="display:none" title="Installer l'application sur votre appareil"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Installer</button>
+      <button class="btn-secondary" id="btn-install-pwa" type="button" onclick="declencherInstallPWA()" style="display:none" title="Installer l'application sur votre appareil"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Installer</button>
       <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre" aria-label="Basculer entre mode clair et sombre"><svg viewBox="0 0 24 24" width="16" height="16" class="u-svg-base"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
       <div id="ai-status-bar" onclick="togglePanneauAgent()">
         <span class="ai-pulse-dot"></span>
@@ -372,8 +372,8 @@
           <span class="topbar-user-caret"><svg viewBox="0 0 24 24" width="11" height="11" style="vertical-align:0;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg></span>
         </button>
         <div class="topbar-dropdown" id="topbar-admin-dropdown">
-          <button class="topbar-dropdown-item" id="admin-bug-report-btn" type="button" title="Capture URL, version, console, viewport et copie un rapport markdown a transmettre."><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;margin-right:6px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M19 7l-3 2"/><path d="M5 7l3 2"/><path d="M19 17l-3-2"/><path d="M5 17l3-2"/><path d="M12 6V2"/></svg>Signaler un bug</button>
-          <button class="topbar-dropdown-item" id="btn-admin-logout" type="button" onclick="deconnexionAdmin()"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;margin-right:6px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Déconnexion</button>
+          <button class="topbar-dropdown-item" id="admin-bug-report-btn" type="button" title="Capture URL, version, console, viewport et copie un rapport markdown a transmettre."><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;margin-right:6px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M19 7l-3 2"/><path d="M5 7l3 2"/><path d="M19 17l-3-2"/><path d="M5 17l3-2"/><path d="M12 6V2"/></svg>Signaler un bug</button>
+          <button class="topbar-dropdown-item" id="btn-admin-logout" type="button" onclick="deconnexionAdmin()"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;margin-right:6px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Déconnexion</button>
         </div>
       </div>
       <div class="topbar-date" id="currentDate"></div>
@@ -677,15 +677,15 @@
           </div>
           <!-- Phase 32 : bouton Modifier (N) apparait quand N >= 1 rows selectionnees (bulk) -->
           <button class="btn-secondary liv-modify-btn" id="liv-modify-btn" type="button" onclick="window.ouvrirBulkEditLivraisons && window.ouvrirBulkEditLivraisons()" style="display:none" title="Modifier les livraisons sélectionnées">
-            <svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+            <svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
             Modifier <span id="liv-modify-count" style="opacity:0.7;margin-left:2px">(0)</span>
           </button>
           <!-- Dropdown Générer -->
           <div class="liv-dropdown-wrap">
             <button class="btn-secondary liv-dropdown-trigger" data-dropdown="gen" title="Générer rapport / factures">
-              <svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               Générer
-              <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="liv-dropdown-menu" data-dropdown-menu="gen" role="menu">
               <button class="liv-dropdown-item" onclick="window.actionGenererLivraison&&window.actionGenererLivraison('facture')">
@@ -709,9 +709,9 @@
           <!-- Dropdown Exporter -->
           <div class="liv-dropdown-wrap">
             <button class="btn-secondary liv-dropdown-trigger" data-dropdown="export" title="Exporter en PDF/CSV/Excel">
-              <svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
-              <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="liv-dropdown-menu" data-dropdown-menu="export" role="menu">
               <button class="liv-dropdown-item" onclick="if(typeof exporterLivraisonsPDF==='function')exporterLivraisonsPDF();else exporterLivraisons()">
@@ -1130,7 +1130,7 @@
           <button class="btn-primary" onclick="openModal('modal-vehicule')">+ Ajouter</button>
         </div>
       </div>
-      <div class="filters filters-vehicules" style="margin-bottom:16px">
+      <div class="filters filters-vehicules">
         <div class="searchbar">
           <span class="searchbar-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <input type="search" id="filtre-veh-search" placeholder="Rechercher un véhicule, une plaque, un modèle..." oninput="afficherVehicules()" aria-label="Rechercher un véhicule, une plaque, un modèle..." />
@@ -3041,7 +3041,7 @@
         </button>
       </div>
 
-      <div class="filters" style="margin-bottom:16px">
+      <div class="filters">
         <select id="filtre-charge-cat" onchange="afficherCharges()" aria-label="Filtrer charge par catégorie">
           <option value="">Toutes catégories</option>
           <option value="carburant">Carburant</option>
@@ -3172,7 +3172,7 @@
         <button class="inc-chip" role="tab" aria-selected="false" onclick="incChipFilter(this,'traite','')">Traités</button>
         <button class="inc-chip" role="tab" aria-selected="false" onclick="incChipFilter(this,'','grave')">Graves</button>
       </div>
-      <div class="filters" style="margin-bottom:16px">
+      <div class="filters">
         <div class="searchbar">
           <span class="searchbar-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <input type="search" id="filtre-inc-search" placeholder="Rechercher un client, chauffeur, description, n° livraison..." oninput="afficherIncidents()" aria-label="Rechercher un client, chauffeur, description, n° livraison..." />
@@ -3296,7 +3296,7 @@
         <button class="ds-chip" type="button" data-entr-type="revision" onclick="entrChipType(this,'revision')">Révisions</button>
         <button class="ds-chip" type="button" data-entr-type="reparation" onclick="entrChipType(this,'reparation')">Réparations</button>
       </div>
-      <div class="filters" style="margin-bottom:16px">
+      <div class="filters">
         <select id="filtre-entr-vehicule" onchange="afficherEntretiens()" aria-label="Filtrer entretien par véhicule">
           <option value="">Tous les véhicules</option>
         </select>
@@ -3442,7 +3442,7 @@
       <!-- Chips par chauffeur (peuplées dynamiquement par script-heures-counts.js) -->
       <div id="heures-chauffeur-chips" class="chips-toolbar" role="tablist" aria-label="Filtrer par chauffeur" style="margin-bottom:14px"></div>
 
-      <div class="filters" style="margin-bottom:16px">
+      <div class="filters">
         <div class="searchbar searchbar-heures">
           <span class="searchbar-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <input type="search" id="filtre-heures-salarie" placeholder="Rechercher un salarié, un poste ou un matricule..." oninput="afficherCompteurHeures()" aria-label="Rechercher un salarié, un poste ou un matricule..." />
