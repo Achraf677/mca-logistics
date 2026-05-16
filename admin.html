@@ -4524,9 +4524,9 @@
   </div>
 
   <!-- Modal : Configuration rentabilité -->
-  <div class="modal-overlay" id="modal-config-rentabilite">
+  <div class="modal-overlay" id="modal-config-rentabilite" role="dialog" aria-modal="true" aria-labelledby="modal-config-rentabilite-title">
     <div class="modal">
-      <div class="modal-header"><h3>Paramètres rentabilité</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-config-rentabilite')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-config-rentabilite-title">Paramètres rentabilité</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-config-rentabilite')">✕</button></div>
       <div class="modal-body">
         <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">Ces paramètres servent au calcul des marges multi-axes (par véhicule, client, chauffeur, tournée).</p>
         <div class="form-grid">
@@ -4550,9 +4550,9 @@
   </div>
 
   <!-- Modal : Configuration anomalies carburant -->
-  <div class="modal-overlay" id="modal-config-carburant-anomalies">
+  <div class="modal-overlay" id="modal-config-carburant-anomalies" role="dialog" aria-modal="true" aria-labelledby="modal-config-carburant-anomalies-title">
     <div class="modal">
-      <div class="modal-header"><h3>Détection anomalies carburant</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-config-carburant-anomalies')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-config-carburant-anomalies-title">Détection anomalies carburant</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-config-carburant-anomalies')">✕</button></div>
       <div class="modal-body">
         <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">Configure les seuils de détection. Les anomalies créent automatiquement des alertes admin et un badge sur le plein concerné.</p>
 
@@ -4586,9 +4586,9 @@
   </div>
 
   <!-- Modal : Planning salarié -->
-  <div class="modal-overlay" id="modal-planning">
+  <div class="modal-overlay" id="modal-planning" role="dialog" aria-modal="true" aria-labelledby="modal-planning-title">
     <div class="modal" style="max-width:720px">
-      <div class="modal-header"><h3>Gérer les horaires</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-planning-title">Gérer les horaires</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning')">✕</button></div>
       <div class="modal-body modal-body-scroll">
         <div class="form-group" style="margin-bottom:12px">
           <label>Salarié *</label>
@@ -4618,9 +4618,9 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="modal-planning-recap">
+  <div class="modal-overlay" id="modal-planning-recap" role="dialog" aria-modal="true" aria-labelledby="modal-planning-recap-title">
     <div class="modal" style="max-width:860px">
-      <div class="modal-header"><h3>Récap planning</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning-recap')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-planning-recap-title">Récap planning</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning-recap')">✕</button></div>
       <div class="modal-body modal-body-scroll">
         <div id="planning-recap-content"></div>
       </div>
@@ -4629,9 +4629,9 @@
   </div>
 
   <!-- Affecter véhicule -->
-  <div class="modal-overlay" id="modal-affecter-vehicule">
+  <div class="modal-overlay" id="modal-affecter-vehicule" role="dialog" aria-modal="true" aria-labelledby="modal-affecter-vehicule-title">
     <div class="modal">
-      <div class="modal-header"><h3>Affecter un chauffeur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-affecter-vehicule')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-affecter-vehicule-title">Affecter un chauffeur</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-affecter-vehicule')">✕</button></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);margin-bottom:16px;">Véhicule : <strong id="affect-veh-label"></strong></p>
         <div class="form-group"><label for="affect-salarie-sel">Chauffeur</label><select id="affect-salarie-sel"><option value="">-- Retirer l'affectation --</option></select></div>
@@ -4687,9 +4687,9 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="modal-reset-mdp">
+  <div class="modal-overlay" id="modal-reset-mdp" role="dialog" aria-modal="true" aria-labelledby="modal-reset-mdp-title">
     <div class="modal" style="max-width:460px">
-      <div class="modal-header"><h3>Accès salarié</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-reset-mdp')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-reset-mdp-title">Accès salarié</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-reset-mdp')">✕</button></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);margin-bottom:10px;">Salarié : <strong id="reset-mdp-nom"></strong></p>
         <p style="color:var(--text-muted);margin-bottom:16px;">Identifiant : <code id="reset-mdp-numero" style="background:var(--bg-dark);padding:2px 8px;border-radius:6px">—</code></p>
@@ -4815,9 +4815,9 @@
   </div>
 
   <!-- Modifier plein carburant (admin) -->
-  <div class="modal-overlay" id="modal-edit-carburant">
+  <div class="modal-overlay" id="modal-edit-carburant" role="dialog" aria-modal="true" aria-labelledby="modal-edit-carburant-title">
     <div class="modal">
-      <div class="modal-header"><h3>Modifier le plein</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-carburant')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-edit-carburant-title">Modifier le plein</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-carburant')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-carb-id" />
         <div class="form-grid">
@@ -4836,9 +4836,9 @@
 
 
   <!-- Modifier relevé km (admin) -->
-  <div class="modal-overlay" id="modal-edit-km">
+  <div class="modal-overlay" id="modal-edit-km" role="dialog" aria-modal="true" aria-labelledby="modal-edit-km-title">
     <div class="modal">
-      <div class="modal-header"><h3>Modifier le relevé km</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-km')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-edit-km-title">Modifier le relevé km</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-km')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label for="admin-km-dep">Km départ *</label><input type="number" id="admin-km-dep" min="0" /></div>
