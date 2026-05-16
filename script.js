@@ -442,11 +442,7 @@ let affectVehId = null;
 
 // MOVED -> script-carburant.js : voirRecuCarburant
 
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('.menu-actions-wrap')) {
-    document.querySelectorAll('.menu-actions-dropdown').forEach(m => m.style.display = 'none');
-  }
-});
+// MOVED -> script-core-misc-click-handlers.js : 
 
 /* ===== RELEVÉS KM — ADMIN ===== */
 // MOVED -> script-core-releve-km.js : afficherReleveKm
@@ -880,10 +876,7 @@ var _heuresAnneeOffset = 0;
 // MOVED -> script-planning.js : verifierTriggersPlanningAuto
 
 // Vérifier toutes les minutes (Phase 91.54.1 : skip si onglet pas visible)
-setInterval(function() {
-  if (document.hidden) return;
-  try { verifierTriggersPlanningAuto(); } catch (_) {}
-}, 60000);
+// MOVED -> script-core-planning-auto-trigger-tick.js : 
 
 /* ===== MOBILE — SWIPE SIDEBAR ===== */
 // MOVED -> script-core-navigation.js : initSwipeSidebar
@@ -932,16 +925,7 @@ window.resolveStorageImages = resolveStorageImages;
 // MOVED -> script-core-templates-sms.js (Phase X.B) : TEMPLATES_SMS, afficherTemplatesSMS, copierTemplateSMS
 
 /* ===== RACCOURCIS CLAVIER ===== */
-document.addEventListener('keydown', e => {
-  if (e.ctrlKey || e.metaKey) {
-    // Ctrl+K est géré par la palette S15 (plus riche) — ne pas doubler
-    if (e.key === 'n') { e.preventDefault(); openModal('modal-livraison'); }
-  }
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
-  }
-});
+// MOVED -> script-core-keyboard-shortcuts.js : 
 
 /* ===== RECHERCHE UNIVERSELLE ===== */
 // MOVED -> script-core-recherche.js : ouvrirRechercheGlobale
@@ -2820,19 +2804,7 @@ filtrerRecherchePlanningModal = function() {
   if (salarie) genererGrilleJours();
 };
 
-document.addEventListener('click', function(event) {
-  [
-    { input: 'absence-sal-search', box: 'absence-sal-suggestions' },
-    { input: 'plan-salarie-search', box: 'plan-salarie-suggestions' }
-  ].forEach(function(entry) {
-    var input = document.getElementById(entry.input);
-    var box = document.getElementById(entry.box);
-    if (!input || !box) return;
-    if (input.contains(event.target) || box.contains(event.target)) return;
-    box.innerHTML = '';
-    box.style.display = 'none';
-  });
-});
+// MOVED -> script-core-planning-suggestions-close.js : 
 
 /* ===== RENTABILITE — Calculateur avancé ===== */
 var RENTABILITE_STORAGE_KEY = 'rentabilite_calculateur_v2';

@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v389-phaseX-CL-CO-listeners-init';
+const CACHE_VERSION = 'mca-v2026-05-17-v390-phaseX-CP-CS-misc-handlers';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -257,6 +257,11 @@ const CORE_ASSETS = [
   '/script-core-synchro-storage-listeners.js',
   '/script-core-livraison-form-init.js',
   '/script-core-modal-click-outside.js',
+  // Phase X.CP-CS : Misc click handlers + keyboard shortcuts + planning auto tick + suggestions close
+  '/script-core-misc-click-handlers.js',
+  '/script-core-keyboard-shortcuts.js',
+  '/script-core-planning-auto-trigger-tick.js',
+  '/script-core-planning-suggestions-close.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
