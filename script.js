@@ -2879,21 +2879,7 @@ function afficherDocumentDansFenetre(url, isPdf, titre) {
 
 /* ===== FLOTTE — HISTORIQUE CONDUCTEURS ===== */
 // MOVED -> script-salaries.js : ouvrirHistoriqueConducteurs
-function enregistrerConduite(livraison) {
-  if (!livraison.vehId || !livraison.chaufId) return;
-  const cle  = 'conducteurs_veh_' + livraison.vehId;
-  const hist = loadSafe(cle, []);
-  hist.push({
-    salId:    livraison.chaufId,
-    salNom:   livraison.chaufNom,
-    date:     livraison.date,
-    livNom:   livraison.client,
-    numLiv:   livraison.numLiv||'',
-    distance: livraison.distance||0
-  });
-  if (hist.length > 100) hist.shift();
-  localStorage.setItem(cle, JSON.stringify(hist));
-}
+// MOVED -> script-core-livraisons-helpers.js (Phase X.G) : enregistrerConduite
 
 // MOVED -> script-salaries.js : afficherHistoriqueConducteurs
 
@@ -2912,37 +2898,7 @@ setInterval(function() {
 /* ===== MOBILE — SWIPE SIDEBAR ===== */
 // MOVED -> script-core-navigation.js : initSwipeSidebar
 
-/* ===== MOBILE — PULL TO REFRESH ===== */
-function initPullToRefresh() {
-  // Uniquement sur mobile/tactile
-  if (!navigator.maxTouchPoints || navigator.maxTouchPoints === 0) return;
-  const main = document.getElementById('mainContent');
-  if (!main) return;
-  let startY = 0, pulling = false;
-  const ind = document.getElementById('ptr-indicator');
-
-  main.addEventListener('touchstart', e => {
-    if (main.scrollTop === 0) { startY = e.touches[0].clientY; pulling = true; }
-  }, { passive: true });
-
-  main.addEventListener('touchmove', e => {
-    if (!pulling) return;
-    const diff = e.touches[0].clientY - startY;
-    if (diff > 40 && ind) ind.classList.add('visible');
-  }, { passive: true });
-
-  main.addEventListener('touchend', e => {
-    if (!pulling) return;
-    pulling = false;
-    const diff = e.changedTouches[0].clientY - startY;
-    if (ind) ind.classList.remove('visible');
-    if (diff > 80) {
-      const page = document.querySelector('.page.active')?.id?.replace('page-','');
-      if (page) naviguerVers(page);
-      afficherToast('Actualisé');
-    }
-  }, { passive: true });
-}
+// MOVED -> script-core-pull-to-refresh.js (Phase X.F) : initPullToRefresh
 
 /* ===== PIÈCES JOINTES MESSAGERIE ===== */
 // MOVED -> script-messages.js : envoyerMessageAvecPhoto
@@ -3463,19 +3419,7 @@ function prixHT(prixTTC, tauxTVA) {
 
 // MOVED -> script-paiements.js : afficherRelances
 
-function marquerPaye(id) {
-  const livs = charger('livraisons');
-  const idx  = livs.findIndex(l=>l.id===id);
-  if (idx>-1) {
-    livs[idx].statutPaiement = 'payé';
-    livs[idx].datePaiement = aujourdhui();
-    sauvegarder('livraisons',livs);
-    ajouterEntreeAudit('Paiement livraison', (livs[idx].numLiv || 'Livraison') + ' · ' + euros(livs[idx].prix || 0));
-    afficherRelances();
-    afficherTva();
-    rafraichirDashboard();
-    afficherToast('Marqué comme payé');
-  }
+// MOVED -> script-core-livraisons-helpers.js (Phase X.G) : marquerPaye
 }
 // MOVED -> script-paiements.js : marquerRelance
 
@@ -3531,39 +3475,13 @@ function marquerPaye(id) {
 
 // MOVED -> script-core-storage.js : sauvegarderFacturesEmises
 
-function getAnneeFactureReference(livraison) {
-  const source = livraison?.datePaiement || livraison?.date || aujourdhui();
-  const match = String(source || '').match(/^(\d{4})/);
-  return match ? match[1] : String(new Date().getFullYear());
-}
+// MOVED -> script-core-livraisons-helpers.js (Phase X.G) : getAnneeFactureReference
 
 // MOVED -> script-core-utils.js : formatNumeroFacture
 
 // BUG-001 — compteur facture persistant par année (CGI art. 289)
 // La séquence ne régresse jamais, même après suppression.
-const COMPTEURS_FACTURES_KEY = 'compteurs_factures_annee';
-function incrementerCompteurFactureAnnee(annee) {
-  const key = String(annee || new Date().getFullYear());
-  let compteurs = {};
-  try { compteurs = loadSafe(COMPTEURS_FACTURES_KEY, {}) || {}; } catch(e){ compteurs = {}; }
-  // Synchro de sécurité : si tableau factures contient un numéro plus grand (migration), on part de là
-  try {
-    const maxLive = (loadSafe('factures_emises', []) || [])
-      .filter(f => String(f.annee || '') === key)
-      .reduce((m, f) => Math.max(m, parseInt(f.sequence, 10) || 0), 0);
-    if (maxLive > (compteurs[key] || 0)) compteurs[key] = maxLive;
-  } catch (e) {
-    if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
-      console.warn('[script:incrementerCompteurFacture-syncMax]', e);
-    }
-    if (window.Sentry && window.Sentry.captureException) {
-      try { window.Sentry.captureException(e); } catch (_) {}
-    }
-  }
-  compteurs[key] = (compteurs[key] || 0) + 1;
-  localStorage.setItem(COMPTEURS_FACTURES_KEY, JSON.stringify(compteurs));
-  return compteurs[key];
-}
+// MOVED -> script-core-livraisons-helpers.js (Phase X.G) : COMPTEURS_FACTURES_KEY + incrementerCompteurFactureAnnee
 
 // MOVED -> script-livraisons.js : assurerArchiveFactureLivraison
 

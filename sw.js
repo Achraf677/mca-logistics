@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v360-phaseX-E-extract-lettre-voiture';
+const CACHE_VERSION = 'mca-v2026-05-16-v361-phaseX-FG-extract-ptr-livraisons-helpers';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -141,6 +141,10 @@ const CORE_ASSETS = [
   '/script-core-tco-ui.js',
   // Phase X.E (91.94) — Lettre de voiture CMR extrait de script.js
   '/script-core-lettre-voiture.js',
+  // Phase X.F (91.95) — Pull-to-refresh mobile extrait de script.js
+  '/script-core-pull-to-refresh.js',
+  // Phase X.G (91.96) — Livraisons helpers (conduite + paiement + facture counter)
+  '/script-core-livraisons-helpers.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
