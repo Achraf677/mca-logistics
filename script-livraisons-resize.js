@@ -73,23 +73,28 @@
     });
   }
 
-  function init() {
+  function applyAll() {
     var tables = document.querySelectorAll('.livraisons-table');
     tables.forEach(function (table) {
       attachHandles(table);
       applyStoredWidths(table);
     });
+  }
 
+  function init() {
+    applyAll();
     if (typeof MutationObserver !== 'undefined') {
+      // Observe la TABLE entière (thead + tbody) : tbody change à chaque afficherLivraisons.
+      var tables = document.querySelectorAll('.livraisons-table');
       tables.forEach(function (table) {
-        var thead = table.querySelector('thead');
-        if (!thead) return;
         new MutationObserver(function () {
           attachHandles(table);
           applyStoredWidths(table);
-        }).observe(thead, { childList: true, subtree: true });
+        }).observe(table, { childList: true, subtree: true });
       });
     }
+    // Phase 91.18 — expose pour re-apply manuel (au cas où afficherLivraisons recrée le thead)
+    window.applyLivraisonsColWidths = applyAll;
   }
 
   if (document.readyState === 'loading') {
