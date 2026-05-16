@@ -82,7 +82,7 @@
   <!-- Design rentabilite + stats bundle (Phase 4 / PR-17+18) — KPI tiles Syne + simulator + previsions. -->
   <link rel="stylesheet" href="style-design-rentabilite-stats.css?v=2" />
   <!-- Design calendrier (Phase 4 / PR-19) — calendrier-grid + cal-day cells + livraisons dots + nav. -->
-  <link rel="stylesheet" href="style-design-calendrier.css?v=3" />
+  <link rel="stylesheet" href="style-design-calendrier.css?v=4" />
   <!-- Design parametres (Phase 4 / PR-20) — page-parametres cards + s24 toggles + s26 sig/timeline + s15 palette. -->
   <link rel="stylesheet" href="style-design-parametres.css?v=1" />
   <!-- Design setup wizard (Phase 4 / PR-21) — overrides inline JS styles avec --ds-*. -->
@@ -3501,6 +3501,14 @@
         </div>
       </div>
 
+      <!-- Phase 91.46 : KPI bar horizontale (pattern Carburant/Charges/Heures) -->
+      <div class="cal16-kpi-bar">
+        <div class="cal16-kpi-tile"><div class="cal16-kpi-lbl">Livraisons</div><div class="cal16-kpi-val" id="cal16-kpi-liv">—</div></div>
+        <div class="cal16-kpi-tile"><div class="cal16-kpi-lbl">Échéances</div><div class="cal16-kpi-val" id="cal16-kpi-ech">—</div></div>
+        <div class="cal16-kpi-tile"><div class="cal16-kpi-lbl">Encaissé</div><div class="cal16-kpi-val" id="cal16-kpi-pai">—</div></div>
+        <div class="cal16-kpi-tile"><div class="cal16-kpi-lbl">Jours fériés</div><div class="cal16-kpi-val" id="cal16-kpi-feries">—</div></div>
+      </div>
+
       <!-- Phase 45 : cal toolbar mockup-aligned (prev/today/next + period-chips Jour/Semaine/Mois/Année) -->
       <div class="carb-period-nav">
         <div class="period-left">
@@ -3531,61 +3539,43 @@
         <option value="annee">Par année</option>
       </select>
 
-      <div class="cal16-layout">
-        <!-- Sidebar filtres -->
-        <aside class="cal16-sidebar card">
-          <h3>Filtres</h3>
-          <!-- Phase 91.45 : filtres migrés en chips ds-chip (pattern uniforme) -->
-          <div class="cal16-chips-filters">
-            <label class="cal16-chip-filter">
-              <input type="checkbox" data-cal-filter="livraisons" checked onchange="window.cal16?.render()" />
-              <span class="cal16-dot cal16-dot-liv"></span> Livraisons
-            </label>
-            <label class="cal16-chip-filter">
-              <input type="checkbox" data-cal-filter="echeances" checked onchange="window.cal16?.render()" />
-              <span class="cal16-dot cal16-dot-ech"></span> Échéances
-            </label>
-            <label class="cal16-chip-filter">
-              <input type="checkbox" data-cal-filter="relances" checked onchange="window.cal16?.render()" />
-              <span class="cal16-dot cal16-dot-rel"></span> Relances
-            </label>
-            <label class="cal16-chip-filter">
-              <input type="checkbox" data-cal-filter="paiements" checked onchange="window.cal16?.render()" />
-              <span class="cal16-dot cal16-dot-pai"></span> Paiements
-            </label>
-            <label class="cal16-chip-filter">
-              <input type="checkbox" data-cal-filter="feries" checked onchange="window.cal16?.render()" />
-              <span class="cal16-dot cal16-dot-fer"></span> Jours fériés
-            </label>
-          </div>
+      <!-- Phase 91.46 : filtres chips inline (pleine largeur, pas sidebar) -->
+      <div class="cal16-filters-row">
+        <label class="cal16-chip-filter">
+          <input type="checkbox" data-cal-filter="livraisons" checked onchange="window.cal16?.render()" />
+          <span class="cal16-dot cal16-dot-liv"></span> Livraisons
+        </label>
+        <label class="cal16-chip-filter">
+          <input type="checkbox" data-cal-filter="echeances" checked onchange="window.cal16?.render()" />
+          <span class="cal16-dot cal16-dot-ech"></span> Échéances
+        </label>
+        <label class="cal16-chip-filter">
+          <input type="checkbox" data-cal-filter="relances" checked onchange="window.cal16?.render()" />
+          <span class="cal16-dot cal16-dot-rel"></span> Relances
+        </label>
+        <label class="cal16-chip-filter">
+          <input type="checkbox" data-cal-filter="paiements" checked onchange="window.cal16?.render()" />
+          <span class="cal16-dot cal16-dot-pai"></span> Paiements
+        </label>
+        <label class="cal16-chip-filter">
+          <input type="checkbox" data-cal-filter="feries" checked onchange="window.cal16?.render()" />
+          <span class="cal16-dot cal16-dot-fer"></span> Jours fériés
+        </label>
+      </div>
 
-          <hr />
-          <h3>Ce mois</h3>
-          <div class="cal16-kpi-grid">
-            <div class="cal16-kpi"><div class="cal16-kpi-lbl">Livraisons</div><div class="cal16-kpi-val" id="cal16-kpi-liv">—</div></div>
-            <div class="cal16-kpi"><div class="cal16-kpi-lbl">Échéances</div><div class="cal16-kpi-val" id="cal16-kpi-ech">—</div></div>
-            <div class="cal16-kpi"><div class="cal16-kpi-lbl">Encaissé</div><div class="cal16-kpi-val" id="cal16-kpi-pai">—</div></div>
-            <div class="cal16-kpi"><div class="cal16-kpi-lbl">Jours fériés</div><div class="cal16-kpi-val" id="cal16-kpi-feries">—</div></div>
-          </div>
+      <!-- Grid calendrier pleine largeur (Phase 91.46 : sidebar retirée) -->
+      <div class="cal16-main card cal16-main-fullwidth">
+        <div id="cal16-grid"></div>
+      </div>
 
-          <hr />
-          <h3>Légende</h3>
-          <!-- Phase 91.45 : 5 entrées complètes (toutes les couleurs du grid) -->
-          <div class="cal16-legend">
-            <div class="cal16-legend-item"><span class="cal16-legend-dot today"></span> Aujourd'hui</div>
-            <div class="cal16-legend-item"><span class="cal16-legend-dot ferie"></span> Jour férié</div>
-            <div class="cal16-legend-item"><span class="cal16-legend-dot livraison"></span> Livraison</div>
-            <div class="cal16-legend-item"><span class="cal16-legend-dot echeance"></span> Échéance</div>
-            <div class="cal16-legend-item"><span class="cal16-legend-dot paiement"></span> Paiement</div>
-            <div class="cal16-legend-item"><span class="cal16-legend-dot relance"></span> Relance</div>
-          </div>
-
-        </aside>
-
-        <!-- Grid calendrier -->
-        <div class="cal16-main card">
-          <div id="cal16-grid"></div>
-        </div>
+      <!-- Phase 91.46 : légende compacte inline en footer -->
+      <div class="cal16-legend cal16-legend-footer">
+        <div class="cal16-legend-item"><span class="cal16-legend-dot today"></span> Aujourd'hui</div>
+        <div class="cal16-legend-item"><span class="cal16-legend-dot ferie"></span> Jour férié</div>
+        <div class="cal16-legend-item"><span class="cal16-legend-dot livraison"></span> Livraison</div>
+        <div class="cal16-legend-item"><span class="cal16-legend-dot echeance"></span> Échéance</div>
+        <div class="cal16-legend-item"><span class="cal16-legend-dot paiement"></span> Paiement</div>
+        <div class="cal16-legend-item"><span class="cal16-legend-dot relance"></span> Relance</div>
       </div>
     </section>
 
