@@ -101,7 +101,7 @@ async function uploaderLogoEntreprise(file) {
   return result.url;
 }
 
-// L918 (script.js d'origine)
+// L918 (script.js d'origine) — Phase 91.77 : sync meta theme-color au boot
 function initTheme() {
   const theme = localStorage.getItem('theme') || 'dark';
   if (theme === 'light') {
@@ -109,17 +109,24 @@ function initTheme() {
     const btn = document.getElementById('btn-theme');
     if (btn) btn.textContent = '☀️';
   }
+  // Sync meta theme-color pour PWA status bar dès le boot (sinon flash sombre)
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme === 'light' ? '#ffffff' : '#1a1d22');
   // Appliquer couleur accent personnalisée
   const accent = localStorage.getItem('accent_color');
   if (accent) document.documentElement.style.setProperty('--accent', accent);
 }
 
-// L930 (script.js d'origine)
+// L930 (script.js d'origine) — Phase 91.77 : update meta theme-color pour PWA status bar
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light-mode');
   localStorage.setItem('theme', isLight ? 'light' : 'dark');
   const btn = document.getElementById('btn-theme');
   if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+  // Met à jour la couleur de la status bar PWA (Android/iOS Safari).
+  // Avant : le toggle changeait le DOM mais la status bar restait sombre.
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', isLight ? '#ffffff' : '#1a1d22');
 }
 
 // L3430 (script.js d'origine)

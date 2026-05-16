@@ -23,16 +23,26 @@
   function applyThemeMode(value) {
     // Aligne sur toggleTheme() existant. Valeurs : "Sombre…", "Clair…", "Auto…"
     var html = document.documentElement;
+    var meta = document.querySelector('meta[name="theme-color"]');
     if (/clair/i.test(value)) {
       html.setAttribute('data-theme', 'light');
+      document.body && document.body.classList.add('light-mode');
       try { localStorage.setItem('theme', 'light'); } catch (_) {}
+      if (meta) meta.setAttribute('content', '#ffffff');
     } else if (/sombre/i.test(value)) {
       html.setAttribute('data-theme', 'dark');
+      document.body && document.body.classList.remove('light-mode');
       try { localStorage.setItem('theme', 'dark'); } catch (_) {}
+      if (meta) meta.setAttribute('content', '#1a1d22');
     } else {
       // Auto = supprime override, suit prefers-color-scheme
       html.removeAttribute('data-theme');
       try { localStorage.removeItem('theme'); } catch (_) {}
+      // Resync au mode système actuel pour la status bar
+      if (meta) {
+        var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        meta.setAttribute('content', prefersLight ? '#ffffff' : '#1a1d22');
+      }
     }
   }
 
