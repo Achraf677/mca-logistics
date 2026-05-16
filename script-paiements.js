@@ -88,14 +88,21 @@ function afficherRelances() {
   if (!tb) return;
   paginer.__reload_tb_relances = afficherRelances;
   peuplerTemplatesRelance();
-  const delai = parseInt(localStorage.getItem('relance_delai')||'7', 10);
+  const delaiGlobal = parseInt(localStorage.getItem('relance_delai')||'7', 10);
 
   // Synchroniser l'input délai dans la page relances
   const inputDelai = document.getElementById('relance-delai-input');
-  if (inputDelai && !inputDelai.matches(':focus')) inputDelai.value = delai;
+  if (inputDelai && !inputDelai.matches(':focus')) inputDelai.value = delaiGlobal;
 
   const today = new Date();
   today.setHours(0,0,0,0);
+  // Phase 91.38 — lookup délai client (delaiPaiementJours) au lieu de global hardcoded 7j.
+  const allClients = (typeof charger === 'function') ? (charger('clients') || []) : [];
+  const getDelaiPourLiv = function (l) {
+    const cli = allClients.find(c => c && c.id === l.clientId);
+    const d = cli ? parseInt(cli.delaiPaiementJours, 10) : NaN;
+    return Number.isFinite(d) && d > 0 ? d : delaiGlobal;
+  };
   const livraisons = charger('livraisons').filter(function(l) {
     return l.statut === 'livre'
       && getLivraisonStatutPaiement(l) !== 'payé'
@@ -117,7 +124,8 @@ function afficherRelances() {
     return items.map(l => {
     const dateBase = new Date((l.date || '') + 'T00:00:00');
     const dateEcheance = new Date(dateBase);
-    dateEcheance.setDate(dateEcheance.getDate() + delai);
+    const delaiClient = getDelaiPourLiv(l);
+    dateEcheance.setDate(dateEcheance.getDate() + delaiClient);
     const joursRetard = Math.floor((today - dateEcheance) / (1000*60*60*24));
     const joursAffiches = Math.max(0, joursRetard);
     const niveau = joursRetard > 30 ? 3 : joursRetard > 15 ? 2 : joursRetard > 0 ? 1 : 0;
