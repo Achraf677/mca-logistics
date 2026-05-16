@@ -5,6 +5,9 @@
    - reinitialiserEncPeriode() : bouton "Aujourd'hui" Encaissement
    - majBoutonResetCompteur() : enable/disable bouton dans modal-reset-compteur
    - executerResetCompteur() : exécution effective du reset (modal "Réinitialiser livraisons")
+
+   Phase 69 dead-onclick-audit — Ajout :
+   - switchParamTab(tab) : onglets Paramètres (Entreprise/Comptabilité/…) — 5 tabs sans impl
 */
 (function () {
   'use strict';
@@ -116,6 +119,29 @@
     }
   }
   window.executerResetCompteur = executerResetCompteur;
+
+  // ============ PARAMÈTRES — Tabs switcher ============
+
+  function switchParamTab(tab) {
+    // Tab buttons: toggle active + aria-selected + roving tabindex
+    document.querySelectorAll('#page-parametres .param-tab').forEach(function (btn) {
+      var isActive = btn.dataset.ptab === tab;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      btn.setAttribute('tabindex', isActive ? '0' : '-1');
+    });
+    // Panels: toggle active class + remove [hidden] when active (UA [hidden] overrides CSS)
+    document.querySelectorAll('#page-parametres .param-panel').forEach(function (panel) {
+      var isActive = panel.id === 'ptab-' + tab;
+      panel.classList.toggle('active', isActive);
+      if (isActive) {
+        panel.removeAttribute('hidden');
+      } else {
+        panel.setAttribute('hidden', '');
+      }
+    });
+  }
+  window.switchParamTab = switchParamTab;
 
   // Init : update label encaissement au load + après navigation
   function initEnc() {
