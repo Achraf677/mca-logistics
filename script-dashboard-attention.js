@@ -707,6 +707,8 @@
   // ============================================================
 
   function renderAll() {
+    /* Phase 91.54 I.12 — skip si onglet pas visible */
+    if (document.hidden) return;
     renderPointsAttention();
     renderHealth();
   }

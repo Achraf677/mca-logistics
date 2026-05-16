@@ -3,6 +3,8 @@
   'use strict';
   function lire(key) { try { return JSON.parse(localStorage.getItem(key) || '[]') || []; } catch (_) { return []; } }
   function update() {
+    /* Phase 91.54 I.12 — skip si onglet pas visible (gain perf ~50% CPU idle) */
+    if (document.hidden) return;
     var subActifs = document.getElementById('equipe-section-sub-actifs');
     var subPostes = document.getElementById('equipe-section-sub-postes');
     var subAdmins = document.getElementById('equipe-section-sub-admins');

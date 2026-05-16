@@ -146,7 +146,8 @@
 .m-card-value {
   font-family: var(--ds-font-display);
   font-weight: var(--ds-fw-display);
-  font-style: italic;
+  /* Phase 91.54 I.5 — italic Syne synthétisé "moche" */
+  font-style: normal;
   letter-spacing: -0.02em;
   color: var(--ds-text);
   font-feature-settings: "tnum";

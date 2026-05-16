@@ -4,6 +4,8 @@
   'use strict';
 
   function update() {
+    /* Phase 91.54 I.12 — skip si onglet pas visible (gain perf ~50% CPU idle) */
+    if (document.hidden) return;
     var subSemaine = document.getElementById('planning-section-sub-semaine');
     var subActifs = document.getElementById('planning-section-sub-actifs');
     var kpiEffectif = document.getElementById('planning-kpi-effectif');

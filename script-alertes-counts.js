@@ -30,6 +30,8 @@
   }
 
   function update() {
+    /* Phase 91.54 I.12 — skip si onglet pas visible (gain perf ~50% CPU idle) */
+    if (document.hidden) return;
     var subActives = document.getElementById('alertes-section-sub-actives');
     var subReportees = document.getElementById('alertes-section-sub-reportees');
     var subTraitees = document.getElementById('alertes-section-sub-traitees');

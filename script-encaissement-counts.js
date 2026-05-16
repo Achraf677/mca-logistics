@@ -12,6 +12,8 @@
   }
 
   function update() {
+    /* Phase 91.54 I.12 — skip si onglet pas visible (gain perf ~50% CPU idle) */
+    if (document.hidden) return;
     var kpiEncaisse = document.getElementById('enc-kpi-encaisse');
     var kpiImpayes = document.getElementById('enc-kpi-impayes');
     var kpiDso = document.getElementById('enc-kpi-dso');

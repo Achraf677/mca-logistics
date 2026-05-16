@@ -16,9 +16,10 @@
   <link rel="preconnect" href="https://browser.sentry-cdn.com" crossorigin>
   <link rel="dns-prefetch" href="https://o4511305319907328.ingest.de.sentry.io">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="preload" as="style" href="style.css?v=20260516c-91-48">
+  <link rel="preload" as="style" href="style.css?v=20260516d-91-54">
   <link rel="preload" as="script" href="script.js?v=20260516c-91-50">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Phase 91.54 I.3 : ajout JetBrains Mono (était dans tokens mais non chargée → fallback Courier ressenti "police robot") -->
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
 .nav-icon svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0.85;vertical-align:-3px}
@@ -52,7 +53,7 @@
   </style>
   <!-- Design system tokens (Phase 4 / PR-1) — prefixe --ds-* purement additif. N'ecrase aucun token existant (--accent, --bg-card, etc.). Inerte tant qu'aucun selecteur ne consomme --ds-*. -->
   <link rel="stylesheet" href="style-tokens.css?v=1" />
-  <link rel="stylesheet" href="style.css?v=20260516c-91-48" />
+  <link rel="stylesheet" href="style.css?v=20260516d-91-54" />
   <!-- Design shell (Phase 4 / PR-2) — restyle sidebar + topbar avec --ds-*. CSS-only, aucun changement HTML. Charge APRES style.css pour gagner la cascade. -->
   <link rel="stylesheet" href="style-design-shell.css?v=1" />
   <!-- Design dashboard (Phase 4 / PR-4) — restyle KPIs + hero-sante + cards + tables + buttons avec --ds-*. CSS-only. -->
@@ -60,7 +61,7 @@
   <!-- Design feedback (Phase 4 / PR-5) — toasts + empty states + skeletons unifies avec --ds-*. -->
   <link rel="stylesheet" href="style-design-feedback.css?v=1" />
   <!-- Design livraisons (Phase 4 / PR-6) — restyle filtres + table + bulk-bar + kanban avec --ds-*. CSS-only. -->
-  <link rel="stylesheet" href="style-design-livraisons.css?v=2" />
+  <link rel="stylesheet" href="style-design-livraisons.css?v=3" />
   <!-- Design modale + form-groups (Phase 4 / PR-7) — restyle .modal* + .form-group + .side-drawer avec --ds-*. CSS-only. -->
   <link rel="stylesheet" href="style-design-modal.css?v=1" />
   <!-- Design charges (Phase 4 / PR-8) — nav-periode + recurrence chips + montants negatifs. Specifique charges/carburant/entretiens/stats. -->
@@ -74,11 +75,11 @@
   <!-- Design equipe (Phase 4 / PR-12) — s22-bandeau hub tabs + avatars + incidents + heures + credentials. -->
   <link rel="stylesheet" href="style-design-equipe.css?v=3" />
   <!-- Design clients + fournisseurs (Phase 4 / PR-13+14) — bundle : filtres + risque + drawer onglets + SIRET/TVA. -->
-  <link rel="stylesheet" href="style-design-clients-fournisseurs.css?v=3" />
+  <link rel="stylesheet" href="style-design-clients-fournisseurs.css?v=4" />
   <!-- Design planning (Phase 4 / PR-15) — overview cards Syne + jour-types + toolbars planning. -->
   <link rel="stylesheet" href="style-design-planning.css?v=2" />
   <!-- Design alertes (Phase 4 / PR-16) — s19 KPIs gravite + filtres + s20 drawer + s25 rules engine. -->
-  <link rel="stylesheet" href="style-design-alertes.css?v=2" />
+  <link rel="stylesheet" href="style-design-alertes.css?v=3" />
   <!-- Design rentabilite + stats bundle (Phase 4 / PR-17+18) — KPI tiles Syne + simulator + previsions. -->
   <link rel="stylesheet" href="style-design-rentabilite-stats.css?v=3" />
   <!-- Design calendrier (Phase 4 / PR-19) — calendrier-grid + cal-day cells + livraisons dots + nav. -->
@@ -90,7 +91,7 @@
   <!-- Phase 2 HTML refonte — composants ds canoniques (crumbs / section-head / kpi-grid / chips). -->
   <link rel="stylesheet" href="style-refonte-charges.css?v=3" />
   <!-- Phase 2 refonte HTML : utility classes pour réduire les inline styles répétés -->
-  <link rel="stylesheet" href="style-refonte-utilities.css?v=4" />
+  <link rel="stylesheet" href="style-refonte-utilities.css?v=5" />
   <!-- Phase 5 refonte HTML : dashboard hero row (sante + points attention side-by-side) -->
   <link rel="stylesheet" href="style-design-dashboard-hero.css?v=1" />
   <!-- Phase 6 refonte HTML : title-row + period-row pattern (reusable across pages) -->
@@ -186,7 +187,8 @@
   <!-- Phase 32 refonte : drawer 360 livraison (slide from right, 4 tabs) -->
   <script defer src="script-livraisons-drawer.js?v=1"></script>
   <!-- Solution B refonte visuelle : fake data seed pour démos Playwright (no-op sans ?seed=1) -->
-  <script src="script-dev-seed.js?v=1"></script>
+  <!-- Phase 91.54 I.11 : defer + gate runtime côté script (45 KB n'est plus synchrone bloquant boot) -->
+  <script defer src="script-dev-seed.js?v=2"></script>
 </head>
 <body class="app-shell app-booting">
 
@@ -632,10 +634,7 @@
          LIVRAISONS                               : Tableau / Kanban / Calendrier des courses + filtres
          ============================================================ -->
     <section class="page" id="page-livraisons">
-      <!-- Phase 2 HTML refonte : breadcrumb -->
-      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
-        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
-      </nav>
+      <!-- Phase 91.54 I.10 : breadcrumb retiré (page niveau 1 sidebar, le retour n'a pas de sens) -->
 
       <!-- Phase 6 refonte HTML : title-row pattern (page name H1 + meta count) -->
       <!-- Phase 91.5 — title-row "Livraisons + 2 ce mois" retiré (user feedback : sub-meta peu pertinent, déjà couvert par chips + page-actions). IDs cachés conservés pour compat scripts. -->
@@ -906,10 +905,7 @@
          CLIENTS                                  : Carnet clients (B2B)
          ============================================================ -->
     <section class="page" id="page-clients">
-      <!-- Phase 2 HTML refonte : breadcrumb -->
-      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
-        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
-      </nav>
+      <!-- Phase 91.54 I.10 : breadcrumb retiré (page niveau 1 sidebar, le retour n'a pas de sens) -->
 
       <!-- Phase 7 refonte HTML : title-row (H1 page name + sub-meta count) -->
       <div class="title-row">
@@ -972,7 +968,7 @@
         <button class="ds-chip" type="button" data-chip="risque" onclick="cliChipFilter('risque')">Risque</button>
         <button class="ds-chip" type="button" data-chip="inactifs" onclick="cliChipFilter('inactifs')">Inactifs</button>
       </div>
-      <div class="card">
+      <div class="card table-card">
         <div class="table-wrapper">
           <!-- H10 mockup-aligned : NOM / VILLE / SIREN / TEL / CA 12M / ENCOURS / STATUT / ACTIONS -->
           <table class="data-table clients-table">
@@ -987,10 +983,7 @@
          FOURNISSEURS                             : Carnet fournisseurs (miroir clients)
          ============================================================ -->
     <section class="page" id="page-fournisseurs">
-      <!-- Phase 2 HTML refonte : breadcrumb -->
-      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
-        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
-      </nav>
+      <!-- Phase 91.54 I.10 : breadcrumb retiré (page niveau 1 sidebar, le retour n'a pas de sens) -->
 
       <!-- Phase 7 refonte HTML : title-row -->
       <div class="title-row">
@@ -1053,7 +1046,7 @@
         <button class="ds-chip" type="button" data-chip="garage" onclick="frnChipFilter('garage')">Garage</button>
         <button class="ds-chip" type="button" data-chip="assurance" onclick="frnChipFilter('assurance')">Assurance</button>
       </div>
-      <div class="card">
+      <div class="card table-card">
         <div class="table-wrapper">
           <!-- H11 mockup-aligned : NOM / CATÉGORIE / VILLE / TEL / DÉPENSES 12M / À RÉGLER / ACTIONS -->
           <table class="data-table fournisseurs-table">
@@ -1068,10 +1061,7 @@
          VÉHICULES                                : Flotte : immatriculation, CT, kms, finances par véhicule
          ============================================================ -->
     <section class="page" id="page-vehicules">
-      <!-- Phase 2 HTML refonte : breadcrumb -->
-      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
-        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
-      </nav>
+      <!-- Phase 91.54 I.10 : breadcrumb retiré (page niveau 1 sidebar, le retour n'a pas de sens) -->
 
       <!-- Phase 7 refonte HTML : title-row -->
       <div class="title-row">
@@ -1640,10 +1630,7 @@
          STATISTIQUES                             : CA, livraisons, panier moyen, km totaux + graphes
          ============================================================ -->
     <section class="page" id="page-statistiques">
-      <!-- Phase 2 HTML refonte : breadcrumb -->
-      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
-        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
-      </nav>
+      <!-- Phase 91.54 I.10 : breadcrumb retiré (page niveau 1 sidebar, le retour n'a pas de sens) -->
 
       <!-- Phase 8 refonte HTML : title-row -->
       <div class="title-row">
@@ -1947,10 +1934,7 @@
          ALERTES                                  : Centre d'alertes : CT, permis, conso, échéances
          ============================================================ -->
     <section class="page" id="page-alertes">
-      <!-- Phase 2 HTML refonte : breadcrumb -->
-      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
-        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
-      </nav>
+      <!-- Phase 91.54 I.10 : breadcrumb retiré (page niveau 1 sidebar, le retour n'a pas de sens) -->
 
       <!-- Phase 7 refonte HTML : title-row -->
       <div class="title-row">
@@ -2882,10 +2866,7 @@
          CHARGES                                  : Charges d'exploitation (carburant, entretien, etc.)
          ============================================================ -->
     <section class="page" id="page-charges">
-      <!-- Phase 2 HTML refonte : breadcrumb (mockup canonique) -->
-      <nav class="crumbs ds-crumbs" aria-label="Fil d'Ariane">
-        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
-      </nav>
+      <!-- Phase 91.54 I.10 : breadcrumb retiré (page niveau 1 sidebar) -->
 
       <!-- Phase 7 refonte HTML : title-row -->
       <div class="title-row">
@@ -3019,9 +3000,9 @@
         </button>
         <button class="ds-chip" type="button" data-charges-cat="assurance" onclick="appliquerChipCharges('assurance')" role="tab" aria-selected="false">Assurance <span class="ds-chip__count" id="charges-chip-count-assurance">0</span>
         </button>
-        <button class="ds-chip" type="button" data-charges-cat="peage" onclick="appliquerChipCharges('peage')" role="tab" aria-selected="false">🛂 Péages <span class="ds-chip__count" id="charges-chip-count-peage">0</span>
+        <button class="ds-chip" type="button" data-charges-cat="peage" onclick="appliquerChipCharges('peage')" role="tab" aria-selected="false">Péages <span class="ds-chip__count" id="charges-chip-count-peage">0</span>
         </button>
-        <button class="ds-chip" type="button" data-charges-cat="parking" onclick="appliquerChipCharges('parking')" role="tab" aria-selected="false">🅿️ Parking <span class="ds-chip__count" id="charges-chip-count-parking">0</span>
+        <button class="ds-chip" type="button" data-charges-cat="parking" onclick="appliquerChipCharges('parking')" role="tab" aria-selected="false">Parking <span class="ds-chip__count" id="charges-chip-count-parking">0</span>
         </button>
         <button class="ds-chip" type="button" data-charges-cat="tva" onclick="appliquerChipCharges('tva')" role="tab" aria-selected="false">Taxes <span class="ds-chip__count" id="charges-chip-count-tva">0</span>
         </button>
@@ -3048,7 +3029,7 @@
         </select>
         <select id="filtre-charge-statut" onchange="afficherCharges()" aria-label="Filtrer charge par statut">
           <option value="">Tous statuts</option>
-          <option value="a_payer">⏳ À payer</option>
+          <option value="a_payer">À payer</option>
           <option value="paye">Payé</option>
           <option value="partiel">Partiel</option>
           <option value="en_retard">En retard</option>
@@ -3467,10 +3448,7 @@
          CALENDRIER                               : Calendrier opérationnel mensuel (Sprint 16)
          ============================================================ -->
     <section class="page" id="page-calendrier">
-      <!-- Phase 2 HTML refonte : breadcrumb -->
-      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
-        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
-      </nav>
+      <!-- Phase 91.54 I.10 : breadcrumb retiré (page niveau 1 sidebar, le retour n'a pas de sens) -->
 
       <!-- Phase 8 refonte HTML : title-row -->
       <div class="title-row">
@@ -4929,7 +4907,7 @@
           <div class="form-group">
             <label for="charge-statut-paiement">Statut paiement *</label>
             <select id="charge-statut-paiement" onchange="toggleChargeStatutPaiement()">
-              <option value="a_payer">⏳ À payer</option>
+              <option value="a_payer">À payer</option>
               <option value="paye">Payé</option>
               <option value="partiel">Paiement partiel</option>
             </select>

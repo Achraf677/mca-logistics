@@ -87,10 +87,12 @@
   --t-base: 250ms ease;
   --t-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Typographie (inchangee) */
-  --font-display: 'Syne', system-ui, sans-serif;
-  --font-body: 'DM Sans', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* Typographie — Phase 91.54 I.6 : pointer vers tokens --ds-* (source unique pour polices dynamiques Phase V).
+     `--ds-font-body` / `--ds-font-display` sont déclarés dans style-tokens.css avec mêmes valeurs.
+     Les setProperty(':root', '--ds-font-body', 'Inter') feront propager partout via cette alias. */
+  --font-display: var(--ds-font-display, 'Syne', system-ui, sans-serif);
+  --font-body:    var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
+  --font-mono:    var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
 
   /* Alias rétro-compatibilité (legacy) — reroutes sur la nouvelle palette */
   --bg-dark: var(--bg);
@@ -1121,6 +1123,18 @@ body.light-mode .searchbar-clear:hover {
 #page-parametres .btn-secondary,
 #page-parametres .btn-theme-toggle {
   align-self: flex-start;
+}
+/* Phase 91.54 I.7 — bouton Mode clair/sombre dans Paramètres > Apparence :
+   topbar-refine.css force width:36px;height:36px;padding:0 → masque le label "Mode clair / sombre".
+   Override explicite pour la version Paramètres (en dehors du topbar). */
+#page-parametres .btn-theme-toggle {
+  width: auto !important;
+  height: auto !important;
+  padding: 8px 16px !important;
+  gap: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 .form-group { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .form-group.full-width { grid-column: 1 / -1; }

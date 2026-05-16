@@ -470,6 +470,8 @@
 
   // ============ Trigger render quand la page devient active ============
   function renderAll() {
+    /* Phase 91.54 I.12 — skip si onglet pas visible */
+    if (document.hidden) return;
     try { renderCarbEvol6m(); } catch (e) { console.warn('[chart-carb-evol]', e); }
     try { renderCarbParVehicule(); } catch (e) { console.warn('[chart-carb-veh]', e); }
     try { renderEncVsImpayes6m(); } catch (e) { console.warn('[chart-enc-vs-imp]', e); }

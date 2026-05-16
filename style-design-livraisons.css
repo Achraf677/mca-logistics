@@ -124,7 +124,8 @@ input[type="checkbox"] {
 .bulk-action-bar .bulk-count {
   font-family: var(--ds-font-display);
   font-weight: var(--ds-fw-display);
-  font-style: italic;
+  /* Phase 91.54 I.5 — italic Syne synthétisé "moche" */
+  font-style: normal;
   color: var(--ds-brand);
   letter-spacing: -0.02em;
 }

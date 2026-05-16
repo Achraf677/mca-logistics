@@ -12,6 +12,8 @@
   }
 
   function update() {
+    /* Phase 91.54 I.12 — skip si onglet pas visible (gain perf ~50% CPU idle) */
+    if (document.hidden) return;
     var now = new Date();
     var kpiEcheance = document.getElementById('tva-kpi-echeance');
     var subEcheance = document.getElementById('tva-echeance-sub');

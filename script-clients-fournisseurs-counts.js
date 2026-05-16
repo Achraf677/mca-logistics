@@ -48,6 +48,8 @@
   }
 
   function update() {
+    /* Phase 91.54 I.12 — skip si onglet pas visible (gain perf ~50% CPU idle) */
+    if (document.hidden) return;
     var cliSubTotal = document.getElementById('clients-section-sub-total');
     var cliSubActifs = document.getElementById('clients-section-sub-actifs');
     var frnSubTotal = document.getElementById('fournisseurs-section-sub-total');

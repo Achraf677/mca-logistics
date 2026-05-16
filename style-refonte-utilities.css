@@ -7,6 +7,70 @@
 
    ========================================================================== */
 
+/* ============ Phase 91.54 — Quick wins fondations ============ */
+
+/* I.1 Topbar padding global : aérer entre topbar et contenu sur TOUTES les pages
+   (avant : seul Dashboard avait style="margin-top:20px" en inline). */
+.page > .ds-section-head:first-child,
+.page > .page-actions.ds-section-head:first-child,
+.page > .title-row:first-child,
+.page > .ds-crumbs + .title-row,
+.page > .ds-crumbs + .ds-section-head,
+.page > .ds-crumbs + .page-actions {
+  margin-top: 20px;
+}
+
+/* I.4 .ds-export-btn : classe était VIDE en CSS → bouton "Exporter" avait fond noir bizarre.
+   On l'aligne sur .btn-secondary standard et on ajoute styles pour caret et hover. */
+.ds-export-btn {
+  background: transparent;
+  border: 1px solid var(--ds-border, rgba(255,255,255,0.12));
+  color: var(--ds-text, #f1f3f5);
+  border-radius: var(--ds-r-md, 8px);
+  padding: 8px 14px;
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.ds-export-btn:hover {
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.06));
+  border-color: var(--ds-border-strong, rgba(255,255,255,0.20));
+  color: var(--ds-text, #f1f3f5);
+}
+.ds-export-btn[aria-expanded="true"] {
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.06));
+  border-color: var(--ds-brand, #e63946);
+}
+.ds-export-caret {
+  opacity: 0.6;
+  transition: transform 0.15s ease;
+}
+.ds-export-btn[aria-expanded="true"] .ds-export-caret {
+  transform: rotate(180deg);
+}
+
+/* I.13 will-change uniquement sur drawers (perf : déclenche compositor layer sans coût global) */
+.dr-panel,
+.s20-fiche-overlay,
+.s20-fiche-panel,
+.modal-overlay {
+  will-change: transform;
+}
+
+/* I.14 Progress bars : transform scaleX au lieu de transition width (perf : évite layout recalc) */
+.seuil-barre-fill,
+.s21-conso-fill,
+.s19-kpi-bar-fill,
+.progress-bar-fill {
+  transform-origin: left center;
+  transition: transform 0.4s ease;
+}
+
 /* Texte */
 .u-muted-sm        { font-size: .82rem; color: var(--text-muted); }
 .u-muted-xs        { font-size: .78rem; color: var(--text-muted); }

@@ -13,6 +13,8 @@
   }
 
   function update() {
+    /* Phase 91.54 I.12 — skip si onglet pas visible (gain perf ~50% CPU idle) */
+    if (document.hidden) return;
     var kpiSemaine = document.getElementById('insp-kpi-semaine');
     var kpiDefauts = document.getElementById('insp-kpi-defauts');
     var kpiConformite = document.getElementById('insp-kpi-conformite');

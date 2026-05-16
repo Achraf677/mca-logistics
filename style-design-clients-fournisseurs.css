@@ -173,7 +173,8 @@ tr[data-impaye="1"] td {
 .fournisseur-stat-value {
   font-family: var(--ds-font-display);
   font-weight: var(--ds-fw-display);
-  font-style: italic;
+  /* Phase 91.54 I.5 — italic Syne synthétisé (font sans variante italic chargée) "moche" feedback user */
+  font-style: normal;
   color: var(--ds-text);
   letter-spacing: -0.02em;
   font-feature-settings: "tnum";
@@ -327,10 +328,11 @@ tr[data-impaye="1"] td {
 /* ============ Phase 47 : Exporter dropdown menu ============ */
 
 .ds-dropdown-menu {
-  background: var(--bg-card, #1e2230);
-  border: 1px solid var(--border-strong, rgba(255,255,255,0.12));
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  /* Phase 91.54 I.2 : bg `#1e2230` quasi-noir donnait l'effet "bouton Exporter noir" — passage à ds-bg-elevated plus clair */
+  background: var(--ds-bg-elevated, #22262d);
+  border: 1px solid var(--ds-border-strong, rgba(255,255,255,0.18));
+  border-radius: var(--ds-r-md, 8px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
   padding: 4px 0;
   min-width: 180px;
 }
