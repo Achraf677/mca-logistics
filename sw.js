@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v366-hotfix-script-js-orphan-brace';
+const CACHE_VERSION = 'mca-v2026-05-16-v367-phaseX-L-Q-batch-6-modules';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -153,6 +153,13 @@ const CORE_ASSETS = [
   '/script-core-fiche-tournee.js',
   // Phase X.K (91.100) — Document viewer modal extrait de script.js
   '/script-core-doc-viewer.js',
+  // Phase X.L-Q : 6 modules batch extraits de script.js
+  '/script-core-chart-helpers.js',
+  '/script-core-image-compress.js',
+  '/script-core-pagination.js',
+  '/script-core-empty-states.js',
+  '/script-core-kanban.js',
+  '/script-core-calendrier-livraisons.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
