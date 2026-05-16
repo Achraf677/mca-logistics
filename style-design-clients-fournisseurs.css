@@ -334,6 +334,23 @@ tr[data-impaye="1"] td {
   padding: 4px 0;
   min-width: 180px;
 }
+/* Phase 91.52 fix — `.open` state override l'inline `display:none` posé pour positioning */
+.ds-dropdown-menu.open {
+  display: block !important;
+}
+/* Style des sous-libellés dans menu items (ld-name + ld-sub) */
+.ds-menu-item .ld-name {
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--ds-text, #f1f3f5);
+}
+.ds-menu-item .ld-sub {
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
+  font-size: 0.72rem;
+  color: var(--ds-text-muted, #adb5bd);
+  margin-top: 1px;
+}
 
 .ds-menu-item {
   display: flex;

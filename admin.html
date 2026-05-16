@@ -112,7 +112,6 @@
   <!-- Phase 29 refonte HTML : topbar refine (brand + search input look + theme + agent + user compact) -->
   <link rel="stylesheet" href="style-design-topbar-refine.css?v=1" />
   <link rel="stylesheet" href="style-design-heures-incidents.css?v=2" />
-  <link rel="stylesheet" href="style-design-brouillons-ia.css?v=1" />
   <!-- Phase 57 refonte HTML : Encaissement chips + table + period nav mockup-aligned -->
   <link rel="stylesheet" href="style-design-encaissement.css?v=1" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
@@ -170,7 +169,6 @@
   <script defer src="script-entretiens-chips.js?v=1"></script>
   <!-- Phase 51 refonte HTML — Entretiens alert banner (CT échéances) -->
   <script defer src="script-entretiens-alert.js?v=2"></script>
-  <script defer src="script-brouillons-counts.js?v=1"></script>
   <!-- Phase 3 refonte : dashboard "Points d'attention" preview (top 3 alertes) -->
   <script defer src="script-dashboard-attention.js?v=2"></script>
   <!-- Phase 7 refonte : title-row counts populated cross-pages -->
@@ -318,7 +316,6 @@
           <span class="nav-section-chevron" aria-hidden="true">▾</span>
         </button>
         <div class="nav-section-content" id="nav-section-content-systeme">
-          <a href="#" class="nav-item" data-page="brouillons-ia"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg></span><span class="nav-label">Brouillons IA <span class="badge-alertes-nav" id="badge-brouillons-ia" style="display:none"></span></span></a>
           <a href="#" class="nav-item" data-page="parametres"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="nav-label">Paramètres</span></a>
         </div>
       </div>
@@ -3497,7 +3494,8 @@
               Imprimer
               <svg viewBox="0 0 24 24" width="11" height="11" class="u-svg-base ds-export-caret" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="ds-export-menu" id="cal16-print-menu" role="menu">
+            <!-- Phase 91.52 fix : class ds-dropdown-menu + inline style position:absolute (pattern carb-export-menu qui marche) -->
+            <div class="ds-dropdown-menu" id="cal16-print-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:240px;z-index:50">
               <button class="ds-menu-item" role="menuitem" onclick="window.cal16?.imprimer();document.getElementById('cal16-print-menu').classList.remove('open');document.getElementById('cal16-print-btn').setAttribute('aria-expanded','false')">
                 <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
                 <div><div class="ld-name">Calendrier rempli</div><div class="ld-sub">Avec livraisons, échéances, fériés</div></div>
@@ -3874,61 +3872,7 @@
       </div>
     </section>
 
-    <!-- ============================================================
-         BROUILLONS IA                            : Validation des actions proposées par l'IA
-         ============================================================ -->
-    <section class="page" id="page-brouillons-ia" hidden>
-      <!-- Phase 8 refonte HTML : title-row -->
-      <div class="title-row">
-        <h1 class="page-title">Brouillons IA</h1>
-        <div class="sub-meta">Actions proposées par l'assistant à valider · création, modification, suppression</div>
-      </div>
-
-      <!-- Phase 35 refonte HTML : section-head -->
-      <div class="page-actions ds-section-head">
-        <div class="ds-section-head__title">
-          <h2>Brouillons IA</h2>
-          <div class="ds-section-head__sub">
-            <span><span id="brouillons-section-sub-count">0</span> actions en attente de validation</span>
-            <span class="ds-section-head__sep">·</span>
-            <span><span id="brouillons-section-sub-traitees">0</span> traitées ce mois</span>
-          </div>
-        </div>
-        <!-- Phase 53 : Valider/Rejeter sélection (mockup-aligned) -->
-        <div class="ds-section-head__actions">
-          <button class="btn-secondary" onclick="(function(){var drafts=window.AIBrouillons?._state?.drafts||[];var checked=document.querySelectorAll('#brouillons-ia-list input[type=checkbox]:checked');if(!checked.length){alert('Cocher des brouillons à rejeter');return;}if(confirm('Rejeter '+checked.length+' brouillon(s) ?')){checked.forEach(function(c){var id=c.closest('[data-id]')?.getAttribute('data-id');if(id&&window.AIBrouillons?.rejectDraft)window.AIBrouillons.rejectDraft(id);});}})()">Rejeter sélection</button>
-          <button class="btn-primary" onclick="(function(){var checked=document.querySelectorAll('#brouillons-ia-list input[type=checkbox]:checked');if(!checked.length){alert('Cocher des brouillons à valider');return;}if(confirm('Valider '+checked.length+' brouillon(s) ?')){checked.forEach(function(c){var id=c.closest('[data-id]')?.getAttribute('data-id');if(id&&window.AIBrouillons?.approveDraft)window.AIBrouillons.approveDraft(id);});}})()">Valider sélection</button>
-        </div>
-      </div>
-      <!-- Phase 45 refonte HTML — Brouillons IA KPI grid -->
-      <div class="kpi-grid" style="margin-bottom:16px">
-        <div class="kpi"><div class="kpi-lbl">En attente</div><div class="kpi-val" id="brouillons-kpi-attente">—</div><div class="kpi-sub">À traiter</div></div>
-        <div class="kpi"><div class="kpi-lbl">Validées mois</div><div class="kpi-val" id="brouillons-kpi-validees">—</div><div class="kpi-sub" id="brouillons-kpi-validees-sub">Ce mois</div></div>
-        <div class="kpi"><div class="kpi-lbl">Rejetées mois</div><div class="kpi-val" id="brouillons-kpi-rejetees">—</div><div class="kpi-sub">Ce mois</div></div>
-        <div class="kpi"><div class="kpi-lbl">Économie temps</div><div class="kpi-val" id="brouillons-kpi-temps">—</div><div class="kpi-sub">Sur saisie manuelle</div></div>
-      </div>
-      <!-- Phase 45 — chips toolbar statut brouillons -->
-      <div class="ds-chips-toolbar" id="brouillons-chips" role="tablist" aria-label="Filtrer les brouillons par statut" style="margin-bottom:12px">
-        <button class="ds-chip active" type="button" role="tab" aria-selected="true" data-brouillons-statut="pending" onclick="brouillonsChipFilter(this)">En attente</button>
-        <button class="ds-chip" type="button" role="tab" aria-selected="false" data-brouillons-statut="executed" onclick="brouillonsChipFilter(this)">Validées</button>
-        <button class="ds-chip" type="button" role="tab" aria-selected="false" data-brouillons-statut="rejected" onclick="brouillonsChipFilter(this)">Rejetées</button>
-        <button class="ds-chip" type="button" role="tab" aria-selected="false" data-brouillons-statut="ocr" onclick="brouillonsChipFilter(this)">OCR factures</button>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <h3 id="brouillons-card-title">Actions en attente</h3>
-          <div class="u-muted-xs">Approuver ou rejeter chaque proposition</div>
-        </div>
-        <div style="padding:14px 18px" id="brouillons-ia-list">
-          <!-- Phase 60 polish : skeleton loader mockup-aligned -->
-          <div class="aib-skeleton" style="padding:14px 0">
-            <div style="display:flex;gap:12px;margin-bottom:14px"><div class="skel-bar" style="width:120px;height:14px;background:var(--bg-card-hover);border-radius:4px;animation:skel-pulse 1.4s ease-in-out infinite"></div><div class="skel-bar" style="flex:1;height:14px;background:var(--bg-card-hover);border-radius:4px;animation:skel-pulse 1.4s ease-in-out infinite;animation-delay:0.1s"></div></div>
-            <div style="display:flex;gap:12px;margin-bottom:14px"><div class="skel-bar" style="width:140px;height:14px;background:var(--bg-card-hover);border-radius:4px;animation:skel-pulse 1.4s ease-in-out infinite;animation-delay:0.2s"></div><div class="skel-bar" style="flex:1;height:14px;background:var(--bg-card-hover);border-radius:4px;animation:skel-pulse 1.4s ease-in-out infinite;animation-delay:0.3s"></div></div>
-            <div style="display:flex;gap:12px"><div class="skel-bar" style="width:100px;height:14px;background:var(--bg-card-hover);border-radius:4px;animation:skel-pulse 1.4s ease-in-out infinite;animation-delay:0.4s"></div><div class="skel-bar" style="flex:1;height:14px;background:var(--bg-card-hover);border-radius:4px;animation:skel-pulse 1.4s ease-in-out infinite;animation-delay:0.5s"></div></div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <!-- Phase 91.53 : page Brouillons IA supprimée (user a demandé retrait complet) -->
 
   </main>
 
@@ -5459,9 +5403,6 @@
   <script defer src="script-core-audit.js?v=20260509e-59"></script>
   <script defer src="script-core-dso.js?v=20260516a-1"></script>
   <script defer src="script-ai-chat.js?v=20260509e-58"></script>
-  <!-- Brouillons IA : page admin de validation des actions IA en attente.
-       Expose window.AIBrouillons utilise par script-core-navigation.js (case 'brouillons-ia'). -->
-  <script defer src="script-ai-brouillons.js?v=20260510a-3"></script>
   <script defer src="script-cout-ia.js?v=20260509e-58"></script>
   <script defer src="script-core-stats-helpers.js?v=20260516a-1"></script>
   <script defer src="script-core-recherche.js?v=20260509e-58"></script>

@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v316-phase91-52-cal-dropdown-fonts-trailing';
+const CACHE_VERSION = 'mca-v2026-05-16-v317-phase91-53-brouillons-removed-dropdown-fix';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -152,7 +152,6 @@ const CORE_ASSETS = [
   // Phase 51 refonte HTML — Entretiens alert banner (CT échéances)
   '/script-entretiens-alert.js',
   // Phase 45 refonte HTML — Brouillons IA KPI grid counts
-  '/script-brouillons-counts.js',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',
@@ -210,7 +209,6 @@ const CORE_ASSETS = [
   '/script-core-dashboard-kpis.js',
   '/script-drawer-360-pc-parite.js',
   '/script-ai-chat.js',
-  '/script-ai-brouillons.js',
   '/script-cout-ia.js',
   '/lazy-loader.js',
   '/lazy-stubs.js',

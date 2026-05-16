@@ -35,7 +35,6 @@ function naviguerVers(page) {
     heures:'Heures & Km',
     equipe:'Équipe',
     'espace-salarie':'Espace salarié',
-    'brouillons-ia':'Brouillons IA',
     // #18 #66 audit Chrome : breadcrumbs en minuscules sans emoji
     // ("calendrier", "encaissement") car alias absents du mapping.
     calendrier: 'Calendrier opérationnel',
@@ -79,13 +78,7 @@ function naviguerVers(page) {
         case 'entretiens':   navEntrMois(0); break;
         case 'parametres':   chargerParametres(); break;
         case 'espace-salarie': chargerCadreSalarieUnifie(); break;
-        case 'brouillons-ia': {
-          if (window.AIBrouillons && typeof window.AIBrouillons.renderDraftsPage === 'function') {
-            const ct = document.getElementById('brouillons-ia-list');
-            if (ct) window.AIBrouillons.renderDraftsPage(ct);
-          }
-          break;
-        }
+        // Phase 91.53 : case 'brouillons-ia' supprimé (page retirée)
       }
     });
   });

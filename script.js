@@ -949,7 +949,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'clients','fournisseurs','vehicules','carburant','entretiens','inspections',
     'charges','encaissement','tva','rentabilite','statistiques',
     'salaries','heures','equipe','incidents',
-    'parametres','brouillons-ia','espace-salarie'
+    'parametres','espace-salarie'
   ];
   if (deeplinkPage && DEEPLINK_ROUTES.indexOf(deeplinkPage) >= 0) {
     naviguerVers(deeplinkPage);
