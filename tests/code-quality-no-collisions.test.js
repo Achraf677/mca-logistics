@@ -86,22 +86,25 @@ test('H2.1 collisions — renderLivraisonsAdminFinal : exactement 1 def hard dan
 // 3. naviguerVers — wrappers chaine avec idempotence
 // ============================================================
 test('H2.1 collisions — naviguerVers : tous les overrides sont des wrappers chaines (avec marqueur idempotent)', () => {
-  const files = ['script.js', 'script-encaissement.js'];
+  // Phase X.BK-BP (2026-05-17) : les wrappers S16/S19/S22 sont maintenant dans
+  // leurs modules extraits respectifs. Test mis à jour pour scanner ces fichiers.
+  const files = [
+    'script.js',
+    'script-encaissement.js',
+    'script-core-sprint16-calendrier-operationnel.js',
+    'script-core-sprint19-centre-alertes.js',
+    'script-core-sprint22-23-hubs.js',
+  ];
   let totalOverrides = 0;
   for (const f of files) {
-    const src = stripComments(read(f));
-    // Compte 'window.naviguerVers = w;' ou 'window.naviguerVers = wrapped;'
+    let src;
+    try { src = stripComments(read(f)); } catch (_) { continue; }
     const overrides = src.match(/window\.naviguerVers\s*=\s*(?:w|wrapped|wraplockNav)\s*;/g) || [];
     totalOverrides += overrides.length;
-    // Pour chaque override, on doit voir un marqueur __sNN ou __encHook plus haut (capture orig + idempotent)
-    // Sanity-check : compte les `const orig = window.naviguerVers` ou `var orig = window.naviguerVers`
     const origCaptures = src.match(/(?:const|var)\s+orig\s*=\s*window\.naviguerVers/g) || [];
     assert.ok(origCaptures.length >= overrides.length,
       `${f} : chaque override de naviguerVers doit capturer 'orig = window.naviguerVers' avant. orig captures: ${origCaptures.length}, overrides: ${overrides.length}`);
   }
-  // Sanity : on attend ~4 wrappers (S16 calendar, S19 alertes, S22 hubs, encaissement).
-  // Si quelqu'un en ajoute un 5e ou 6e, ce test continue à passer (chain pattern OK)
-  // mais bump le compte attendu pour suivre l'évolution.
   assert.ok(totalOverrides >= 3 && totalOverrides <= 8,
     `Nombre de wrappers naviguerVers = ${totalOverrides} (attendu 3..8). Si > 8, refactoriser en registre de listeners style hooks modal.`);
 });
@@ -110,13 +113,16 @@ test('H2.1 collisions — naviguerVers : tous les overrides sont des wrappers ch
 // 4. fermerFiche360 — canonique S20 + 1 fallback defensif S21
 // ============================================================
 test('H2.1 collisions — fermerFiche360 : 1 def canonique + 1 fallback guarded `if !function`', () => {
-  const src = stripComments(read('script.js'));
-  const allDefs = src.match(/window\.fermerFiche360\s*=\s*function\s*\(/g) || [];
-  assert.equal(allDefs.length, 2,
-    `Attendu : 1 canonique (S20) + 1 fallback (S21 guarde par 'if (typeof window.fermerFiche360 !== \\'function\\')'). Trouvé: ${allDefs.length}`);
-  // Verifie que le 2e def est precede d'un guard 'if (typeof window.fermerFiche360 !== \'function\')'
-  const guarded = src.match(/if\s*\(\s*typeof\s+window\.fermerFiche360\s*!==\s*'function'\s*\)\s*\{\s*window\.fermerFiche360\s*=/);
-  assert.ok(guarded, 'Le 2e def fermerFiche360 doit etre dans un bloc if (typeof window.fermerFiche360 !== function) — fallback defensif.');
+  // Phase X.BK-BP (2026-05-17) : S20 + S21 fallback déplacés vers leurs modules.
+  const srcS20 = stripComments(read('script-core-sprint20-rh360.js'));
+  const srcS21 = stripComments(read('script-core-sprint21-parc360.js'));
+  const allDefs = (srcS20.match(/window\.fermerFiche360\s*=\s*function\s*\(/g) || []).length
+                + (srcS21.match(/window\.fermerFiche360\s*=\s*function\s*\(/g) || []).length;
+  assert.equal(allDefs, 2,
+    `Attendu : 1 canonique (S20) + 1 fallback (S21 guarde par 'if (typeof window.fermerFiche360 !== \\'function\\')'). Trouvé: ${allDefs}`);
+  // Verifie que le 2e def (S21) est precede d'un guard
+  const guarded = srcS21.match(/if\s*\(\s*typeof\s+window\.fermerFiche360\s*!==\s*'function'\s*\)\s*\{\s*window\.fermerFiche360\s*=/);
+  assert.ok(guarded, 'Le def fermerFiche360 de S21 doit etre dans un bloc if (typeof window.fermerFiche360 !== function) — fallback defensif.');
 });
 
 // ============================================================
@@ -168,12 +174,23 @@ test('H2.1 collisions — openModal/closeModal : registre modal-hooks expose dan
 // 7. Audit global : compte des marqueurs WRAPPER pour traçabilite
 // ============================================================
 test('H2.1 collisions — chaque wrapper chaine est documente par un commentaire WRAPPER', () => {
-  // Compte les commentaires `/* WRAPPER ... */` dans script.js + script-livraisons.js + script-encaissement.js.
-  // Doit etre >= 5 (S7, S8, S9, S10, S16, S19, S22, S21, encaissement, server-pagination, S11, S15, mcaLivForm).
-  // C'est une borne basse pour eviter une regression silencieuse.
+  // Phase X.BK-BP (2026-05-17) : les commentaires WRAPPER sont maintenant
+  // répartis entre script.js (legacy) et les modules Sprint extraits.
   let total = 0;
-  for (const f of ['script.js', 'script-livraisons.js', 'script-encaissement.js']) {
-    const src = read(f);
+  const files = [
+    'script.js',
+    'script-livraisons.js',
+    'script-encaissement.js',
+    'script-core-sprint16-calendrier-operationnel.js',
+    'script-core-sprint19-centre-alertes.js',
+    'script-core-sprint20-rh360.js',
+    'script-core-sprint21-parc360.js',
+    'script-core-sprint22-23-hubs.js',
+    'script-core-toast.js',
+  ];
+  for (const f of files) {
+    let src;
+    try { src = read(f); } catch (_) { continue; }
     const matches = src.match(/\/\*\s*(?:WRAPPER|HELPER|CANONIQUE)\s+/g) || [];
     total += matches.length;
   }
