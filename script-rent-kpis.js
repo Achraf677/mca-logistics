@@ -61,6 +61,16 @@
     setText('rent-kpi-charges', euros(totalCharges));
     setText('rent-kpi-marge', caHT > 0 ? marge.toFixed(1).replace('.', ',') + ' %' : '—');
     setText('rent-kpi-cout-km', coutKm > 0 ? euros(coutKm) + '/km' : '—');
+
+    // Phase 89 : kpi-sub dynamic values
+    var livsCount = livraisons.filter(function(l) { var d = (l.dateLivraison || l.dateLiv || l.date || ""); return d >= moisDebut && d <= moisFin; }).length;
+    setText("rent-kpi-ca-sub", livsCount > 0 ? livsCount + " livraison" + (livsCount > 1 ? "s" : "") : "Hors taxes");
+    var margeEur = caHT - totalCharges;
+    if (margeEur !== 0) {
+      var margeEl = document.getElementById("rent-kpi-marge-sub");
+      if (margeEl) margeEl.innerHTML = margeEur > 0 ? "<span class=\"up\">" + euros(margeEur) + "</span> de marge" : "<span class=\"down\">" + euros(margeEur) + "</span> deficit";
+    }
+    if (kmTotal > 0) setText("rent-kpi-cout-km-sub", Math.round(kmTotal) + " km au total");
   }
 
   function init() {
