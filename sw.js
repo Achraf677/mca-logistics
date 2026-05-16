@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v376-phaseX-AY-AZ-iifes-autonomes';
+const CACHE_VERSION = 'mca-v2026-05-17-v377-phaseX-BA-BE-sprints-3-7';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -204,6 +204,12 @@ const CORE_ASSETS = [
   // Phase X.AY-AZ : 2 IIFEs autonomes
   '/script-core-synchro-admin-polling.js',
   '/script-core-sidebar-hierarchique.js',
+  // Phase X.BA-BE : Sprints 3-7 IIFEs
+  '/script-core-sprint3-command-palette.js',
+  '/script-core-sprint4-hero-sante.js',
+  '/script-core-sprint5-side-drawer.js',
+  '/script-core-sprint6-bulk-actions.js',
+  '/script-core-sprint7-pagination-search.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
