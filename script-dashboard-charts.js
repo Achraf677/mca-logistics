@@ -307,6 +307,8 @@
 
   // ============ Public API ============
   function renderAll() {
+    /* Phase 91.54.1 — skip si onglet pas visible */
+    if (document.hidden) return false;
     var ok1 = renderAreaChart();
     var ok2 = renderDonut();
     return ok1 || ok2;

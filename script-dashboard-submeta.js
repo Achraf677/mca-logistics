@@ -7,6 +7,8 @@
     return mois.charAt(0).toUpperCase() + mois.slice(1) + ' ' + d.getFullYear();
   }
   function update() {
+    /* Phase 91.54.1 — skip si onglet pas visible */
+    if (document.hidden) return;
     var lbl = moisLabel();
     var dashEl = document.getElementById('dashboard-section-sub-date');
     if (dashEl) dashEl.textContent = lbl;

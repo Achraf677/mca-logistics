@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://browser.sentry-cdn.com" crossorigin>
   <link rel="dns-prefetch" href="https://o4511305319907328.ingest.de.sentry.io">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="preload" as="style" href="style.css?v=20260516d-91-54">
+  <link rel="preload" as="style" href="style.css?v=20260516e-91-54-1">
   <link rel="preload" as="script" href="script.js?v=20260516c-91-50">
   <!-- Phase 91.54 I.3 : ajout JetBrains Mono (était dans tokens mais non chargée → fallback Courier ressenti "police robot") -->
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -53,7 +53,7 @@
   </style>
   <!-- Design system tokens (Phase 4 / PR-1) — prefixe --ds-* purement additif. N'ecrase aucun token existant (--accent, --bg-card, etc.). Inerte tant qu'aucun selecteur ne consomme --ds-*. -->
   <link rel="stylesheet" href="style-tokens.css?v=1" />
-  <link rel="stylesheet" href="style.css?v=20260516d-91-54" />
+  <link rel="stylesheet" href="style.css?v=20260516e-91-54-1" />
   <!-- Design shell (Phase 4 / PR-2) — restyle sidebar + topbar avec --ds-*. CSS-only, aucun changement HTML. Charge APRES style.css pour gagner la cascade. -->
   <link rel="stylesheet" href="style-design-shell.css?v=1" />
   <!-- Design dashboard (Phase 4 / PR-4) — restyle KPIs + hero-sante + cards + tables + buttons avec --ds-*. CSS-only. -->
@@ -91,7 +91,7 @@
   <!-- Phase 2 HTML refonte — composants ds canoniques (crumbs / section-head / kpi-grid / chips). -->
   <link rel="stylesheet" href="style-refonte-charges.css?v=3" />
   <!-- Phase 2 refonte HTML : utility classes pour réduire les inline styles répétés -->
-  <link rel="stylesheet" href="style-refonte-utilities.css?v=5" />
+  <link rel="stylesheet" href="style-refonte-utilities.css?v=6" />
   <!-- Phase 5 refonte HTML : dashboard hero row (sante + points attention side-by-side) -->
   <link rel="stylesheet" href="style-design-dashboard-hero.css?v=1" />
   <!-- Phase 6 refonte HTML : title-row + period-row pattern (reusable across pages) -->
@@ -384,7 +384,8 @@
            Pas de breadcrumb sur dashboard (page racine).
            Phase 91.24 — margin-top 20px pour ajouter de l'air entre topbar et "Vue d'ensemble"
            (user feedback : "Vue d'ensemble" collé à la topbar). -->
-      <div class="ds-section-head" style="margin-top:20px;margin-bottom:14px">
+      <!-- Phase 91.54.1 : style margin-top inline retiré (couvert par règle CSS globale .page > .ds-section-head:first-child) -->
+      <div class="ds-section-head" style="margin-bottom:14px">
         <div class="ds-section-head__title">
           <h2>Vue d'ensemble</h2>
           <div class="ds-section-head__sub">

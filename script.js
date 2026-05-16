@@ -2892,8 +2892,11 @@ function enregistrerConduite(livraison) {
 /* Côté admin : vérifier si un salarié commence bientôt (H-15min) ou vient de finir (H+30min) */
 // MOVED -> script-planning.js : verifierTriggersPlanningAuto
 
-// Vérifier toutes les minutes
-setInterval(verifierTriggersPlanningAuto, 60000);
+// Vérifier toutes les minutes (Phase 91.54.1 : skip si onglet pas visible)
+setInterval(function() {
+  if (document.hidden) return;
+  try { verifierTriggersPlanningAuto(); } catch (_) {}
+}, 60000);
 
 /* ===== MOBILE — SWIPE SIDEBAR ===== */
 // MOVED -> script-core-navigation.js : initSwipeSidebar
@@ -11816,7 +11819,7 @@ genererRentabilitePDF = function() {
           <div class="s21-link-card-body">
             <div class="s21-link-card-lbl">Conso réelle vs théorique (30j)</div>
             <div class="s21-link-card-val">${consoReelle.toFixed(1)} L / 100 <span style="color:var(--text-muted);font-weight:400">(théo ${parseFloat(veh.conso).toFixed(1)})</span></div>
-            <div class="s21-conso-bar"><div class="s21-conso-fill ${cl}" style="width:${pct}%"></div></div>
+            <div class="s21-conso-bar"><div class="s21-conso-fill ${cl}" style="transform:scaleX(${(pct/100).toFixed(3)})"></div></div>
           </div>
         </div>`;
     }

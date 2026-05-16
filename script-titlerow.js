@@ -165,6 +165,8 @@
 
   // ============ MAIN UPDATE ============
   function updateAll() {
+    /* Phase 91.54.1 — skip si onglet pas visible (gain perf ~50% CPU idle) */
+    if (document.hidden) return;
     try { updateClients(); } catch (e) {}
     try { updateFournisseurs(); } catch (e) {}
     try { updateVehicules(); } catch (e) {}

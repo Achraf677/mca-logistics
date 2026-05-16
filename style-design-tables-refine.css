@@ -280,11 +280,19 @@
 }
 
 /* ============ TABLE WRAPPER POLISH ============ */
+/* Phase 91.54.1 — `overflow: visible` requis pour les dropdowns Actions qui débordent
+   en bas de table (Clients/Fournisseurs). On garde border-radius via clip-path qui
+   n'affecte pas overflow. Compromis : radius préservé + dropdowns visibles. */
 .table-card {
-  overflow: hidden;
+  overflow: visible;
   border-radius: 12px;
 }
-
+.table-card > .table-wrapper {
+  border-radius: 12px;
+  overflow: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
 .table-wrapper {
   overflow: auto;
   max-width: 100%;

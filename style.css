@@ -8182,7 +8182,8 @@ body.theme-light .s20-fiche-avatar { color: #fff; }
   overflow: hidden;
   margin-top: 6px;
 }
-.s21-conso-fill { height: 100%; transition: width .3s ease; }
+/* Phase 91.54.1 — width 100% + transform scaleX (compositor layer GPU, évite layout recalc) */
+.s21-conso-fill { height: 100%; width: 100%; transform-origin: left center; transition: transform .3s ease; }
 .s21-conso-ok { background: #10b981; }
 .s21-conso-warn { background: #f59e0b; }
 .s21-conso-ko { background: #ef4444; }
