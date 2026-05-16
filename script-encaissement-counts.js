@@ -22,24 +22,46 @@
     if (!kpiEncaisse && !kpiImpayes && !subImpayes) return;
 
     var livraisons = lire('livraisons');
+    var paiementsAll = lire('paiements');
     var now = new Date();
     var moisStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
+    // Phase 91.42 — exclut brouillon/annulee de la dette : pas livré = pas dû.
+    function statutOperationnelValide(l) {
+      var st = (l.statut || '').toLowerCase();
+      return st !== 'brouillon' && st !== 'draft' && st !== 'annule' && st !== 'annulee' && st !== 'annulée';
+    }
+
     var impayes = livraisons.filter(function (l) {
       if (!l) return false;
+      if (!statutOperationnelValide(l)) return false;
       var s = l.statutPaiement || l.statut_paiement || '';
       return s !== 'payé' && s !== 'paye' && s !== 'payee' && s !== 'litige';
     });
 
-    // Encaissé ce mois
-    var encaisseMois = livraisons.filter(function (l) {
+    // Encaissé ce mois — strict : date paiement uniquement (pas de fallback livraison date)
+    // Source A : table paiements (timeline réelle)
+    var encaissePaiements = paiementsAll.filter(function(p) {
+      if (!p || !p.date) return false;
+      var d = new Date(p.date);
+      return !isNaN(d.getTime()) && d >= moisStart;
+    }).reduce(function(s, p) { return s + (parseFloat(p.montant) || 0); }, 0);
+
+    // Source B : livraisons marquées paye sans entry dans paiements (legacy)
+    var paidLivIds = new Set();
+    paiementsAll.forEach(function(p){ if (p && p.livraisonId) paidLivIds.add(p.livraisonId); });
+    var encaisseLivLegacy = livraisons.filter(function (l) {
       if (!l) return false;
+      if (paidLivIds.has(l.id)) return false;
       var s = l.statutPaiement || l.statut_paiement || '';
       if (s !== 'payé' && s !== 'paye' && s !== 'payee') return false;
-      var d = new Date(l.datePaiement || l.date_paiement || l.date || l.dateLivraison || '');
+      var dStr = l.datePaiement || l.date_paiement;
+      if (!dStr) return false;
+      var d = new Date(dStr);
       return !isNaN(d.getTime()) && d >= moisStart;
-    });
-    var totalEncaisse = encaisseMois.reduce(function (s, l) { return s + parseFloat(l.prixTTC || l.prixHT || l.prix || 0); }, 0);
+    }).reduce(function(s, l) { return s + parseFloat(l.prixTTC || l.prixHT || l.prix || 0); }, 0);
+
+    var totalEncaisse = encaissePaiements + encaisseLivLegacy;
     if (kpiEncaisse) kpiEncaisse.textContent = fmtEuros(totalEncaisse);
 
     // Phase 87 : encaisse sub "+X% vs [mois préc]" (mockup-aligned)
@@ -49,14 +71,23 @@
       var prevMoisStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       var prevMoisEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
       var prevMoisNom = MOIS_FR[prevMoisStart.getMonth()];
-      var encaissePrev = livraisons.filter(function (l) {
+      // Phase 91.42 — Strict : date paiement uniquement
+      var encaissePaiementsPrev = paiementsAll.filter(function(p) {
+        if (!p || !p.date) return false;
+        var d = new Date(p.date);
+        return !isNaN(d.getTime()) && d >= prevMoisStart && d <= prevMoisEnd;
+      }).reduce(function(s, p) { return s + (parseFloat(p.montant) || 0); }, 0);
+      var encaisseLivLegacyPrev = livraisons.filter(function (l) {
         if (!l) return false;
+        if (paidLivIds.has(l.id)) return false;
         var s = l.statutPaiement || l.statut_paiement || '';
         if (s !== 'payé' && s !== 'paye' && s !== 'payee') return false;
-        var d = new Date(l.datePaiement || l.date_paiement || l.date || l.dateLivraison || '');
+        var dStr = l.datePaiement || l.date_paiement;
+        if (!dStr) return false;
+        var d = new Date(dStr);
         return !isNaN(d.getTime()) && d >= prevMoisStart && d <= prevMoisEnd;
-      });
-      var totalEncaissePrev = encaissePrev.reduce(function (s, l) { return s + parseFloat(l.prixTTC || l.prixHT || l.prix || 0); }, 0);
+      }).reduce(function(s, l) { return s + parseFloat(l.prixTTC || l.prixHT || l.prix || 0); }, 0);
+      var totalEncaissePrev = encaissePaiementsPrev + encaisseLivLegacyPrev;
       if (totalEncaissePrev > 0 && totalEncaisse > 0) {
         var pctDelta = Math.round((totalEncaisse - totalEncaissePrev) / totalEncaissePrev * 100);
         if (pctDelta > 0) {

@@ -51,14 +51,29 @@ function afficherRentabilite() {
   if (typeof Chart === 'undefined') { ensureChartJs().then(afficherRentabilite).catch(() => {}); return; }
   let livraisons=charger('livraisons'), pleins=charger('carburant'), entretiens=charger('entretiens'), charges=charger('charges');
   const range = getRentMoisRange();
-  livraisons = livraisons.filter(l=>l.date>=range.debut&&l.date<=range.fin);
+  // Phase 91.42 — exclut brouillons/annulées du CA pour cohérence avec script-rent-kpis.js + Stats
+  livraisons = livraisons.filter(l=>{
+    if (!l) return false;
+    const st = String(l.statut || '').toLowerCase();
+    if (st === 'brouillon' || st === 'draft' || st === 'annule' || st === 'annulee' || st === 'annulée') return false;
+    return l.date>=range.debut && l.date<=range.fin;
+  });
   pleins = pleins.filter(p=>p.date>=range.debut&&p.date<=range.fin);
   entretiens = entretiens.filter(e=>e.date>=range.debut&&e.date<=range.fin);
   charges = charges.filter(c=>c.date>=range.debut&&c.date<=range.fin && c.categorie !== 'entretien');
   const lbl = document.getElementById('rent-mois-label'); if (lbl) lbl.textContent = range.label;
   const dates = document.getElementById('rent-mois-dates'); if (dates) dates.textContent = range.dates;
 
-  const ca=livraisons.reduce((s,l)=>s+(l.prix||0),0);
+  // Phase 91.42 — CA HT (cohérent avec Stats + dashboard). L'ancien code utilisait l.prix (TTC).
+  const _getHT = typeof window.getMontantHTLivraison === 'function' ? window.getMontantHTLivraison : null;
+  const ca=livraisons.reduce((s,l)=>{
+    if (_getHT) return s + (_getHT(l) || 0);
+    const ht = parseFloat(l.prixHT);
+    if (Number.isFinite(ht) && ht > 0) return s + ht;
+    const ttc = parseFloat(l.prix) || 0;
+    const taux = parseFloat(l.tauxTVA) || 20;
+    return s + (ttc / (1 + taux / 100));
+  },0);
   const carb=pleins.reduce((s,p)=>s+p.total,0);
   const entr=entretiens.reduce((s,e)=>s+(e.cout||0),0);
   const autresCharges = charges.reduce((s,c)=>s+(c.montant||0),0);

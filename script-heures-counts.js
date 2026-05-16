@@ -22,9 +22,13 @@
 
     if (!kpiTotal && !kpiSup && !kpiKm) return;
 
-    var plannings = lire('plannings_hebdo');
+    // Phase 91.42 — fix clé plannings (était plannings_hebdo inexistant)
+    var plannings = lire('plannings');
     var alertes = lire('alertes_admin');
     var livraisons = lire('livraisons');
+    // Source d'heures réelles : `heures` (clé principale) avec fallback `heures_pointage` legacy
+    var heuresReelles = lire('heures');
+    if (!heuresReelles.length) heuresReelles = lire('heures_pointage');
 
     // Total heures planifiées (toute la semaine en cours)
     var now = new Date();
@@ -56,16 +60,15 @@
     if (kpiTotal) kpiTotal.textContent = totalH > 0 ? totalH + ' h' : '—';
     if (kpiSup) kpiSup.textContent = supH > 0 ? supH + ' h' : '—';
 
-    // kpi-sub "Heures totales" : comparaison mois précédent (via heures_pointage)
+    // kpi-sub "Heures totales" : comparaison mois précédent (via heures réelles fusionnées)
     var subTotal = document.getElementById('heures-kpi-total-sub');
     if (subTotal && totalH > 0) {
-      // Essayer de lire les pointages du mois précédent
+      // Phase 91.42 — Lit la clé unifiée `heures` (fallback heures_pointage)
       try {
-        var heuresPointage = JSON.parse(localStorage.getItem('heures_pointage') || '[]') || [];
         var moisPrec = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         var moisPrecFin = new Date(now.getFullYear(), now.getMonth(), 0);
         var totalMoisPrecMin = 0;
-        heuresPointage.forEach(function (h) {
+        heuresReelles.forEach(function (h) {
           var d = new Date(h.date || h.datePointage || 0);
           if (d >= moisPrec && d <= moisPrecFin) {
             var dur = parseTime(h.heureFin) - parseTime(h.heureDebut);

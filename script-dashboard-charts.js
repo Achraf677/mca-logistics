@@ -68,19 +68,33 @@
     var byDay = {};
     for (var i = 0; i < days; i++) {
       var d = new Date(today.getTime() - (days - 1 - i) * 24 * 60 * 60 * 1000);
-      var key = d.toISOString().slice(0, 10);
+      // Phase 91.42 fix TZ : utiliser local YYYY-MM-DD au lieu de toISOString().slice(0,10) qui décale d'1 jour user CEST.
+      var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
       byDay[key] = { count: 0, ca: 0 };
       labels.push(d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }));
     }
+    // Phase 91.42 — getHT helper + filtre statut (exclut brouillons/annulées). Clés réelles = prixHT / montantHT, pas l.ht.
+    var getHT = (typeof window.getMontantHTLivraison === 'function') ? window.getMontantHTLivraison : null;
     livs.forEach(function (l) {
+      if (!l) return;
+      var s = String(l.statut || '').toLowerCase();
+      if (s === 'brouillon' || s === 'draft' || s === 'annule' || s === 'annulee') return;
       var dStr = l.dateLivraison || l.dateLiv || l.date;
       if (!dStr) return;
       try {
-        var d = new Date(dStr);
-        var key = d.toISOString().slice(0, 10);
+        // Format ISO court → suffixe T00:00:00 pour forcer parse local (sinon décale UTC).
+        var dInput = (typeof dStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dStr)) ? dStr + 'T00:00:00' : dStr;
+        var d = new Date(dInput);
+        var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
         if (byDay[key]) {
           byDay[key].count += 1;
-          byDay[key].ca += Number(l.ht || l.prix_ht || 0);
+          // Phase 91.42 — utilise getMontantHTLivraison (fallback prixHT/montantHT/prix-via-TVA), pas les clés l.ht inexistantes
+          var ht = getHT ? getHT(l) : Number(l.prixHT || l.montantHT || 0);
+          if (!ht && l.prix) {
+            var taux = parseFloat(l.tauxTVA || 20) / 100;
+            ht = parseFloat(l.prix) / (1 + taux);
+          }
+          byDay[key].ca += Number(ht || 0);
         }
       } catch (_) {}
     });

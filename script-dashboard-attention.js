@@ -34,16 +34,34 @@
     return all.filter(a => !a.lu && !a.traitee && !a.ignoree);
   }
 
+  // Phase 91.42 — Map type → niveau (la plupart des ajouterAlerte() ne posent pas .niveau)
+  const SEVERITY_MAP = {
+    ct: 'critical', assurance: 'critical', controle_technique: 'critical',
+    impaye: 'haute', permis: 'haute', visite_medicale: 'haute', carte_grise: 'haute',
+    paiement: 'warn', tva: 'warn', echeance: 'warn', carburant: 'warn', conso: 'warn',
+    info: 'info', message: 'info'
+  };
+
+  function effectiveNiveau(a) {
+    if (a.niveau) return String(a.niveau).toLowerCase();
+    const t = String(a.type || '').toLowerCase();
+    if (SEVERITY_MAP[t]) return SEVERITY_MAP[t];
+    // Heuristique fallback : si le type contient "critique"/"urgent"
+    if (t.includes('urgent') || t.includes('critique')) return 'critical';
+    if (t.includes('avert') || t.includes('warn')) return 'warn';
+    return 'warn'; // défaut : visibilité moyenne au lieu de "vert tout va bien"
+  }
+
   function niveauToColor(niveau) {
-    if (niveau === 'critical' || niveau === 'haute') return 'red';
-    if (niveau === 'warn' || niveau === 'moyenne') return 'orange';
+    if (niveau === 'critical' || niveau === 'haute' || niveau === 'rouge') return 'red';
+    if (niveau === 'warn' || niveau === 'moyenne' || niveau === 'orange') return 'orange';
     if (niveau === 'info' || niveau === 'basse') return 'blue';
     return 'green';
   }
 
   function niveauOrder(n) {
-    if (n === 'critical' || n === 'haute') return 0;
-    if (n === 'warn' || n === 'moyenne') return 1;
+    if (n === 'critical' || n === 'haute' || n === 'rouge') return 0;
+    if (n === 'warn' || n === 'moyenne' || n === 'orange') return 1;
     return 2;
   }
 
@@ -58,8 +76,9 @@
   }
 
   function buildPillFromAlerte(a) {
-    const color = niveauToColor(a.niveau);
-    const icon = categorieToIcon(a.categorie || a.type, a.niveau);
+    const niv = effectiveNiveau(a);
+    const color = niveauToColor(niv);
+    const icon = categorieToIcon(a.categorie || a.type, niv);
     const val = escHtml(a.titre || a.message || 'Alerte');
     const lbl = escHtml(a.message && a.titre && a.message !== a.titre ? a.message : (a.categorie || 'À traiter'));
     const href = a.lien || '#';
@@ -83,7 +102,7 @@
     if (!list) return;
 
     const actives = getAlertesActives();
-    actives.sort((a, b) => niveauOrder(a.niveau) - niveauOrder(b.niveau));
+    actives.sort((a, b) => niveauOrder(effectiveNiveau(a)) - niveauOrder(effectiveNiveau(b)));
 
     const n = actives.length;
     const txt = n === 0 ? 'Aucune alerte' : `${n} alerte${n > 1 ? 's' : ''} à traiter`;
@@ -222,7 +241,7 @@
       }).length;
       const vehActifs = vehs.filter(v => vehStatut(v) === 'actif').length || vehs.length;
       const inspRate = vehActifs > 0 ? inspThisWeek / vehActifs : 1;
-      const critiques = alertes.filter(a => /^(critical|haute)$/i.test(a.niveau)).length;
+      const critiques = alertes.filter(a => { const n = effectiveNiveau(a); return n === 'critical' || n === 'haute' || n === 'rouge'; }).length;
       let confScore = 95;
       if (vehActifs > 0 && inspRate < 0.5) confScore -= 12;
       else if (vehActifs > 0 && inspRate < 1) confScore -= 5;
@@ -650,7 +669,7 @@
     const reco = document.getElementById('dashboard-health-reco');
     const recoBody = document.getElementById('dashboard-health-reco-body');
     const actives = getAlertesActives();
-    const critique = actives.find(a => a.niveau === 'critical' || a.niveau === 'haute');
+    const critique = actives.find(a => { const n = effectiveNiveau(a); return n === 'critical' || n === 'haute' || n === 'rouge'; });
     if (reco && recoBody) {
       const parts = [];
       if (critique) {

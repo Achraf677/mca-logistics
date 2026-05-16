@@ -139,7 +139,7 @@
   <!-- Phase 60 V7 polish — Fix boutons morts (setEncVue, navEncPeriode, executerResetCompteur, etc.) -->
   <script defer src="script-dead-buttons-fix.js?v=1"></script>
   <!-- Phase 60 V7 polish — Modal Enregistrer paiement (Encaissement) -->
-  <script defer src="script-modal-paiement.js?v=1"></script>
+  <script defer src="script-modal-paiement.js?v=2"></script>
   <!-- Phase 60 V7 polish — Stubs pour 4 fns silent-fail (reinitialiserParametres, testerConnexionPennylane, envoyerChargesPennylane, envoyerRelancesEmail) -->
   <script defer src="script-stubs-fns.js?v=1"></script>
   <!-- Phase 2 HTML refonte Vehicules : counts total + alertes CT/assurance. -->
@@ -147,7 +147,7 @@
   <!-- Phase 48 : Véhicules card grid (fleet view, mockup-aligned). -->
   <script defer src="script-vehicules-cards.js?v=1"></script>
   <!-- Phase 2 HTML refonte Planning : section-head counts (semaine + planifies). -->
-  <script defer src="script-planning-counts.js?v=2"></script>
+  <script defer src="script-planning-counts.js?v=3"></script>
   <!-- Phase 2 HTML refonte Clients/Fournisseurs : section-head counts (total + actifs 90j). -->
   <script defer src="script-clients-fournisseurs-counts.js?v=2"></script>
   <!-- Phase 39 : Clients + Fournisseurs chips toolbar filter. -->
@@ -159,11 +159,11 @@
   <!-- Phase 2 HTML refonte Stats/Calendrier : sub-meta mirror periode + nb livraisons. -->
   <script defer src="script-stats-calendrier-counts.js?v=1"></script>
   <!-- Phase 40 refonte HTML : Encaissement KPI grid + section-head counts. -->
-  <script defer src="script-encaissement-counts.js?v=1"></script>
+  <script defer src="script-encaissement-counts.js?v=2"></script>
   <!-- Phase 42 refonte HTML : Incidents KPI grid counts. -->
   <script defer src="script-incidents-counts.js?v=1"></script>
   <!-- Phase 42 refonte HTML : Heures KPI grid counts. -->
-  <script defer src="script-heures-counts.js?v=1"></script>
+  <script defer src="script-heures-counts.js?v=2"></script>
   <!-- Phase 43 refonte HTML : Inspections KPI grid counts. -->
   <script defer src="script-inspections-counts.js?v=1"></script>
   <!-- Phase 44 refonte HTML : Entretiens type chips toolbar wiring. -->
@@ -172,11 +172,11 @@
   <script defer src="script-entretiens-alert.js?v=1"></script>
   <script defer src="script-brouillons-counts.js?v=1"></script>
   <!-- Phase 3 refonte : dashboard "Points d'attention" preview (top 3 alertes) -->
-  <script defer src="script-dashboard-attention.js?v=1"></script>
+  <script defer src="script-dashboard-attention.js?v=2"></script>
   <!-- Phase 7 refonte : title-row counts populated cross-pages -->
   <script defer src="script-titlerow.js?v=1"></script>
   <!-- Phase 10 refonte : dashboard dash-charts (area + donut) -->
-  <script defer src="script-dashboard-charts.js?v=1"></script>
+  <script defer src="script-dashboard-charts.js?v=2"></script>
   <!-- Phase 17 refonte : dashboard finish (status-card v2 + grid-2) -->
   <script defer src="script-dashboard-finish.js?v=1"></script>
   <!-- Phase 12 refonte : period-chips wiring (sync chips ↔ existing selects) -->
@@ -5442,13 +5442,13 @@
   <script defer src="script-core-edit-locks.js?v=20260509f-184"></script>
   <script defer src="script-core-branding.js?v=20260509e-58"></script>
   <script defer src="script-core-audit.js?v=20260509e-59"></script>
-  <script defer src="script-core-dso.js?v=20260509e-58"></script>
+  <script defer src="script-core-dso.js?v=20260516a-1"></script>
   <script defer src="script-ai-chat.js?v=20260509e-58"></script>
   <!-- Brouillons IA : page admin de validation des actions IA en attente.
        Expose window.AIBrouillons utilise par script-core-navigation.js (case 'brouillons-ia'). -->
   <script defer src="script-ai-brouillons.js?v=20260510a-3"></script>
   <script defer src="script-cout-ia.js?v=20260509e-58"></script>
-  <script defer src="script-core-stats-helpers.js?v=20260509f-1"></script>
+  <script defer src="script-core-stats-helpers.js?v=20260516a-1"></script>
   <script defer src="script-core-recherche.js?v=20260509e-58"></script>
   <script defer src="storage-uploader.js?v=20260509e-58"></script>
   <!-- Smart upload : un seul drop -> OCR + Storage en parallele.
@@ -5468,12 +5468,12 @@
   <script defer src="lazy-loader.js?v=20260509e-58"></script>
   <script defer src="lazy-stubs.js?v=20260509e-58"></script>
   <script defer src="script-inspections.js?v=20260509e-58"></script>
-  <script defer src="script-incidents.js?v=20260509e-58"></script>
+  <script defer src="script-incidents.js?v=20260516a-1"></script>
   <!-- Hub Equipe (Sprint 22 / H2.4) — wrapper qui agrege les 4 sous-domaines RH
        derriere une seule entree sidebar. Doit etre charge APRES
        script-core-navigation.js pour pouvoir hooker naviguerVers. -->
   <script defer src="script-equipe-hub.js?v=20260509e-62"></script>
-  <script defer src="script-rentabilite.js?v=20260509e-58"></script>
+  <script defer src="script-rentabilite.js?v=20260516a-1"></script>
   <!-- script-rentabilite-multi.js : lazy-load via lazy-stubs.js (Sprint B bundle splitting). -->
   <!-- H12 audit-v6 — Rentabilité KPI grid (rent-kpi-ca/charges/marge/cout-km) -->
   <script defer src="script-rent-kpis.js?v=1"></script>
@@ -5481,7 +5481,7 @@
   <script defer src="script-carburant-anomalies.js?v=20260509e-60"></script>
   <script defer src="script-carburant-table.js?v=1"></script>
   <script defer src="script-entretiens.js?v=20260509e-60"></script>
-  <script defer src="script-alertes.js?v=20260509e-60"></script>
+  <script defer src="script-alertes.js?v=20260516a-1"></script>
   <!-- script-stats.js : lazy-load via lazy-stubs.js (Sprint C bundle splitting). getSalarieStatsMois extrait dans script-core-stats-helpers.js (boot). -->
 
   <script defer src="script-tva.js?v=20260509e-60"></script>
@@ -5495,7 +5495,7 @@
   <script defer src="script-encaissement.js?v=20260509e-61"></script>
   <script defer src="script-salaries.js?v=20260509f-2"></script>
   <script defer src="script-vehicules.js?v=20260509e-60"></script>
-  <script defer src="script-livraisons.js?v=20260509e-60"></script>
+  <script defer src="script-livraisons.js?v=20260516a-1"></script>
   <script defer src="script.js?v=20260510a-3"></script>
   <!-- Drawer 360 PC : parite KPIs avec mobile (Sprint H2.4). Doit etre charge
        APRES script.js pour pouvoir hooker ouvrirFiche360Client/Fournisseur/

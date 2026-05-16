@@ -53,10 +53,20 @@ function getSalarieStatsMois(salId) {
       .filter(function(h) { return (h.salId === salId || h.salarieId === salId) && h.date >= debut && h.date <= fin; })
       .reduce(function(sum, h) { return sum + (parseFloat(String(h.heures||'').replace(',', '.')) || 0); }, 0);
   } catch (_) { /* fallback silencieux */ }
+  // Phase 91.42 — Fix éclipse : si réelles < 50% du planifié, on garde le max
+  // (sinon 1 jour saisi écrasait 4 semaines de planning).
+  var heuresAffichage;
+  if (heuresReelles === 0) {
+    heuresAffichage = heuresPlanifiees;
+  } else if (heuresPlanifiees > 0 && heuresReelles < heuresPlanifiees * 0.5) {
+    heuresAffichage = Math.max(heuresReelles, heuresPlanifiees);
+  } else {
+    heuresAffichage = heuresReelles;
+  }
   return {
     livraisons: livraisons.length,
     ca: livraisons.reduce(function(sum, item) { return sum + (parseFloat(item.prix || item.prixTTC) || 0); }, 0),
-    heures: heuresReelles > 0 ? heuresReelles : heuresPlanifiees,
+    heures: heuresAffichage,
     heuresReelles: heuresReelles,
     heuresPlanifiees: heuresPlanifiees
   };

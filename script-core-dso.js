@@ -34,12 +34,19 @@
     var today = new Date();
     var dateMin = new Date(today.getTime() - periodeJours * 86400000);
 
+    // Phase 91.42 — Support des deux schémas : `date` (court, default UI) et `dateLivraison` (long, legacy)
+    function livDateOf(l) { return l.date || l.dateLivraison || l.date_livraison || ''; }
+    function livDatePaiementOf(l) { return l.datePaiement || l.date_paiement || ''; }
+    function livStatutPaiementOf(l) { return l.statutPaiement || l.statut_paiement || ''; }
+
     var livPayees = (livraisons || []).filter(function (l) {
       if (!l) return false;
-      var statut = l.statutPaiement;
+      var statut = livStatutPaiementOf(l);
       if (statut !== 'paye' && statut !== 'payé' && statut !== 'payee' && statut !== 'payée') return false;
-      if (!l.dateLivraison || !l.datePaiement) return false;
-      var dl = new Date(l.dateLivraison);
+      var dStrL = livDateOf(l);
+      var dStrP = livDatePaiementOf(l);
+      if (!dStrL || !dStrP) return false;
+      var dl = new Date(dStrL);
       if (isNaN(dl.getTime())) return false;
       if (dl < dateMin) return false;
       return true;
@@ -52,8 +59,8 @@
     var byClient = {};
     for (var i = 0; i < livPayees.length; i++) {
       var l = livPayees[i];
-      var dlMs = new Date(l.dateLivraison).getTime();
-      var dpMs = new Date(l.datePaiement).getTime();
+      var dlMs = new Date(livDateOf(l)).getTime();
+      var dpMs = new Date(livDatePaiementOf(l)).getTime();
       if (isNaN(dlMs) || isNaN(dpMs)) continue;
       var delai = (dpMs - dlMs) / 86400000;
       // Defense : exclure les delais aberrants (negatifs ou > 365j)

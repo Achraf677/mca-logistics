@@ -55,13 +55,26 @@
     if (info) info.textContent = impayees.length + ' livraison(s) impayée(s)';
   }
 
-  // Au change : pré-remplit montant TTC
+  // Au change : pré-remplit montant TTC (= solde restant : TTC − total déjà payé)
   document.addEventListener('change', function (e) {
     if (!e.target || e.target.id !== 'paiement-liv-select') return;
     var opt = e.target.selectedOptions && e.target.selectedOptions[0];
+    var livId = e.target.value || '';
     var ttc = opt ? parseFloat(opt.getAttribute('data-ttc') || '0') : 0;
+    // Phase 91.42 — solde restant = TTC − somme paiements déjà saisis
+    var dejaPaye = 0;
+    if (livId) {
+      var paiements = lire('paiements');
+      paiements.forEach(function(p){
+        if (p && (p.livraisonId === livId || p.livraison_id === livId)) dejaPaye += parseFloat(p.montant) || 0;
+      });
+    }
+    var solde = Math.max(0, ttc - dejaPaye);
     var input = document.getElementById('paiement-montant');
-    if (input) input.value = ttc > 0 ? ttc.toFixed(2) : '';
+    if (input) {
+      input.value = solde > 0 ? solde.toFixed(2) : '';
+      input.max = solde > 0 ? solde.toFixed(2) : ttc.toFixed(2);
+    }
   });
 
   // Hook open : pré-remplit champs au load modal
@@ -116,15 +129,33 @@
       return;
     }
 
-    // Mark livraison as paid
-    liv.statutPaiement = 'paye';
-    liv.datePaiement = date;
+    // Phase 91.42 — empêche un paiement > solde restant
+    var ttc = parseFloat(liv.prixTTC || liv.prix || 0);
+    var paiements = lire('paiements');
+    var dejaPaye = paiements.reduce(function(s, p) {
+      if (!p) return s;
+      return s + ((p.livraisonId === livId || p.livraison_id === livId) ? (parseFloat(p.montant) || 0) : 0);
+    }, 0);
+    var soldeRestant = Math.max(0, ttc - dejaPaye);
+    if (soldeRestant > 0 && montant > soldeRestant + 0.01) {
+      if (window.afficherToast) window.afficherToast('Montant > solde restant (' + soldeRestant.toFixed(2) + ' €)', 'error');
+      return;
+    }
+
+    // Mark livraison as paid si solde atteint
+    var nouveauTotal = dejaPaye + montant;
+    var estSolde = ttc > 0 && nouveauTotal >= ttc - 0.01;
+    if (estSolde) {
+      liv.statutPaiement = 'paye';
+      liv.datePaiement = date;
+    } else {
+      liv.statutPaiement = 'partiel';
+    }
     liv.modePaiement = mode;
     if (reference) liv.referencePaiement = reference;
     ecrire('livraisons', livraisons);
 
     // Add to paiements log
-    var paiements = lire('paiements');
     paiements.push({
       id: uid(),
       livraisonId: livId,
@@ -145,10 +176,18 @@
     if (window.afficherToast) window.afficherToast('Paiement enregistré');
     if (typeof window.closeModal === 'function') window.closeModal('modal-paiement');
 
-    // Refresh encaissement view
+    // Refresh chain Phase 91.42 — encaissement + dashboard + relances + drawer + clients/livraisons
     if (typeof window.refonteEncaissementRender === 'function') window.refonteEncaissementRender();
     if (typeof window.refonteEncLegacyRender === 'function') window.refonteEncLegacyRender();
     if (typeof window.refonteClientsFournisseursUpdateCounts === 'function') window.refonteClientsFournisseursUpdateCounts();
+    if (typeof window.afficherRelances === 'function') window.afficherRelances();
+    if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
+    if (typeof window.refonteRentKpisUpdate === 'function') window.refonteRentKpisUpdate();
+    if (typeof window.refreshDrawerPaiement === 'function') window.refreshDrawerPaiement(livId);
+    if (typeof window.renderDashboardPointsAttention === 'function') window.renderDashboardPointsAttention();
+    // Phase 91.39 — bus d'events pour les listeners croisés
+    try { document.dispatchEvent(new CustomEvent('livraisons:updated', { detail: { id: livId, action: 'paiement' } })); } catch (_) {}
+    try { document.dispatchEvent(new CustomEvent('paiements:updated', { detail: { livId: livId } })); } catch (_) {}
   }
   window.enregistrerPaiement = enregistrerPaiement;
 })();

@@ -44,7 +44,7 @@ function compterAlertesNonLues() {
 function afficherBadgeAlertes() {
   const n = compterAlertesNonLues();
   // 2 badges a synchroniser : sidebar (#badge-alertes) et mobile bottom nav (#badge-alertes-mbn)
-  ['badge-alertes', 'badge-alertes-mbn'].forEach(id => {
+  ['badge-alertes', 'badge-alertes-mbn', 'topbar-bell-count'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.textContent = n > 0 ? n : '';

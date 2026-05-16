@@ -131,10 +131,22 @@ function ajouterIncident() {
 }
 
 // L10953 (script.js d'origine)
+// Phase 91.42 — Ajout horodatage resoluLe quand statut = traite/clos pour KPIs/exports
 function changerStatutIncident(id, statut) {
   const incidents = charger('incidents');
   const idx = incidents.findIndex(i=>i.id===id);
-  if (idx>-1) { incidents[idx].statut=statut; sauvegarder('incidents',incidents); afficherIncidents(); afficherToast('✅ Statut mis à jour'); }
+  if (idx > -1) {
+    incidents[idx].statut = statut;
+    if (statut === 'traite' || statut === 'clos' || statut === 'resolu') {
+      incidents[idx].resoluLe = incidents[idx].resoluLe || new Date().toISOString();
+    } else {
+      // Réouverture : retire la résolution
+      delete incidents[idx].resoluLe;
+    }
+    sauvegarder('incidents', incidents);
+    afficherIncidents();
+    afficherToast('✅ Statut mis à jour');
+  }
 }
 
 // L10959 (script.js d'origine)

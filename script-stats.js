@@ -50,13 +50,19 @@ function afficherStatistiques() {
   const dates = document.getElementById('stats-mois-dates'); if (dates) dates.textContent = range.dates;
   // #59 #62 audit Chrome : Statistiques affichait 0 livraison car comparait
   // l.date avec format heure (2026-05-09T...) au lieu de slice(0,10).
+  // Phase 91.42 — exclut brouillons/annulées du CA (sinon KPI gonfle artificiellement)
   const livsFiltrees = livraisons.filter(l => {
+    if (!l) return false;
+    const st = String(l.statut || '').toLowerCase();
+    if (st === 'brouillon' || st === 'draft' || st === 'annule' || st === 'annulee' || st === 'annulée') return false;
     const d = (l && l.date ? String(l.date) : '').slice(0, 10);
     return d >= dateMinStr && d <= dateMaxStr;
   });
 
   // KPIs période — CA en HT (le label dit "CA HT")
+  const _getHT = typeof window.getMontantHTLivraison === 'function' ? window.getMontantHTLivraison : null;
   const caPeriode = livsFiltrees.reduce((s, l) => {
+    if (_getHT) return s + (_getHT(l) || 0);
     const ht = parseFloat(l.prixHT);
     if (Number.isFinite(ht) && ht > 0) return s + ht;
     const ttc = parseFloat(l.prix) || 0;
@@ -71,11 +77,23 @@ function afficherStatistiques() {
   const el3=document.getElementById('stats-panier-moyen'); if(el3) el3.textContent=euros(panierMoy);
   const el4=document.getElementById('stats-km-total'); if(el4) el4.textContent=Math.round(kmTotal)+' km';
 
-  // Graphique CA — adaptatif
+  // Graphique CA HT — adaptatif (Phase 91.42 : HT cohérent avec label + exclut brouillon/annulee)
+  function _statutOk(l) {
+    const st = String(l.statut || '').toLowerCase();
+    return st !== 'brouillon' && st !== 'draft' && st !== 'annule' && st !== 'annulee' && st !== 'annulée';
+  }
+  function _ht(l) {
+    if (_getHT) return _getHT(l) || 0;
+    const ht = parseFloat(l.prixHT);
+    if (Number.isFinite(ht) && ht > 0) return ht;
+    const ttc = parseFloat(l.prix) || 0;
+    const taux = parseFloat(l.tauxTVA) || 20;
+    return ttc / (1 + taux / 100);
+  }
   const labels=[],donnees=[];
   const nbJours = Math.max(1, Math.round((new Date(dateMaxStr) - new Date(dateMinStr)) / (1000*60*60*24)));
   if (nbJours <= 31) {
-    for(let i=nbJours-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=d.toLocalISODate();labels.push(d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}));donnees.push(livraisons.filter(l=>l.date===ds).reduce((s,l)=>s+(l.prix||0),0));}
+    for(let i=nbJours-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=d.toLocalISODate();labels.push(d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}));donnees.push(livraisons.filter(l=>l.date===ds && _statutOk(l)).reduce((s,l)=>s+_ht(l),0));}
   } else {
     // Par semaine
     for(let i=Math.floor(nbJours/7)-1;i>=0;i--){
@@ -83,7 +101,7 @@ function afficherStatistiques() {
       const debut=new Date(fin); debut.setDate(debut.getDate()-6);
       const dStr=debut.toLocalISODate(), fStr=fin.toLocalISODate();
       labels.push(debut.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}));
-      donnees.push(livraisons.filter(l=>l.date>=dStr&&l.date<=fStr).reduce((s,l)=>s+(l.prix||0),0));
+      donnees.push(livraisons.filter(l=>l.date>=dStr&&l.date<=fStr && _statutOk(l)).reduce((s,l)=>s+_ht(l),0));
     }
   }
   if(chartCA)chartCA.destroy();

@@ -15,7 +15,7 @@
     var salaries = [];
     var plannings = [];
     try { salaries = JSON.parse(localStorage.getItem('salaries') || '[]') || []; } catch (_) {}
-    try { plannings = JSON.parse(localStorage.getItem('plannings_hebdo') || '[]') || []; } catch (_) {}
+    try { plannings = JSON.parse(localStorage.getItem('plannings') || '[]') || []; } catch (_) {}
 
     var actifs = salaries.filter(function (s) { return s && s.actif !== false; }).length;
 
@@ -54,10 +54,13 @@
         var nowWeekStart = getMonday(new Date());
         var nowWeekEnd = new Date(nowWeekStart); nowWeekEnd.setDate(nowWeekEnd.getDate() + 6);
         var absWeek = absences.filter(function (a) {
-          if (!a || a.statut === 'refuse') return false;
-          var start = a.date_debut || a.dateDebut || '';
-          var end = a.date_fin || a.dateFin || start;
-          return start <= nowWeekEnd.toISOString().slice(0, 10) && end >= nowWeekStart.toISOString().slice(0, 10);
+          if (!a || a.statut === 'refuse' || a.statut === 'refused') return false;
+          var start = a.debut || a.date_debut || a.dateDebut || '';
+          var end = a.fin || a.date_fin || a.dateFin || start;
+          if (!start) return false;
+          var weekStartISO = nowWeekStart.getFullYear() + '-' + String(nowWeekStart.getMonth() + 1).padStart(2, '0') + '-' + String(nowWeekStart.getDate()).padStart(2, '0');
+          var weekEndISO = nowWeekEnd.getFullYear() + '-' + String(nowWeekEnd.getMonth() + 1).padStart(2, '0') + '-' + String(nowWeekEnd.getDate()).padStart(2, '0');
+          return start <= weekEndISO && end >= weekStartISO;
         }).length;
         if (kpiAbsences) {
           kpiAbsences.textContent = absWeek;

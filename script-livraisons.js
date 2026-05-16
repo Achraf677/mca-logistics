@@ -423,6 +423,7 @@ window.styliserSelectLivraison = styliserSelectLivraison;
 window.getLivraisonInlineSelectClass = getLivraisonInlineSelectClass;
 
 // L2473 (script.js d'origine)
+// Phase 91.42 — cleanup des entités liées (incidents, paiements, docs, commentaires) à la suppression
 async function supprimerLivraison(id) {
   const _ok = await confirmDialog('Supprimer cette livraison ?', {titre:'Supprimer',icone:'📦',btnLabel:'Supprimer'});
   if (!_ok) return;
@@ -430,6 +431,23 @@ async function supprimerLivraison(id) {
   const livraison = livraisons.find(function(item) { return item.id === id; }) || null;
   annulerArchiveFactureLivraison(livraison);
   sauvegarder('livraisons', livraisons.filter(function(l) { return l.id !== id; }));
+  // Cleanup orphelins
+  try {
+    var incidents = charger('incidents') || [];
+    var incidentsFilt = incidents.filter(function(inc) { return inc && inc.livId !== id && inc.livraisonId !== id; });
+    if (incidentsFilt.length !== incidents.length) sauvegarder('incidents', incidentsFilt);
+  } catch (_) {}
+  try {
+    var paiements = charger('paiements') || [];
+    var paiementsFilt = paiements.filter(function(p) { return p && p.livraison_id !== id && p.livraisonId !== id; });
+    if (paiementsFilt.length !== paiements.length) sauvegarder('paiements', paiementsFilt);
+  } catch (_) {}
+  try {
+    // localStorage docs/commentaires/historique par livraison
+    ['documents_livraison_', 'commentaires_liv_', 'modifs_liv_'].forEach(function(prefix) {
+      try { localStorage.removeItem(prefix + id); } catch (_) {}
+    });
+  } catch (_) {}
   if (livraison) ajouterEntreeAudit('Suppression livraison', (livraison.numLiv || 'Livraison') + ' · ' + (livraison.client || 'Client'));
   afficherLivraisons(); afficherToast('Supprimé');
 }
