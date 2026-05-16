@@ -56,15 +56,26 @@
     if (kpiTotal) kpiTotal.textContent = totalH > 0 ? totalH + ' h' : '—';
     if (kpiSup) kpiSup.textContent = supH > 0 ? supH + ' h' : '—';
 
-    // Km parcourus ce mois (livraisons)
+    // Km parcourus ce mois (livraisons) + "Sur N véhicules" kpi-sub
     if (kpiKm) {
       var moisStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      var kmTotal = livraisons.filter(function (l) {
+      var livsThisMois = livraisons.filter(function (l) {
         if (!l) return false;
         var d = new Date(l.date || l.dateLivraison || '');
         return !isNaN(d.getTime()) && d >= moisStart;
-      }).reduce(function (s, l) { return s + (parseFloat(l.distance) || 0); }, 0);
+      });
+      var kmTotal = livsThisMois.reduce(function (s, l) { return s + (parseFloat(l.distance) || 0); }, 0);
       kpiKm.textContent = kmTotal > 0 ? Math.round(kmTotal) + ' km' : '—';
+      var kpiKmSub = document.getElementById('heures-kpi-km-sub');
+      if (kpiKmSub) {
+        var vehs = new Set();
+        livsThisMois.forEach(function (l) {
+          var v = l.vehiculeId || l.vehicule_id || (l.vehicule && (l.vehicule.id || l.vehicule.immatriculation || l.vehicule)) || '';
+          if (v) vehs.add(String(v));
+        });
+        var nbVehs = vehs.size;
+        kpiKmSub.textContent = nbVehs > 0 ? 'Sur ' + nbVehs + ' véhicule' + (nbVehs > 1 ? 's' : '') : 'Livraisons ce mois';
+      }
     }
 
     // CE 561 alertes (alertes de type dépassement CE561)
