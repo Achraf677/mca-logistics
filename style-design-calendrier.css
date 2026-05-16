@@ -182,6 +182,49 @@
   border-color: var(--ds-brand);
 }
 
+/* ============ Phase 91.45 : Chip-filters (remplace .cal16-filter checkboxes) ============ */
+.cal16-chips-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.cal16-chip-filter {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-family: var(--ds-font-body, 'Inter', 'Segoe UI', sans-serif);
+  font-weight: 500;
+  color: var(--ds-text-muted, #adb5bd);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  user-select: none;
+}
+
+.cal16-chip-filter input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+.cal16-chip-filter:hover {
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.06));
+  color: var(--ds-text, #f1f3f5);
+}
+
+.cal16-chip-filter:has(input:checked) {
+  background: rgba(255,255,255,0.07);
+  border-color: var(--ds-border, rgba(255,255,255,0.12));
+  color: var(--ds-text, #f1f3f5);
+}
+
 /* ============ Phase 66 : Calendrier sidebar — inline styles → CSS ============ */
 .cal16-sidebar h3 {
   margin: 0 0 14px;
@@ -223,9 +266,13 @@
   flex-shrink: 0;
 }
 
-.cal16-legend-dot.today    { background: var(--brand, #e63946); }
-.cal16-legend-dot.ferie    { background: var(--success, #06d6a0); }
+/* Phase 91.45 : 6 pastilles légende (toutes les couleurs du grid) */
+.cal16-legend-dot.today    { background: var(--ds-brand, #e63946); box-shadow: 0 0 0 2px rgba(230,57,70,0.3); }
+.cal16-legend-dot.ferie    { background: var(--ds-success, #06d6a0); }
+.cal16-legend-dot.livraison { background: #22c55e; }
 .cal16-legend-dot.echeance { background: var(--ds-warning, #ffd60a); }
+.cal16-legend-dot.paiement { background: #eab308; }
+.cal16-legend-dot.relance  { background: #f97316; }
 
 /* ============ Phase 51 : Calendrier sidebar mockup alignment ============ */
 /* Sidebar KPI grid: 1 column (mockup vertical stacked layout) */

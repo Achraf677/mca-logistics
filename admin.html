@@ -16,8 +16,8 @@
   <link rel="preconnect" href="https://browser.sentry-cdn.com" crossorigin>
   <link rel="dns-prefetch" href="https://o4511305319907328.ingest.de.sentry.io">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="preload" as="style" href="style.css?v=20260509e-60">
-  <link rel="preload" as="script" href="script.js?v=20260516a-2">
+  <link rel="preload" as="style" href="style.css?v=20260516b-91">
+  <link rel="preload" as="script" href="script.js?v=20260516b-91">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
@@ -52,7 +52,7 @@
   </style>
   <!-- Design system tokens (Phase 4 / PR-1) — prefixe --ds-* purement additif. N'ecrase aucun token existant (--accent, --bg-card, etc.). Inerte tant qu'aucun selecteur ne consomme --ds-*. -->
   <link rel="stylesheet" href="style-tokens.css?v=1" />
-  <link rel="stylesheet" href="style.css?v=20260509e-60" />
+  <link rel="stylesheet" href="style.css?v=20260516b-91" />
   <!-- Design shell (Phase 4 / PR-2) — restyle sidebar + topbar avec --ds-*. CSS-only, aucun changement HTML. Charge APRES style.css pour gagner la cascade. -->
   <link rel="stylesheet" href="style-design-shell.css?v=1" />
   <!-- Design dashboard (Phase 4 / PR-4) — restyle KPIs + hero-sante + cards + tables + buttons avec --ds-*. CSS-only. -->
@@ -82,7 +82,7 @@
   <!-- Design rentabilite + stats bundle (Phase 4 / PR-17+18) — KPI tiles Syne + simulator + previsions. -->
   <link rel="stylesheet" href="style-design-rentabilite-stats.css?v=2" />
   <!-- Design calendrier (Phase 4 / PR-19) — calendrier-grid + cal-day cells + livraisons dots + nav. -->
-  <link rel="stylesheet" href="style-design-calendrier.css?v=2" />
+  <link rel="stylesheet" href="style-design-calendrier.css?v=3" />
   <!-- Design parametres (Phase 4 / PR-20) — page-parametres cards + s24 toggles + s26 sig/timeline + s15 palette. -->
   <link rel="stylesheet" href="style-design-parametres.css?v=1" />
   <!-- Design setup wizard (Phase 4 / PR-21) — overrides inline JS styles avec --ds-*. -->
@@ -3490,8 +3490,14 @@
           </div>
         </div>
         <div class="page-actions-toolbar ds-section-head__actions">
-          <button class="btn-secondary" onclick="window.cal16?.aujourdhui()">Aujourd'hui</button>
-          <button class="btn-secondary" onclick="window.cal16?.imprimer()">Imprimer</button>
+          <button class="btn-secondary" onclick="window.cal16?.imprimer()" aria-label="Imprimer le calendrier">
+            <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Imprimer
+          </button>
+          <button class="btn-secondary" onclick="window.cal16ExportCSV?.()" aria-label="Exporter en CSV">
+            <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            CSV
+          </button>
         </div>
       </div>
 
@@ -3529,27 +3535,49 @@
         <!-- Sidebar filtres -->
         <aside class="cal16-sidebar card">
           <h3>Filtres</h3>
-          <label class="cal16-filter"><input type="checkbox" data-cal-filter="livraisons" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-liv"></span> Livraisons</label>
-          <label class="cal16-filter"><input type="checkbox" data-cal-filter="echeances" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-ech"></span> Échéances</label>
-          <label class="cal16-filter"><input type="checkbox" data-cal-filter="relances" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-rel"></span> Relances</label>
-          <label class="cal16-filter"><input type="checkbox" data-cal-filter="paiements" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-pai"></span> Paiements</label>
-          <label class="cal16-filter"><input type="checkbox" data-cal-filter="feries" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-fer"></span> Jours fériés</label>
+          <!-- Phase 91.45 : filtres migrés en chips ds-chip (pattern uniforme) -->
+          <div class="cal16-chips-filters">
+            <label class="cal16-chip-filter">
+              <input type="checkbox" data-cal-filter="livraisons" checked onchange="window.cal16?.render()" />
+              <span class="cal16-dot cal16-dot-liv"></span> Livraisons
+            </label>
+            <label class="cal16-chip-filter">
+              <input type="checkbox" data-cal-filter="echeances" checked onchange="window.cal16?.render()" />
+              <span class="cal16-dot cal16-dot-ech"></span> Échéances
+            </label>
+            <label class="cal16-chip-filter">
+              <input type="checkbox" data-cal-filter="relances" checked onchange="window.cal16?.render()" />
+              <span class="cal16-dot cal16-dot-rel"></span> Relances
+            </label>
+            <label class="cal16-chip-filter">
+              <input type="checkbox" data-cal-filter="paiements" checked onchange="window.cal16?.render()" />
+              <span class="cal16-dot cal16-dot-pai"></span> Paiements
+            </label>
+            <label class="cal16-chip-filter">
+              <input type="checkbox" data-cal-filter="feries" checked onchange="window.cal16?.render()" />
+              <span class="cal16-dot cal16-dot-fer"></span> Jours fériés
+            </label>
+          </div>
 
           <hr />
           <h3>Ce mois</h3>
           <div class="cal16-kpi-grid">
-            <div class="cal16-kpi"><div class="cal16-kpi-lbl">Livraisons</div><div class="cal16-kpi-val" id="cal16-kpi-liv">0</div></div>
-            <div class="cal16-kpi"><div class="cal16-kpi-lbl">Échéances</div><div class="cal16-kpi-val" id="cal16-kpi-ech">0</div></div>
+            <div class="cal16-kpi"><div class="cal16-kpi-lbl">Livraisons</div><div class="cal16-kpi-val" id="cal16-kpi-liv">—</div></div>
+            <div class="cal16-kpi"><div class="cal16-kpi-lbl">Échéances</div><div class="cal16-kpi-val" id="cal16-kpi-ech">—</div></div>
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">Encaissé</div><div class="cal16-kpi-val" id="cal16-kpi-pai">—</div></div>
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">Jours fériés</div><div class="cal16-kpi-val" id="cal16-kpi-feries">—</div></div>
           </div>
 
           <hr />
           <h3>Légende</h3>
+          <!-- Phase 91.45 : 5 entrées complètes (toutes les couleurs du grid) -->
           <div class="cal16-legend">
             <div class="cal16-legend-item"><span class="cal16-legend-dot today"></span> Aujourd'hui</div>
-            <div class="cal16-legend-item"><span class="cal16-legend-dot ferie"></span> Férié</div>
+            <div class="cal16-legend-item"><span class="cal16-legend-dot ferie"></span> Jour férié</div>
+            <div class="cal16-legend-item"><span class="cal16-legend-dot livraison"></span> Livraison</div>
             <div class="cal16-legend-item"><span class="cal16-legend-dot echeance"></span> Échéance</div>
+            <div class="cal16-legend-item"><span class="cal16-legend-dot paiement"></span> Paiement</div>
+            <div class="cal16-legend-item"><span class="cal16-legend-dot relance"></span> Relance</div>
           </div>
 
         </aside>
@@ -5496,7 +5524,7 @@
   <script defer src="script-salaries.js?v=20260516a-2"></script>
   <script defer src="script-vehicules.js?v=20260516a-2"></script>
   <script defer src="script-livraisons.js?v=20260516a-1"></script>
-  <script defer src="script.js?v=20260516a-2"></script>
+  <script defer src="script.js?v=20260516b-91"></script>
   <!-- Drawer 360 PC : parite KPIs avec mobile (Sprint H2.4). Doit etre charge
        APRES script.js pour pouvoir hooker ouvrirFiche360Client/Fournisseur/
        Salarie/Vehicule. Voir script-drawer-360-pc-parite.js + tests/drawer-360-pc.test.js. -->

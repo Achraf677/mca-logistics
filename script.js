@@ -9708,17 +9708,28 @@ genererRentabilitePDF = function() {
     const e = new Date(c.getFullYear(), c.getMonth()+1, 0, 23,59,59,999);
     const events = getEventsForRange(s, e);
     const cntLiv = events.filter(ev => ev.type==='livraisons').length;
-    const cntFac = events.filter(ev => ev.type==='factures').length;
     const cntEch = events.filter(ev => ev.type==='echeances').length;
+    // KPI Encaissé : somme réelle des paiements du mois affiché
     const pai = load(LS.paiements).filter(p => {
       const d = parseISO(p.date); if(!d) return false;
       return d >= s && d <= e;
-    }).reduce((s,p)=>s+Number(p.montant||0),0);
+    }).reduce((acc,p)=>acc+Number(p.montant||0),0);
+    // KPI Jours fériés : compte les fériés dans le mois affiché
+    const cntFeries = feriesDeLAnnee(c.getFullYear()).filter(f => f.date.getMonth() === c.getMonth()).length;
     const set = (id,v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     set('cal16-kpi-liv', cntLiv);
-    set('cal16-kpi-fac', cntFac);
     set('cal16-kpi-ech', cntEch);
-    set('cal16-kpi-pai', fmtEur(pai));
+    set('cal16-kpi-pai', pai > 0 ? fmtEur(pai) : '—');
+    set('cal16-kpi-feries', cntFeries || '—');
+    // Mettre à jour le sub-meta H1 avec les comptages du mois
+    const subMeta = document.querySelector('#page-calendrier .sub-meta');
+    if (subMeta) {
+      const cntPai = load(LS.paiements).filter(p => { const d = parseISO(p.date); return d && d >= s && d <= e; }).length;
+      subMeta.textContent = cntLiv + ' livraison' + (cntLiv !== 1 ? 's' : '') + ' · '
+        + cntEch + ' échéance' + (cntEch !== 1 ? 's' : '') + ' · '
+        + cntPai + ' paiement' + (cntPai !== 1 ? 's' : '') + ' · '
+        + cntFeries + ' jour' + (cntFeries !== 1 ? 's' : '') + ' fériés';
+    }
   }
 
   /* ---------- Rendu vue mois ---------- */
@@ -10085,7 +10096,31 @@ genererRentabilitePDF = function() {
     else renderAnnee();
   }
 
+  /* ---------- Export CSV (Phase 91.45) ---------- */
+  function exporterCSV() {
+    const { start, end } = getBounds();
+    const events = getEventsForRange(start, end);
+    const filtres = getFiltresActifs();
+    const evsFiltres = events.filter(ev => filtres[ev.type]);
+    if (!evsFiltres.length) { toast('Aucun événement à exporter pour cette période', 'info'); return; }
+    const titre = (state.vue === 'mois' ? MOIS[start.getMonth()]+' '+start.getFullYear()
+      : state.vue === 'annee' ? 'Année '+start.getFullYear()
+      : start.toLocaleDateString('fr-FR')+' - '+end.toLocaleDateString('fr-FR'));
+    let csv = '﻿' + 'Date;Type;Libellé\n';
+    evsFiltres.sort((a,b) => a.date - b.date).forEach(ev => {
+      csv += isoDate(ev.date) + ';' + ev.type + ';' + (ev.label || '').replace(/;/g,'|') + '\n';
+    });
+    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'calendrier-' + titre.replace(/\s/g,'-') + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Export CSV calendrier', titre);
+  }
+
   window.cal16 = { render, naviguer, aujourdhui, changerVue, allerA, retourMois, imprimer };
+  window.cal16ExportCSV = exporterCSV;
 
   /* WRAPPER S16 — Hook naviguerVers : déclencher render() du calendrier
      mensuel quand l'utilisateur navigue vers la page 'calendrier'. Pattern
