@@ -3915,9 +3915,9 @@
   <!-- ========== MODALS ========== -->
 
   <!-- Nouvelle livraison -->
-  <div class="modal-overlay" id="modal-livraison">
+  <div class="modal-overlay" id="modal-livraison" role="dialog" aria-modal="true" aria-labelledby="modal-livraison-title">
     <div class="modal modal-large modal-livraison-enriched">
-      <div class="modal-header"><h3>Nouvelle livraison</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-livraison')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-livraison-title">Nouvelle livraison</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-livraison')">✕</button></div>
       <div class="modal-body">
 
             <section class="fp-section fp-section-compact">
@@ -4043,9 +4043,9 @@
   </div>
 
   <!-- Nouveau client -->
-  <div class="modal-overlay" id="modal-client">
+  <div class="modal-overlay" id="modal-client" role="dialog" aria-modal="true" aria-labelledby="modal-client-title">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>Nouveau Client</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-client-title">Nouveau Client</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client')">✕</button></div>
       <div class="modal-body">
         <div class="client-type-selector">
           <label class="client-type-option">
@@ -4108,9 +4108,9 @@
   </div>
 
   <!-- Modifier client -->
-  <div class="modal-overlay" id="modal-edit-client">
+  <div class="modal-overlay" id="modal-edit-client" role="dialog" aria-modal="true" aria-labelledby="modal-edit-client-title">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>Modifier le client</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-client')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-edit-client-title">Modifier le client</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-client')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-cl-id" />
         <div class="client-type-selector">
@@ -4196,9 +4196,9 @@
   </div>
 
   <!-- Nouveau fournisseur (miroir de modal-client : toggle Pro/Particulier + mêmes champs) -->
-  <div class="modal-overlay" id="modal-fournisseur">
+  <div class="modal-overlay" id="modal-fournisseur" role="dialog" aria-modal="true" aria-labelledby="modal-fournisseur-title">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>Nouveau Fournisseur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-fournisseur')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-fournisseur-title">Nouveau Fournisseur</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-fournisseur')">✕</button></div>
       <div class="modal-body">
         <div class="client-type-selector">
           <label class="client-type-option">
@@ -4259,9 +4259,9 @@
   </div>
 
   <!-- Modifier fournisseur (miroir modal-edit-client) -->
-  <div class="modal-overlay" id="modal-edit-fournisseur">
+  <div class="modal-overlay" id="modal-edit-fournisseur" role="dialog" aria-modal="true" aria-labelledby="modal-edit-fournisseur-title">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>Modifier le fournisseur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-fournisseur')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-edit-fournisseur-title">Modifier le fournisseur</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-fournisseur')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-frn-id" />
         <div class="client-type-selector">
@@ -4322,9 +4322,9 @@
     </div>
   </div>
   <!-- Nouveau véhicule -->
-  <div class="modal-overlay" id="modal-vehicule">
+  <div class="modal-overlay" id="modal-vehicule" role="dialog" aria-modal="true" aria-labelledby="modal-vehicule-title">
     <div class="modal">
-      <div class="modal-header"><h3>Nouveau Véhicule</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-vehicule')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-vehicule-title">Nouveau Véhicule</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-vehicule')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label for="veh-immat">Immatriculation *</label><input type="text" id="veh-immat" placeholder="Immatriculation (ex : AB-123-CD)" /></div>
@@ -4477,9 +4477,9 @@
 
   <!-- Entretien -->
   <!-- Carburant -->
-  <div class="modal-overlay" id="modal-carburant">
+  <div class="modal-overlay" id="modal-carburant" role="dialog" aria-modal="true" aria-labelledby="modal-carburant-title">
     <div class="modal">
-      <div class="modal-header"><h3>Enregistrer un plein</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-carburant')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-carburant-title">Enregistrer un plein</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-carburant')">✕</button></div>
       <div class="modal-body">
         <!-- SmartUpload mode auto : drop ticket carburant -> OCR detecte + pre-remplit -->
         <div class="form-group full-width" style="margin-bottom:14px">
