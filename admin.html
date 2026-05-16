@@ -1372,16 +1372,16 @@
         </div>
       </div>
       <!-- Phase 59 polish : tabs-bar mockup-aligned (rent-tab-btn underline style au lieu de btn-secondary) -->
-      <nav class="rent-tabs-bar" role="tablist">
-        <button id="rent-tab-btn-vehicule"  class="rent-tab-btn active" role="tab" onclick="changerSousOngletRentabilite('vehicule')">Par véhicule</button>
-        <button id="rent-tab-btn-client"    class="rent-tab-btn"        role="tab" onclick="changerSousOngletRentabilite('client')">Par client</button>
-        <button id="rent-tab-btn-chauffeur" class="rent-tab-btn"        role="tab" onclick="changerSousOngletRentabilite('chauffeur')">Par chauffeur</button>
-        <button id="rent-tab-btn-tournee"   class="rent-tab-btn"        role="tab" onclick="changerSousOngletRentabilite('tournee')">Par tournée</button>
-        <button id="rent-tab-btn-simulateur" class="rent-tab-btn"       role="tab" onclick="changerSousOngletRentabilite('simulateur')">Simulateur</button>
+      <nav class="rent-tabs-bar" role="tablist" aria-label="Axes d'analyse rentabilité">
+        <button type="button" id="rent-tab-btn-vehicule"  class="rent-tab-btn active" role="tab" aria-selected="true"  aria-controls="rent-tab-vehicule"  onclick="changerSousOngletRentabilite('vehicule')">Par véhicule</button>
+        <button type="button" id="rent-tab-btn-client"    class="rent-tab-btn"        role="tab" aria-selected="false" aria-controls="rent-tab-client"    tabindex="-1" onclick="changerSousOngletRentabilite('client')">Par client</button>
+        <button type="button" id="rent-tab-btn-chauffeur" class="rent-tab-btn"        role="tab" aria-selected="false" aria-controls="rent-tab-chauffeur" tabindex="-1" onclick="changerSousOngletRentabilite('chauffeur')">Par chauffeur</button>
+        <button type="button" id="rent-tab-btn-tournee"   class="rent-tab-btn"        role="tab" aria-selected="false" aria-controls="rent-tab-tournee"   tabindex="-1" onclick="changerSousOngletRentabilite('tournee')">Par tournée</button>
+        <button type="button" id="rent-tab-btn-simulateur" class="rent-tab-btn"       role="tab" aria-selected="false" aria-controls="rent-tab-simulateur" tabindex="-1" onclick="changerSousOngletRentabilite('simulateur')">Simulateur</button>
       </nav>
 
       <!-- Sous-onglet : Par vehicule -->
-      <div id="rent-tab-vehicule">
+      <div id="rent-tab-vehicule" role="tabpanel" aria-labelledby="rent-tab-btn-vehicule">
         <div class="card u-block-pad-sm">
           <div class="u-toolbar-row">
             <div>CA : <strong id="rent-veh-total-ca">0 €</strong></div>
@@ -1404,7 +1404,7 @@
       </div>
 
       <!-- Sous-onglet : Par client -->
-      <div id="rent-tab-client" style="display:none">
+      <div id="rent-tab-client" role="tabpanel" aria-labelledby="rent-tab-btn-client" hidden>
         <div class="card u-block-pad-sm">
           <div class="u-toolbar-row">
             <div>CA : <strong id="rent-client-total-ca">0 €</strong></div>
@@ -1424,7 +1424,7 @@
         </div>
       </div>
       <!-- Sous-onglet : Par chauffeur -->
-      <div id="rent-tab-chauffeur" style="display:none">
+      <div id="rent-tab-chauffeur" role="tabpanel" aria-labelledby="rent-tab-btn-chauffeur" hidden>
         <div class="card u-block-pad-sm">
           <div class="u-toolbar-row">
             <div>CA : <strong id="rent-chauffeur-total-ca">0 €</strong></div>
@@ -1444,7 +1444,7 @@
         </div>
       </div>
       <!-- Sous-onglet : Par tournee -->
-      <div id="rent-tab-tournee" style="display:none">
+      <div id="rent-tab-tournee" role="tabpanel" aria-labelledby="rent-tab-btn-tournee" hidden>
         <div class="card u-block-pad-sm">
           <div class="u-toolbar-row">
             <div>CA : <strong id="rent-tournee-total-ca">0 €</strong></div>
@@ -1466,7 +1466,7 @@
       </div>
 
       <!-- Sous-onglet : Simulateur (existant) -->
-      <div id="rent-tab-simulateur" style="display:none">
+      <div id="rent-tab-simulateur" role="tabpanel" aria-labelledby="rent-tab-btn-simulateur" hidden>
       <div class="rentabilite-shell">
         <div class="card rentabilite-form-card">
           <div class="card-header"><h3>Paramètres d'activité</h3></div>
@@ -2172,13 +2172,13 @@
       </div>
 
       <!-- Phase 59 polish (BUG-026) : tabs Collectée/Déductible mockup-aligned -->
-      <nav class="tva-tabs-bar" role="tablist">
-        <button class="tva-tab-btn active" id="tva-tab-btn-collectee" role="tab" aria-selected="true" onclick="window.switchTvaTab&&window.switchTvaTab('collectee')">TVA collectée <span class="tva-tab-count" id="tva-tab-count-collectee">0</span></button>
-        <button class="tva-tab-btn" id="tva-tab-btn-deductible" role="tab" aria-selected="false" onclick="window.switchTvaTab&&window.switchTvaTab('deductible')">TVA déductible <span class="tva-tab-count" id="tva-tab-count-deductible">0</span></button>
+      <nav class="tva-tabs-bar" role="tablist" aria-label="Type TVA">
+        <button type="button" class="tva-tab-btn active" id="tva-tab-btn-collectee" role="tab" aria-selected="true" aria-controls="tva-panel-collectee" onclick="window.switchTvaTab&&window.switchTvaTab('collectee')">TVA collectée <span class="tva-tab-count" id="tva-tab-count-collectee">0</span></button>
+        <button type="button" class="tva-tab-btn" id="tva-tab-btn-deductible" role="tab" aria-selected="false" aria-controls="tva-panel-deductible" tabindex="-1" onclick="window.switchTvaTab&&window.switchTvaTab('deductible')">TVA déductible <span class="tva-tab-count" id="tva-tab-count-deductible">0</span></button>
       </nav>
 
       <!-- TVA Collectée détail -->
-      <div class="card mt-20" id="tva-panel-collectee">
+      <div class="card mt-20" id="tva-panel-collectee" role="tabpanel" aria-labelledby="tva-tab-btn-collectee">
         <div class="card-header"><h3 id="tva-collectee-title">TVA Collectée</h3></div>
         <div class="table-wrapper">
           <table class="data-table tva-collectee-table">
@@ -2190,7 +2190,7 @@
       </div>
 
       <!-- TVA Déductible détail -->
-      <div class="card mt-20" id="tva-panel-deductible" style="display:none">
+      <div class="card mt-20" id="tva-panel-deductible" role="tabpanel" aria-labelledby="tva-tab-btn-deductible" hidden>
         <div class="card-header"><h3 id="tva-deductible-title">TVA Déductible (charges, carburant, entretiens)</h3></div>
         <div class="table-wrapper">
           <table class="data-table tva-deductible-table">
