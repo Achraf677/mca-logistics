@@ -102,7 +102,11 @@
   }
 
   function saveLivDocument(livId, doc) {
-    if (!livId || !doc) return;
+    if (!livId || !doc) {
+      console.warn('[saveLivDocument] APPEL INVALIDE — livId:', livId, 'doc:', doc);
+      return;
+    }
+    const key = 'documents_livraison_' + livId;
     try {
       const docs = getLivDocuments(livId);
       const existing = docs.findIndex(d => d.type === doc.type);
@@ -111,8 +115,24 @@
       } else {
         docs.push(Object.assign({ id: 'doc-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), createdAt: new Date().toISOString() }, doc));
       }
-      localStorage.setItem('documents_livraison_' + livId, JSON.stringify(docs));
-    } catch (e) { console.warn('[saveLivDocument]', e); }
+      const json = JSON.stringify(docs);
+      localStorage.setItem(key, json);
+      // Phase 91.25 — vérification écriture immédiate (read-after-write) pour détecter QuotaExceeded silencieux
+      const verify = localStorage.getItem(key);
+      if (verify !== json) {
+        console.error('[saveLivDocument] ÉCHEC ÉCRITURE — read-after-write mismatch sur', key);
+      } else {
+        console.log('[saveLivDocument] ✓', key, '—', docs.length, 'doc(s), ' + Math.round(json.length / 1024) + ' KB');
+      }
+    } catch (e) {
+      // QuotaExceededError = HTML trop gros → on retry SANS html
+      if (doc.html) {
+        console.warn('[saveLivDocument] retry SANS html (probable quota):', e && e.message);
+        const lite = Object.assign({}, doc); delete lite.html;
+        try { saveLivDocument(livId, lite); return; } catch (_) {}
+      }
+      console.error('[saveLivDocument] FAILED', e);
+    }
   }
   // Expose globalement pour que les generateurs legacy puissent l'appeler
   window.enregistrerDocumentLivraison = saveLivDocument;
