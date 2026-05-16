@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v390-phaseX-CP-CS-misc-handlers';
+const CACHE_VERSION = 'mca-v2026-05-17-v391-phaseX-CT-CU-period-state-absence';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -262,6 +262,9 @@ const CORE_ASSETS = [
   '/script-core-keyboard-shortcuts.js',
   '/script-core-planning-auto-trigger-tick.js',
   '/script-core-planning-suggestions-close.js',
+  // Phase X.CT-CU : Period state vars + ajouterPeriodeAbsence
+  '/script-core-periode-state-vars.js',
+  '/script-core-ajouter-periode-absence-fn.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
