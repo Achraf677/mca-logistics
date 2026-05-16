@@ -203,12 +203,19 @@
 .livraisons-table th[data-sort-key="statut"],
 .livraisons-table td:nth-child(12) { width: 130px; }
 .livraisons-table th[data-injected="montant-ht"],
-.livraisons-table td:nth-child(16) { width: 130px; min-width: 110px; }
+.livraisons-table td:nth-child(16) { width: 170px; min-width: 160px; }
 
 /* Phase 91.18 — pas d'ellipsis sur les TH header (sinon "Montant HT" coupé en "..."). */
 .livraisons-table thead th {
   overflow: visible;
   text-overflow: clip;
+}
+
+/* Phase 91.19 — réduit padding-horizontal sur col Montant HT pour que le label rentre */
+.livraisons-table thead th[data-injected="montant-ht"],
+.livraisons-table tbody td:nth-child(16) {
+  padding-left: 16px;
+  padding-right: 18px;
 }
 
 /* Phase 91.14 — handles de resize ajoutés par script-livraisons-resize.js */
