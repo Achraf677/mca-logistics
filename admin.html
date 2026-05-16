@@ -2243,18 +2243,18 @@
         </div>
       </div>
       <!-- Phase 53 : tabs navigation mockup-aligned (7 tabs) -->
-      <nav class="param-tabs-bar" role="tablist">
-        <button class="param-tab active" data-ptab="entreprise" role="tab" onclick="switchParamTab('entreprise')">Entreprise</button>
-        <button class="param-tab" data-ptab="comptable" role="tab" onclick="switchParamTab('comptable')">Comptabilité</button>
-        <button class="param-tab" data-ptab="notifications" role="tab" onclick="switchParamTab('notifications')">Notifications</button>
-        <button class="param-tab" data-ptab="securite" role="tab" onclick="switchParamTab('securite')">Sécurité</button>
-        <button class="param-tab" data-ptab="integrations" role="tab" onclick="switchParamTab('integrations')">Intégrations</button>
-        <button class="param-tab" data-ptab="apparence" role="tab" onclick="switchParamTab('apparence')">Apparence</button>
-        <button class="param-tab" data-ptab="sauvegarde" role="tab" onclick="switchParamTab('sauvegarde')">Sauvegarde</button>
+      <nav class="param-tabs-bar" role="tablist" aria-label="Sections Paramètres">
+        <button type="button" class="param-tab active" data-ptab="entreprise" role="tab" id="param-tab-entreprise" aria-controls="ptab-entreprise" aria-selected="true" onclick="switchParamTab('entreprise')">Entreprise</button>
+        <button type="button" class="param-tab" data-ptab="comptable" role="tab" id="param-tab-comptable" aria-controls="ptab-comptable" aria-selected="false" tabindex="-1" onclick="switchParamTab('comptable')">Comptabilité</button>
+        <button type="button" class="param-tab" data-ptab="notifications" role="tab" id="param-tab-notifications" aria-controls="ptab-notifications" aria-selected="false" tabindex="-1" onclick="switchParamTab('notifications')">Notifications</button>
+        <button type="button" class="param-tab" data-ptab="securite" role="tab" id="param-tab-securite" aria-controls="ptab-securite" aria-selected="false" tabindex="-1" onclick="switchParamTab('securite')">Sécurité</button>
+        <button type="button" class="param-tab" data-ptab="integrations" role="tab" id="param-tab-integrations" aria-controls="ptab-integrations" aria-selected="false" tabindex="-1" onclick="switchParamTab('integrations')">Intégrations</button>
+        <button type="button" class="param-tab" data-ptab="apparence" role="tab" id="param-tab-apparence" aria-controls="ptab-apparence" aria-selected="false" tabindex="-1" onclick="switchParamTab('apparence')">Apparence</button>
+        <button type="button" class="param-tab" data-ptab="sauvegarde" role="tab" id="param-tab-sauvegarde" aria-controls="ptab-sauvegarde" aria-selected="false" tabindex="-1" onclick="switchParamTab('sauvegarde')">Sauvegarde</button>
       </nav>
 
       <!-- ===== PANEL : Entreprise ===== -->
-      <div class="param-panel active" id="ptab-entreprise">
+      <div class="param-panel active" id="ptab-entreprise" role="tabpanel" aria-labelledby="param-tab-entreprise">
       <div class="params-grid">
 
         <!-- Entreprise -->
@@ -2374,7 +2374,7 @@
       </div><!-- /ptab-entreprise -->
 
       <!-- ===== PANEL : Comptabilité ===== -->
-      <div class="param-panel" id="ptab-comptable">
+      <div class="param-panel" id="ptab-comptable" role="tabpanel" aria-labelledby="param-tab-comptable" hidden>
       <div class="params-grid">
 
         <!-- Cabinet comptable (mockup-aligned Phase 62) -->
@@ -2487,7 +2487,7 @@
       </div><!-- /ptab-comptable -->
 
       <!-- ===== PANEL : Notifications ===== -->
-      <div class="param-panel" id="ptab-notifications">
+      <div class="param-panel" id="ptab-notifications" role="tabpanel" aria-labelledby="param-tab-notifications" hidden>
         <div class="card">
           <div class="card-header"><h3>Notifications &amp; alertes</h3><span style="font-size:11px;color:var(--text-muted)">12 actives</span></div>
           <div class="params-card-body">
@@ -2507,7 +2507,7 @@
       </div><!-- /ptab-notifications -->
 
       <!-- ===== PANEL : Sécurité ===== -->
-      <div class="param-panel" id="ptab-securite">
+      <div class="param-panel" id="ptab-securite" role="tabpanel" aria-labelledby="param-tab-securite" hidden>
       <div class="params-grid">
 
         <div class="card">
@@ -2544,7 +2544,7 @@
       </div><!-- /ptab-securite -->
 
       <!-- ===== PANEL : Intégrations ===== -->
-      <div class="param-panel" id="ptab-integrations">
+      <div class="param-panel" id="ptab-integrations" role="tabpanel" aria-labelledby="param-tab-integrations" hidden>
       <div class="params-grid">
 
         <div class="card">
@@ -2586,7 +2586,7 @@
       </div><!-- /ptab-integrations -->
 
       <!-- ===== PANEL : Apparence ===== -->
-      <div class="param-panel" id="ptab-apparence">
+      <div class="param-panel" id="ptab-apparence" role="tabpanel" aria-labelledby="param-tab-apparence" hidden>
       <div class="params-grid">
 
         <div class="card">
@@ -2635,7 +2635,7 @@
       </div><!-- /ptab-apparence -->
 
       <!-- ===== PANEL : Sauvegarde ===== -->
-      <div class="param-panel" id="ptab-sauvegarde">
+      <div class="param-panel" id="ptab-sauvegarde" role="tabpanel" aria-labelledby="param-tab-sauvegarde" hidden>
       <div class="params-grid">
 
         <div class="card">
