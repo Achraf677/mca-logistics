@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v351-phase91-85-alerts-badge-aria-99plus';
+const CACHE_VERSION = 'mca-v2026-05-16-v352-phase91-86-badges-99plus-incidents-relances';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

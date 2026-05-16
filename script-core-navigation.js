@@ -98,10 +98,13 @@ function calNaviguer(delta) {
 
 // L2785 (script.js d'origine)
 function mettreAJourBadgesNav() {
-  // Badge incidents ouverts
+  // Badge incidents ouverts — Phase 91.86 : cap "99+" pour éviter le débordement visuel
   const incOpen = charger('incidents').filter(i=>i.statut==='ouvert').length;
   const badgeInc = document.getElementById('badge-incidents-nav');
-  if (badgeInc) { badgeInc.textContent=incOpen; badgeInc.style.display=incOpen>0?'inline-flex':'none'; }
+  if (badgeInc) {
+    badgeInc.textContent = incOpen > 99 ? '99+' : String(incOpen);
+    badgeInc.style.display = incOpen > 0 ? 'inline-flex' : 'none';
+  }
 
   // Badge relances
   const delai   = parseInt(localStorage.getItem('relance_delai')||'7', 10);
@@ -111,7 +114,10 @@ function mettreAJourBadgesNav() {
     l.statut==='livre' && (l.statutPaiement==='en-attente'||!l.statutPaiement) && l.prix>0 && l.date<=limStr
   ).length;
   const badgeRel = document.getElementById('badge-relances');
-  if (badgeRel) { badgeRel.textContent=relOpen; badgeRel.style.display=relOpen>0?'inline-flex':'none'; }
+  if (badgeRel) {
+    badgeRel.textContent = relOpen > 99 ? '99+' : String(relOpen);
+    badgeRel.style.display = relOpen > 0 ? 'inline-flex' : 'none';
+  }
 }
 
 // L3086 (script.js d'origine)
