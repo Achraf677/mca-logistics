@@ -336,6 +336,12 @@
 .kpi-grid-4 { grid-template-columns: repeat(4, 1fr) !important; }
 .kpi-grid-3 { grid-template-columns: repeat(3, 1fr) !important; }
 
+/* Phase 79 : form-group full span (grid-column:1/-1) */
+.form-group-full { grid-column: 1 / -1; }
+
+/* card spanning full grid width */
+.card-span-full { grid-column: 1 / -1; }
+
 /* Phase 78 : password input wrap pattern → CSS */
 .pw-wrap { position: relative; }
 .pw-wrap-flex { position: relative; flex: 1; }

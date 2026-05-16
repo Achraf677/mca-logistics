@@ -2471,7 +2471,7 @@
         </div>
 
         <!-- Phase 60 V7 polish — Catégories charges custom (réintègre charges_categories) -->
-        <div class="card" style="grid-column:1/-1">
+        <div class="card card-span-full">
           <div class="card-header"><h3>Catégories de charges custom</h3></div>
           <div class="modal-body">
             <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:14px">Les catégories utilisées pour classer les charges d'exploitation. Ajoute des catégories métier spécifiques à ton activité (péages, badges, formations…).</p>
@@ -3251,8 +3251,8 @@
       <!-- Phase 51 : alert banner véhicules echéance (peuplé dynamiquement par script-entretiens-alert.js) -->
       <div id="entr-alert-banner" style="display:none;background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:10px;padding:14px 18px;margin-bottom:14px;display:none;align-items:center;gap:12px">
         <svg viewBox="0 0 24 24" width="20" height="20" style="flex-shrink:0;stroke:var(--brand);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="m21.7 18-9-15.4a2 2 0 0 0-3.4 0L.3 18A2 2 0 0 0 2 21h18a2 2 0 0 0 1.7-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-        <div id="entr-alert-banner-text" style="flex:1;font-size:13px;color:var(--text)"></div>
-        <button class="btn-primary" style="flex-shrink:0;padding:6px 14px;font-size:12px" onclick="document.getElementById('filtre-entr-type').value='';afficherEntretiens()">Voir</button>
+        <div id="entr-alert-banner-text"></div>
+        <button class="btn-primary" onclick="document.getElementById('filtre-entr-type').value='';afficherEntretiens()">Voir</button>
       </div>
 
       <!-- Phase 51 : combined period nav row (mockup-aligned) -->
@@ -4184,7 +4184,7 @@
   <div class="modal-overlay" id="modal-client-history">
     <div class="modal" style="max-width:920px">
       <div class="modal-header"><h3>Historique client — <span id="client-history-title"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client-history')">✕</button></div>
-      <div class="modal-body" style="max-height:75vh;overflow-y:auto">
+      <div class="modal-body modal-body-scroll">
         <div id="client-history-content"></div>
       </div>
       <div class="modal-footer">
@@ -4416,10 +4416,10 @@
           <div class="card-header"><h3>Achat & amortissement</h3></div>
           <div class="modal-body">
             <div class="form-grid">
-              <div class="form-group"><label for="veh-acq-prix-ht" style="color: var(--text-muted)">Prix achat HT</label><input type="number" id="veh-acq-prix-ht" placeholder="Ex : 25 000" value="" min="0" step="0.01" oninput="calculerTTCDepuisHT('veh-acq');mettreAJourInfosVehiculeFinancement()" /></div>
-              <div class="form-group"><label for="veh-acq-taux-tva" style="color: var(--text-muted)">Taux TVA achat (%)</label><input type="number" id="veh-acq-taux-tva" placeholder="Ex : 20" value="" min="0" step="0.01" oninput="calculerTTCDepuisHT('veh-acq');mettreAJourInfosVehiculeFinancement()" /></div>
-              <div class="form-group"><label for="veh-acq-prix" style="color: var(--text-muted)">Prix achat TTC</label><input type="number" id="veh-acq-prix" placeholder="Ex : 30 000" value="" min="0" step="0.01" oninput="calculerHTDepuisTTC('veh-acq');mettreAJourInfosVehiculeFinancement()" /></div>
-              <div class="form-group"><label for="veh-duree-amortissement" style="color: var(--text-muted)">Durée amortissement (années)</label><input type="number" id="veh-duree-amortissement" placeholder="Ex : 5" value="" min="0" step="1" oninput="mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group"><label for="veh-acq-prix-ht">Prix achat HT</label><input type="number" id="veh-acq-prix-ht" placeholder="Ex : 25 000" value="" min="0" step="0.01" oninput="calculerTTCDepuisHT('veh-acq');mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group"><label for="veh-acq-taux-tva">Taux TVA achat (%)</label><input type="number" id="veh-acq-taux-tva" placeholder="Ex : 20" value="" min="0" step="0.01" oninput="calculerTTCDepuisHT('veh-acq');mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group"><label for="veh-acq-prix">Prix achat TTC</label><input type="number" id="veh-acq-prix" placeholder="Ex : 30 000" value="" min="0" step="0.01" oninput="calculerHTDepuisTTC('veh-acq');mettreAJourInfosVehiculeFinancement()" /></div>
+              <div class="form-group"><label for="veh-duree-amortissement">Durée amortissement (années)</label><input type="number" id="veh-duree-amortissement" placeholder="Ex : 5" value="" min="0" step="1" oninput="mettreAJourInfosVehiculeFinancement()" /></div>
               <div class="form-group"><label for="veh-mode-amortissement">Mode d'amortissement</label>
                 <select id="veh-mode-amortissement">
                   <option value="lineaire">Linéaire</option>
@@ -4530,8 +4530,8 @@
       <div class="modal-body">
         <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">Ces paramètres servent au calcul des marges multi-axes (par véhicule, client, chauffeur, tournée).</p>
         <div class="form-grid">
-          <div class="form-group" style="grid-column:1/-1"><label>Tarif horaire chauffeur par défaut (€/h, brut chargé)</label><input type="number" id="cfg-rent-tarif-horaire" min="0" step="0.5" placeholder="12" / aria-label="12" /></div>
-          <div class="form-group" style="grid-column:1/-1">
+          <div class="form-group form-group-full"><label>Tarif horaire chauffeur par défaut (€/h, brut chargé)</label><input type="number" id="cfg-rent-tarif-horaire" min="0" step="0.5" placeholder="12" / aria-label="12" /></div>
+          <div class="form-group form-group-full">
             <label>Méthode de répartition des coûts indirects</label>
             <select id="cfg-rent-methode" aria-label="Méthode de calcul rentabilité">
               <option value="livraisons">Au prorata du nombre de livraisons</option>
@@ -4565,15 +4565,15 @@
 
         <div style="font-weight:600;margin:14px 0 8px;font-size:.92rem">Patterns suspects</div>
         <div class="form-grid">
-          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-doublons" /> Détecter 2 pleins en moins de 24h sans km parcourus</label></div>
-          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-regression" /> Détecter régression km (km saisi &lt; km précédent)</label></div>
-          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-km-excessif" /> Détecter km/jour excessif</label></div>
+          <div class="form-group form-group-full"><label><input type="checkbox" id="cfg-carb-doublons" /> Détecter 2 pleins en moins de 24h sans km parcourus</label></div>
+          <div class="form-group form-group-full"><label><input type="checkbox" id="cfg-carb-regression" /> Détecter régression km (km saisi &lt; km précédent)</label></div>
+          <div class="form-group form-group-full"><label><input type="checkbox" id="cfg-carb-km-excessif" /> Détecter km/jour excessif</label></div>
           <div class="form-group"><label>Seuil km/jour max</label><input type="number" id="cfg-carb-km-jour" min="100" max="3000" step="50" placeholder="1000" / aria-label="1000" /></div>
         </div>
 
         <div style="font-weight:600;margin:14px 0 8px;font-size:.92rem">Pleins hors heures (week-end / nuit)</div>
         <div class="form-grid">
-          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-hors-heures" /> Activer la détection (alertes peuvent être nombreuses)</label></div>
+          <div class="form-group form-group-full"><label><input type="checkbox" id="cfg-carb-hors-heures" /> Activer la détection (alertes peuvent être nombreuses)</label></div>
           <div class="form-group"><label>Heure début journée normale</label><input type="number" id="cfg-carb-h-debut" min="0" max="23" step="1" placeholder="6" / aria-label="6" /></div>
           <div class="form-group"><label>Heure fin journée normale</label><input type="number" id="cfg-carb-h-fin" min="1" max="24" step="1" placeholder="22" / aria-label="22" /></div>
         </div>
@@ -4589,7 +4589,7 @@
   <div class="modal-overlay" id="modal-planning">
     <div class="modal" style="max-width:720px">
       <div class="modal-header"><h3>Gérer les horaires</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning')">✕</button></div>
-      <div class="modal-body" style="max-height:75vh;overflow-y:auto">
+      <div class="modal-body modal-body-scroll">
         <div class="form-group" style="margin-bottom:12px">
           <label>Salarié *</label>
           <div style="position:relative">
@@ -4621,7 +4621,7 @@
   <div class="modal-overlay" id="modal-planning-recap">
     <div class="modal" style="max-width:860px">
       <div class="modal-header"><h3>Récap planning</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning-recap')">✕</button></div>
-      <div class="modal-body" style="max-height:75vh;overflow-y:auto">
+      <div class="modal-body modal-body-scroll">
         <div id="planning-recap-content"></div>
       </div>
       <div class="modal-footer"><button class="btn-primary" onclick="closeModal('modal-planning-recap')">Fermer</button></div>

@@ -109,3 +109,16 @@
 .entretiens-table td:nth-child(8) {
   display: none !important;
 }
+
+/* Phase 79 : entretiens alert banner inline styles → CSS */
+#entr-alert-banner-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text, #e8eaf0);
+}
+
+#entr-alert-banner .btn-primary {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  font-size: 12px;
+}

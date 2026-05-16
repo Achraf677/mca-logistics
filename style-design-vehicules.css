@@ -314,3 +314,6 @@
 }
 
 .fv-action-primary:hover { background: var(--brand-hover, #c81d2a); }
+
+/* Phase 79 : veh-bloc-achat financement labels inline color → CSS */
+#veh-bloc-achat .form-grid label { color: var(--text-muted, #7c8299); }
