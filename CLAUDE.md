@@ -31,8 +31,10 @@ Dernière mise à jour : 2026-05-09
 - **Un fichier = un domaine métier** : chaque table métier (livraisons, charges,
   carburant, etc.) a son propre `script-<domaine>.js`. Pas de fourre-tout. Pas de
   fichier > 1500 lignes — sinon découper avant d'ajouter.
-  - **Dette tech connue (à découper en sprint H2)** : `script.js` 13 649 l,
-    `script-mobile.js` 12 360 l, `script-salarie.js` 2 725 l, `script-ai-chat.js` 1 759 l.
+  - **Dette tech connue** (mise à jour 2026-05-17, branche `claude/html-refonte-cleanup`) :
+    - `script.js` 9 783 l (Phase X 59 modules extraits — était 14 428 l. Cible <10k ✅)
+    - `script-mobile.js` 12 360 l, `script-salarie.js` 2 725 l, `script-ai-chat.js` 1 759 l
+      → reste à découper en sprint H2 suivant.
 - **Toutes les fonctions au scope global** (`window.X = ...`) côté front pour que
   les `onclick="X()"` HTML continuent de fonctionner.
 - **Pattern dual-read transitoire** pour les schémas data divergents PC↔mobile :
