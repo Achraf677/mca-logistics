@@ -892,17 +892,17 @@
             <svg viewBox="0 0 24 24" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
-        <nav class="dr-tabs" role="tablist">
-          <button class="dr-tab active" type="button" data-dr-tab="detail" role="tab" aria-selected="true">Détail</button>
-          <button class="dr-tab" type="button" data-dr-tab="documents" role="tab" aria-selected="false">Documents</button>
-          <button class="dr-tab" type="button" data-dr-tab="paiement" role="tab" aria-selected="false">Paiement</button>
-          <button class="dr-tab" type="button" data-dr-tab="historique" role="tab" aria-selected="false">Historique</button>
+        <nav class="dr-tabs" role="tablist" aria-label="Onglets livraison">
+          <button class="dr-tab active" type="button" data-dr-tab="detail" role="tab" aria-selected="true" id="dr-liv-tab-detail" aria-controls="dr-liv-detail-panel">Détail</button>
+          <button class="dr-tab" type="button" data-dr-tab="documents" role="tab" aria-selected="false" id="dr-liv-tab-documents" aria-controls="dr-liv-documents-panel" tabindex="-1">Documents</button>
+          <button class="dr-tab" type="button" data-dr-tab="paiement" role="tab" aria-selected="false" id="dr-liv-tab-paiement" aria-controls="dr-liv-paiement-panel" tabindex="-1">Paiement</button>
+          <button class="dr-tab" type="button" data-dr-tab="historique" role="tab" aria-selected="false" id="dr-liv-tab-historique" aria-controls="dr-liv-historique-panel" tabindex="-1">Historique</button>
         </nav>
         <div class="dr-body">
-          <div class="dr-tab-panel active" data-dr-panel="detail" id="dr-liv-detail-panel">—</div>
-          <div class="dr-tab-panel" data-dr-panel="documents" id="dr-liv-documents-panel">—</div>
-          <div class="dr-tab-panel" data-dr-panel="paiement" id="dr-liv-paiement-panel">—</div>
-          <div class="dr-tab-panel" data-dr-panel="historique" id="dr-liv-historique-panel">—</div>
+          <div class="dr-tab-panel active" data-dr-panel="detail" id="dr-liv-detail-panel" role="tabpanel" aria-labelledby="dr-liv-tab-detail">—</div>
+          <div class="dr-tab-panel" data-dr-panel="documents" id="dr-liv-documents-panel" role="tabpanel" aria-labelledby="dr-liv-tab-documents" hidden>—</div>
+          <div class="dr-tab-panel" data-dr-panel="paiement" id="dr-liv-paiement-panel" role="tabpanel" aria-labelledby="dr-liv-tab-paiement" hidden>—</div>
+          <div class="dr-tab-panel" data-dr-panel="historique" id="dr-liv-historique-panel" role="tabpanel" aria-labelledby="dr-liv-tab-historique" hidden>—</div>
         </div>
         <div class="dr-foot">
           <button class="btn-secondary" type="button" id="dr-liv-btn-print">Imprimer</button>
