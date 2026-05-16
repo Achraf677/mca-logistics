@@ -367,6 +367,8 @@ function getLivraisonInlineSelectClass(type, valeur) {
   if (type === 'statut') {
     if (normalized === 'livre') return 'is-success';
     if (normalized === 'en-cours') return 'is-info';
+    // Phase 91.23 — statut brouillon = pill stone/muted (pas warn jaune)
+    if (normalized === 'brouillon') return 'is-draft';
     return 'is-warn';
   }
   if (normalized === 'paye' || normalized === 'payé') return 'is-success';
@@ -377,7 +379,7 @@ function getLivraisonInlineSelectClass(type, valeur) {
 // L2457 (script.js d'origine)
 function styliserSelectLivraison(selectEl, type) {
   if (!selectEl) return;
-  selectEl.classList.remove('is-success', 'is-info', 'is-warn', 'is-danger');
+  selectEl.classList.remove('is-success', 'is-info', 'is-warn', 'is-danger', 'is-draft', 'is-muted');
   selectEl.classList.add(getLivraisonInlineSelectClass(type, selectEl.value));
 }
 

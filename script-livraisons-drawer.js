@@ -195,17 +195,22 @@
     if (!doc) { alert('Document introuvable'); return; }
     if (doc.url) { window.open(doc.url, '_blank'); return; }
     if (doc.blob) { window.open(URL.createObjectURL(doc.blob), '_blank'); return; }
-    // Phase 91.16 — pas de fichier sauvegardé : on régénère à la volée (ouvre la fenêtre d'impression).
+    // Phase 91.22 — HTML capturé lors de la 1ère génération → blob URL (no re-trigger du générateur).
+    if (doc.html) {
+      try {
+        const full = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + (doc.name || 'Document') + '</title><style>html,body{margin:0;padding:0;background:#fff;font-family:Segoe UI,Arial,sans-serif}body{padding:20px}@page{margin:12mm}</style></head><body>' + doc.html + '</body></html>';
+        const url = URL.createObjectURL(new Blob([full], { type: 'text/html;charset=utf-8' }));
+        window.open(url, '_blank');
+        setTimeout(function () { try { URL.revokeObjectURL(url); } catch (_) {} }, 60000);
+        return;
+      } catch (e) { console.warn('[voirDocumentLivraison:html]', e); }
+    }
+    // Fallback : régénère via le générateur (peut throw → toast)
     try {
-      if (doc.type === 'facture' && typeof window.genererFactureLivraison === 'function') {
-        window.genererFactureLivraison(livId);
-      } else if (doc.type === 'bl' && (typeof window.genererBonsLivraison === 'function' || typeof window.genererBonLivraison === 'function')) {
-        (window.genererBonsLivraison || window.genererBonLivraison)(livId);
-      } else if (doc.type === 'cmr' && (typeof window.genererLettreDeVoiture === 'function' || typeof window.genererLettreVoiture === 'function')) {
-        (window.genererLettreDeVoiture || window.genererLettreVoiture)(livId);
-      } else {
-        alert('Document ' + (doc.name || doc.type) + ' — type non géré.');
-      }
+      if (doc.type === 'facture' && typeof window.genererFactureLivraison === 'function') window.genererFactureLivraison(livId);
+      else if (doc.type === 'bl' && (typeof window.genererBonsLivraison === 'function' || typeof window.genererBonLivraison === 'function')) (window.genererBonsLivraison || window.genererBonLivraison)(livId);
+      else if (doc.type === 'cmr' && (typeof window.genererLettreDeVoiture === 'function' || typeof window.genererLettreVoiture === 'function')) (window.genererLettreDeVoiture || window.genererLettreVoiture)(livId);
+      else alert('Document ' + (doc.name || doc.type) + ' — type non géré.');
     } catch (e) {
       console.warn('[voirDocumentLivraison]', e);
       alert('Erreur lors de la régénération du document.');

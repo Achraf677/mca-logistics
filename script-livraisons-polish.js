@@ -292,31 +292,22 @@
     } catch (_) { return '—'; }
   }
 
-  // ============ Action Générer wrapper (Phase 33) ============
+  // ============ Action Générer wrapper (Phase 33 + 91.23) ============
   // Le dropdown Générer expose 4 types : facture / bl / cmr / facture-groupee
-  // On lit les IDs des rows checkboxes ; si aucun, on prend la 1ere row visible ;
-  // sinon on demande de selectionner.
+  // Phase 91.23 — si aucune row cochée, on AFFICHE un toast et on ARRÊTE (au lieu
+  // de prendre la 1ère ligne visible silencieusement).
   window.actionGenererLivraison = function (type) {
     const selected = Array.from(document.querySelectorAll('#tb-livraisons .bulk-liv-check:checked'))
       .map(c => c.dataset.livId).filter(Boolean);
 
-    // Aucune selection : prendre la 1ere ligne visible (UX practical)
-    let livId = null;
-    if (selected.length >= 1) {
-      livId = selected[0];
-    } else {
-      const firstRow = document.querySelector('#tb-livraisons tr:not(.empty-row)');
-      if (firstRow) {
-        const cb = firstRow.querySelector('.bulk-liv-check');
-        if (cb) livId = cb.dataset.livId;
-      }
-    }
-
-    if (!livId) {
+    // facture-groupée tolère pas de sélection (= toutes les livraisons de la période)
+    if (selected.length === 0 && type !== 'facture-groupee') {
       const toast = window.afficherToast || ((msg) => alert(msg));
-      toast('Sélectionnez une livraison pour générer ce document', 'warn');
+      toast('Veuillez sélectionner une livraison (case à cocher à gauche) avant de générer le document.', 'warn');
       return;
     }
+
+    const livId = selected[0] || null;
 
     // Dispatch selon type
     const dispatch = {
