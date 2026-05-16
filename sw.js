@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v369-phaseX-V-AB-batch-7-modules';
+const CACHE_VERSION = 'mca-v2026-05-17-v370-phaseX-AC-AG-batch-5-modules';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -173,6 +173,12 @@ const CORE_ASSETS = [
   '/script-core-releve-km.js',
   '/script-core-ponctualite-card.js',
   '/script-core-valider-siret.js',
+  // Phase X.AC-AG : 5 modules supplémentaires
+  '/script-core-conformite-ce561.js',
+  '/script-core-grille-jours-planning.js',
+  '/script-core-csv-secure.js',
+  '/script-core-badge-statut.js',
+  '/script-core-favicon-badge.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts

@@ -1636,13 +1636,7 @@ window.__salDocsTemp = {};
 // MOVED -> script-salaries.js : supprimerSalarie
 
 /* ===== UTILITAIRES AFFICHAGE ===== */
-function badgeStatut(s) {
-  return {
-    'en-attente': '<span class="badge badge-attente">⏳ En attente</span>',
-    'en-cours':   '<span class="badge badge-cours">En cours</span>',
-    'livre':      '<span class="badge badge-livre">✅ Livré</span>'
-  }[s] || s;
-}
+// MOVED -> script-core-badge-statut.js : badgeStatut
 // MOVED -> script-salaries.js : badgeChauffeur
 // MOVED -> script-core-audit.js : togglePanneauAgent
 
@@ -1788,55 +1782,7 @@ const JOURS_COURTS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 
 // MOVED -> script-planning.js : afficherPlanning
 
-function genererGrilleJours() {
-  const salId = document.getElementById('plan-salarie').value;
-  const grid  = document.getElementById('plan-jours-grid');
-  if (!grid) return;
-
-  const plannings = loadSafe('plannings', []);
-  const plan = plannings.find(p => p.salId === salId);
-
-  grid.innerHTML = JOURS.map((jour, i) => {
-    const existing = plan?.semaine?.find(j => j.jour === jour) || {};
-    const typeJour = existing.typeJour || (existing.travaille ? 'travail' : 'repos');
-    const classeRow = typeJour==='conge'?'jour-conge':typeJour==='absence'?'jour-absence':typeJour==='maladie'?'jour-maladie':'';
-    return `
-      <div id="plan-row-${jour}" style="background:var(--bg-dark,#0f1117);border:1px solid var(--border);border-radius:8px;padding:10px 12px" class="${classeRow}">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1">
-            <input type="checkbox" id="plan-travaille-${jour}" ${existing.travaille ? 'checked' : ''}
-              onchange="toggleJourPlanning('${jour}')"
-              style="width:16px;height:16px;accent-color:var(--accent)" />
-            <strong style="font-size:.9rem">${JOURS_COURTS[i]} — ${jour.charAt(0).toUpperCase()+jour.slice(1)}</strong>
-          </label>
-          <select class="planning-type-select" id="plan-type-${jour}" onchange="toggleTypeJour('${jour}')" style="width:110px">
-            <option value="travail" ${typeJour==='travail'?'selected':''}>Travail</option>
-            <option value="repos"   ${typeJour==='repos'  ?'selected':''}>Repos</option>
-            <option value="conge"   ${typeJour==='conge'  ?'selected':''}>Congé</option>
-            <option value="absence" ${typeJour==='absence'?'selected':''}>Absence</option>
-            <option value="maladie" ${typeJour==='maladie'?'selected':''}>Maladie</option>
-          </select>
-        </div>
-        <div id="plan-horaires-${jour}" style="display:${existing.travaille&&typeJour==='travail' ? 'grid' : 'none'};grid-template-columns:1fr 1fr 1fr;gap:8px">
-          <div><label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px">Début</label>
-            <input type="time" id="plan-debut-${jour}" value="${existing.heureDebut||''}"
-              onchange="mettreAJourTotalHeuresPlanning()"
-              style="width:100%;background:var(--bg-card,#13161f);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:.85rem;font-family:inherit" /></div>
-          <div><label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px">Fin</label>
-            <input type="time" id="plan-fin-${jour}" value="${existing.heureFin||''}"
-              onchange="mettreAJourTotalHeuresPlanning()"
-              style="width:100%;background:var(--bg-card,#13161f);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:.85rem;font-family:inherit" /></div>
-          <div><label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px">Zone</label>
-            <input type="text" id="plan-zone-${jour}" value="${existing.zone||''}" placeholder="Ex: Nord"
-              style="width:100%;background:var(--bg-card,#13161f);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:.85rem;font-family:inherit" /></div>
-          <div style="grid-column:1/-1"><label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px">Note</label>
-            <input type="text" id="plan-note-${jour}" value="${existing.note||''}" placeholder="Informations..."
-              style="width:100%;background:var(--bg-card,#13161f);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:.85rem;font-family:inherit" /></div>
-        </div>
-      </div>`;
-  }).join('');
-  mettreAJourTotalHeuresPlanning();
-}
+// MOVED -> script-core-grille-jours-planning.js : genererGrilleJours
 
 // MOVED -> script-planning.js : toggleJourPlanning
 
@@ -1846,39 +1792,7 @@ function genererGrilleJours() {
 
 // BUG-008 fix : contrôles Règlement CE 561/2006 (temps de conduite).
 // Alertes non bloquantes affichées après sauvegarde planning + audit.
-function verifierConformiteConduiteCE561(semaine) {
-  const warnings = [];
-  if (!Array.isArray(semaine)) return { ok: true, warnings: warnings, totalHebdoMin: 0 };
-  let totalHebdoMin = 0;
-  let nbJoursSupA9h = 0;
-  (semaine || []).forEach(function(j) {
-    if (!j || !j.travaille || j.typeJour && j.typeJour !== 'travail') return;
-    const hd = String(j.heureDebut || '').trim();
-    const hf = String(j.heureFin || '').trim();
-    if (!hd || !hf) return;
-    const [h1, m1] = hd.split(':').map(function(x){ return parseInt(x, 10) || 0; });
-    const [h2, m2] = hf.split(':').map(function(x){ return parseInt(x, 10) || 0; });
-    let minJour = (h2 * 60 + m2) - (h1 * 60 + m1);
-    if (minJour < 0) minJour += 24 * 60;
-    if (minJour > 9 * 60) {
-      nbJoursSupA9h++;
-      warnings.push('⚠️ ' + j.jour + ' : ' + (minJour / 60).toFixed(1) + 'h — dépasse le max journalier de 9h (CE 561/2006 art. 6.1)');
-    }
-    if (minJour > 10 * 60) {
-      warnings.push('🛑 ' + j.jour + ' : ' + (minJour / 60).toFixed(1) + 'h — dépasse le plafond absolu 10h (même avec dérogation 2×/sem)');
-    }
-    totalHebdoMin += minJour;
-  });
-  if (nbJoursSupA9h > 2) {
-    warnings.push('🛑 ' + nbJoursSupA9h + ' jours > 9h cette semaine — max 2 dérogations autorisées (CE 561/2006 art. 6.1)');
-  }
-  if (totalHebdoMin > 56 * 60) {
-    warnings.push('Semaine : ' + (totalHebdoMin / 60).toFixed(1) + 'h — dépasse la limite 56h/sem (CE 561/2006 art. 6.2)');
-  } else if (totalHebdoMin > 48 * 60) {
-    warnings.push('⚠️ Semaine : ' + (totalHebdoMin / 60).toFixed(1) + 'h — au-delà de la moyenne 48h/sem recommandée (directive 2002/15/CE)');
-  }
-  return { ok: warnings.length === 0, warnings: warnings, totalHebdoMin: totalHebdoMin };
-}
+// MOVED -> script-core-conformite-ce561.js : verifierConformiteConduiteCE561
 
 // MOVED -> script-planning.js : sauvegarderPlanning
 
@@ -1905,67 +1819,9 @@ let _vueLivraisons = 'tableau'; // 'tableau' | 'kanban' | 'calendrier'
 // MOVED -> script-core-pagination.js : nettoyerPagination + paginer
 
 // MOVED -> script-core-empty-states.js : emptyState
+// MOVED -> script-core-favicon-badge.js : majBadgeFavicon
 
-/* ===== BADGE FAVICON ===== */
-let _faviconCanvas = null;
-function majBadgeFavicon(count) {
-  const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
-  link.rel = 'icon';
-  const logo = getLogoEntreprise();
-  const canvas = document.createElement('canvas');
-  canvas.width = 32;
-  canvas.height = 32;
-  const ctx = canvas.getContext('2d');
-  const dessinerBadge = function() {
-    ctx.fillStyle = '#e74c3c';
-    ctx.beginPath();
-    ctx.arc(25, 7, 8, 0, 2*Math.PI);
-    ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 10px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(count > 9 ? '9+' : String(count), 25, 11);
-    link.href = canvas.toDataURL();
-    document.head.appendChild(link);
-  };
-  if (count <= 0) {
-    link.href = logo || "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>";
-    document.head.appendChild(link);
-    return;
-  }
-  if (logo) {
-    const img = new Image();
-    img.onload = function() {
-      ctx.clearRect(0, 0, 32, 32);
-      ctx.drawImage(img, 0, 0, 32, 32);
-      dessinerBadge();
-    };
-    img.onerror = function() {
-      ctx.font = '24px serif';
-      ctx.fillText('🚐', 0, 24);
-      dessinerBadge();
-    };
-    img.src = logo;
-    return;
-  }
-  ctx.font = '24px serif';
-  ctx.fillText('🚐', 0, 24);
-  dessinerBadge();
-}
-
-/* ===== EXPORT CSV ===== */
-// csvCelluleSecurisee — neutralise l'injection de formules Excel/LibreOffice (OWASP CSV Injection).
-// Préfixe une apostrophe devant =, +, -, @, tab, CR : Excel n'exécute plus la formule, affiche le texte littéral.
-// Puis échappe les guillemets et encadre si la cellule contient séparateur, guillemet ou saut de ligne.
-function csvCelluleSecurisee(value, separator) {
-  const sep = separator || ';';
-  const raw = value == null ? '' : String(value);
-  const neutralise = /^[=+\-@\t\r]/.test(raw) ? "'" + raw : raw;
-  const needsQuote = neutralise.includes(sep) || neutralise.includes('"') || neutralise.includes('\n') || neutralise.includes('\r');
-  const echappe = neutralise.replace(/"/g, '""');
-  return needsQuote ? '"' + echappe + '"' : echappe;
-}
-window.csvCelluleSecurisee = csvCelluleSecurisee;
+// MOVED -> script-core-csv-secure.js : csvCelluleSecurisee
 
 // MOVED -> script-exports.js : exporterCSV
 
