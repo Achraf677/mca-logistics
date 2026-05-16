@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v345-phase91-79-ds-tokens-light-mode';
+const CACHE_VERSION = 'mca-v2026-05-16-v346-phase91-80-stale-comment-cleanup';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
