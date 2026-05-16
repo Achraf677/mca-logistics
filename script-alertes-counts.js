@@ -135,7 +135,9 @@
       alertes.forEach(function (a) {
         if (!a || a.traite === true || a.traitee === true || firstInfoMsg) return;
         if ((SEVERITY_MAP[a.type] || 'info') === 'info') {
-          var msg = (a.message || a.titre || '').slice(0, 36);
+          // Phase 91.55 Bug F — slice 36 tronquait noms (Achraf → Achra). 60 + ellipse intelligente.
+          var rawMsg = a.message || a.titre || '';
+          var msg = rawMsg.length > 60 ? rawMsg.slice(0, 57) + '…' : rawMsg;
           if (msg) firstInfoMsg = msg;
         }
       });

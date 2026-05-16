@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v319-phase91-54-1-hotfix-post-audit';
+const CACHE_VERSION = 'mca-v2026-05-16-v320-phase91-55-bugs-user-critiques';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -119,6 +119,8 @@ const CORE_ASSETS = [
   '/script-modal-paiement.js',
   // Phase 60 V7 polish — Stubs 4 fns silent-fail
   '/script-stubs-fns.js',
+  // Phase 91.55 Bug D — Handler toggles Notifications Paramètres
+  '/script-params-notifications.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts

@@ -142,6 +142,8 @@
   <script defer src="script-modal-paiement.js?v=2"></script>
   <!-- Phase 60 V7 polish — Stubs pour 4 fns silent-fail (reinitialiserParametres, testerConnexionPennylane, envoyerChargesPennylane, envoyerRelancesEmail) -->
   <script defer src="script-stubs-fns.js?v=1"></script>
+  <!-- Phase 91.55 Bug D — Handler toggles Notifications (persistance localStorage + a11y) -->
+  <script defer src="script-params-notifications.js?v=1"></script>
   <!-- Phase 2 HTML refonte Vehicules : counts total + alertes CT/assurance. -->
   <script defer src="script-vehicules-counts.js?v=2"></script>
   <!-- Phase 48 : Véhicules card grid (fleet view, mockup-aligned). -->
@@ -363,7 +365,8 @@
       <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre" aria-label="Basculer entre mode clair et sombre"><svg viewBox="0 0 24 24" width="16" height="16" class="u-svg-base"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
       <!-- Phase 91 : Agent IA + chatbot intégré (FAB ✨ bas-droite déplacé ici).
            Clic sur la pill = panneau Agent. Clic sur l'icône ✨ = ouvrir le chatbot (déclenche #ai-chat-fab). -->
-      <div id="ai-status-bar" onclick="togglePanneauAgent()">
+      <!-- Phase 91.55 Bug H — role="button" + tabindex + keyboard handler (a11y WCAG 4.1.2) -->
+      <div id="ai-status-bar" role="button" tabindex="0" aria-label="Ouvrir le panneau Agent IA" onclick="togglePanneauAgent()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePanneauAgent()}">
         <span class="ai-pulse-dot"></span>
         <span class="ai-status-label">Agent IA</span>
         <span id="ai-decisions-badge" style="display:none">0</span>

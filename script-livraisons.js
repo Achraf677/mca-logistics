@@ -319,6 +319,11 @@ function ajouterLivraison() {
   closeModal('modal-livraison');
   viderFormulaireLivraison();
   afficherLivraisons();
+  // Phase 91.55 Bug G — refresh chain parité avec confirmerEditLivraison (manquait dashboard/encaissement/rentabilité)
+  try { if (typeof window.rafraichirDashboard === 'function') window.rafraichirDashboard(); } catch (_) {}
+  try { if (typeof window.afficherRentabilite === 'function') window.afficherRentabilite(); } catch (_) {}
+  try { if (typeof window.afficherEncaissement === 'function') window.afficherEncaissement(); } catch (_) {}
+  try { if (typeof window.refreshLivraisonsChipsCounts === 'function') window.refreshLivraisonsChipsCounts(); } catch (_) {}
   if (clientCreeAuto && typeof afficherClients === 'function') {
     try { afficherClients(); } catch (e) {
       if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {

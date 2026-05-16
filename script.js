@@ -2214,7 +2214,10 @@ function afficherKanban() {
   const filtreChauffeur = document.getElementById('filtre-chauffeur')?.value || '';
   if (filtreDeb) livraisons = livraisons.filter(l => l.date >= filtreDeb);
   if (filtreFin) livraisons = livraisons.filter(l => l.date <= filtreFin);
-  if (filtreStatut) livraisons = livraisons.filter(l => l.statut === filtreStatut);
+  // Phase 91.55 Bug B — chip "Brouillons" doit aussi matcher les livraisons legacy `statut === 'en-attente'`
+  if (filtreStatut) livraisons = livraisons.filter(l => filtreStatut === 'brouillon'
+    ? (l.statut === 'brouillon' || l.statut === 'en-attente' || l.brouillon === true)
+    : l.statut === filtreStatut);
   if (filtrePaiement) livraisons = livraisons.filter(l => (l.statutPaiement || 'en-attente') === filtrePaiement);
   if (filtreChauffeur) livraisons = livraisons.filter(l => l.chaufId === filtreChauffeur);
   if (filtreRecherche) {
@@ -4394,7 +4397,10 @@ window.__adminFinalLock = function() {
       selChauf.value = currentValue;
     }
 
-    if (filtreStatut) livraisons = livraisons.filter(l => l.statut === filtreStatut);
+    // Phase 91.55 Bug B — chip "Brouillons" doit aussi matcher les livraisons legacy `statut === 'en-attente'`
+  if (filtreStatut) livraisons = livraisons.filter(l => filtreStatut === 'brouillon'
+    ? (l.statut === 'brouillon' || l.statut === 'en-attente' || l.brouillon === true)
+    : l.statut === filtreStatut);
     if (filtreDateDeb) livraisons = livraisons.filter(l => l.date >= filtreDateDeb);
     if (filtreDateFin) livraisons = livraisons.filter(l => l.date <= filtreDateFin);
     if (filtrePaiement) livraisons = livraisons.filter(l => (l.statutPaiement || 'en-attente') === filtrePaiement);
@@ -4642,7 +4648,10 @@ const __renderLivraisonsAdminFinal_v2 = function() {
     selChauf.value = currentValue;
   }
 
-  if (filtreStatut) livraisons = livraisons.filter(l => l.statut === filtreStatut);
+  // Phase 91.55 Bug B — chip "Brouillons" doit aussi matcher les livraisons legacy `statut === 'en-attente'`
+  if (filtreStatut) livraisons = livraisons.filter(l => filtreStatut === 'brouillon'
+    ? (l.statut === 'brouillon' || l.statut === 'en-attente' || l.brouillon === true)
+    : l.statut === filtreStatut);
   if (filtreDateDeb) livraisons = livraisons.filter(l => l.date >= filtreDateDeb);
   if (filtreDateFin) livraisons = livraisons.filter(l => l.date <= filtreDateFin);
   if (filtrePaiement) livraisons = livraisons.filter(l => (l.statutPaiement || 'en-attente') === filtrePaiement);
@@ -4701,6 +4710,7 @@ const __renderLivraisonsAdminFinal_v2 = function() {
       <td class="livraison-number-cell livraison-muted-cell">${euros(tva)}</td>
       <td class="livraison-number-cell livraison-total-cell">${euros(ttc)}</td>
       <td>${formatArchivedDriverHtml(chauffeur)}</td>
+      <td><span class="livraison-cell-text">${escapeHtml(l.vehNom || l.vehImmat || '—')}</span></td>
       <td><div class="livraison-select-cell">${selectStatutPropre}</div></td>
       <td><div class="livraison-select-cell">${selectPaiementPropre}</div></td>
       <td class="livraison-number-cell">${datePaiement}</td>
@@ -8192,7 +8202,10 @@ genererRentabilitePDF = function() {
         selChauf.value = currentValue;
       }
 
-      if (filtreStatut) livraisons = livraisons.filter(l => l.statut === filtreStatut);
+      // Phase 91.55 Bug B — chip "Brouillons" doit aussi matcher les livraisons legacy `statut === 'en-attente'`
+  if (filtreStatut) livraisons = livraisons.filter(l => filtreStatut === 'brouillon'
+    ? (l.statut === 'brouillon' || l.statut === 'en-attente' || l.brouillon === true)
+    : l.statut === filtreStatut);
       if (filtreDateDeb) livraisons = livraisons.filter(l => l.date >= filtreDateDeb);
       if (filtreDateFin) livraisons = livraisons.filter(l => l.date <= filtreDateFin);
       if (filtrePaiement) livraisons = livraisons.filter(l => (l.statutPaiement || 'en-attente') === filtrePaiement);
@@ -8504,7 +8517,10 @@ genererRentabilitePDF = function() {
         selChauf.value = currentValue;
       }
 
-      if (filtreStatut) livraisons = livraisons.filter(l => l.statut === filtreStatut);
+      // Phase 91.55 Bug B — chip "Brouillons" doit aussi matcher les livraisons legacy `statut === 'en-attente'`
+  if (filtreStatut) livraisons = livraisons.filter(l => filtreStatut === 'brouillon'
+    ? (l.statut === 'brouillon' || l.statut === 'en-attente' || l.brouillon === true)
+    : l.statut === filtreStatut);
       if (filtreDateDeb) livraisons = livraisons.filter(l => l.date >= filtreDateDeb);
       if (filtreDateFin) livraisons = livraisons.filter(l => l.date <= filtreDateFin);
       if (filtrePaiement) livraisons = livraisons.filter(l => (l.statutPaiement || 'en-attente') === filtrePaiement);
