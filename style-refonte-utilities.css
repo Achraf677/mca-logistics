@@ -327,3 +327,11 @@
 
 /* Phase 72 : card-header-wrap (adds flex-wrap + gap to base .card-header flex) */
 .card-header-wrap { flex-wrap: wrap; gap: 10px; }
+
+/* Phase 74 : position:relative wrappers + KPI grid column overrides */
+.ds-export-wrap { position: relative; }
+
+/* Note: .liv-dropdown-wrap already has position:relative in style-design-livraisons-refonte.css */
+
+.kpi-grid-4 { grid-template-columns: repeat(4, 1fr) !important; }
+.kpi-grid-3 { grid-template-columns: repeat(3, 1fr) !important; }

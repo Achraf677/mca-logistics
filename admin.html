@@ -508,7 +508,7 @@
       <!-- === / FIN HERO ROW                                          === -->
       <!-- ============================================================== -->
 
-      <div class="kpi-grid kpi-grid-primary" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
+      <div class="kpi-grid kpi-grid-primary kpi-grid-4" style="margin-bottom:12px">
         <div class="kpi-card blue">
           <div class="kpi-label">Livraisons</div>
           <div class="kpi-value" id="kpi-livraisons-mois">0</div>
@@ -944,7 +944,7 @@
           </div>
         </div>
         <div class="ds-section-head__actions u-flex-row">
-          <div class="ds-export-wrap" style="position:relative">
+          <div class="ds-export-wrap">
             <button class="btn-secondary ds-export-btn" id="cli-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('cli-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
@@ -1025,7 +1025,7 @@
           </div>
         </div>
         <div class="ds-section-head__actions u-flex-row">
-          <div class="ds-export-wrap" style="position:relative">
+          <div class="ds-export-wrap">
             <button class="btn-secondary ds-export-btn" id="frn-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('frn-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
@@ -1106,7 +1106,7 @@
           </div>
         </div>
         <div class="ds-section-head__actions">
-          <div class="liv-dropdown-wrap" style="position:relative">
+          <div class="liv-dropdown-wrap">
             <button class="btn-secondary liv-dropdown-btn" onclick="this.parentElement.classList.toggle('open')" aria-haspopup="true">
               <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
@@ -1187,7 +1187,7 @@
           </div>
         </div>
         <div class="ds-section-head__actions u-flex-row">
-          <div class="ds-export-wrap" style="position:relative">
+          <div class="ds-export-wrap">
             <button class="btn-secondary ds-export-btn" id="carb-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('carb-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
@@ -1326,7 +1326,7 @@
         </div>
         <div class="ds-section-head__actions u-flex-row">
           <button class="btn-secondary" onclick="ouvrirConfigRentabilite()" title="Configurer les paramètres de calcul">Config</button>
-          <div class="ds-export-wrap" style="position:relative">
+          <div class="ds-export-wrap">
             <button class="btn-secondary ds-export-btn" id="rent-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('rent-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
@@ -1670,7 +1670,7 @@
           <button class="btn-chip stats-granularity active" data-granularity="mois" onclick="setStatsGranularity(this,'mois')">Mois</button>
           <button class="btn-chip stats-granularity" data-granularity="trimestre" onclick="setStatsGranularity(this,'trimestre')">Trimestre</button>
           <button class="btn-chip stats-granularity" data-granularity="annee" onclick="setStatsGranularity(this,'annee')">Année</button>
-          <div class="liv-dropdown-wrap" style="position:relative">
+          <div class="liv-dropdown-wrap">
             <button class="btn-secondary liv-dropdown-btn" onclick="this.parentElement.classList.toggle('open')" aria-haspopup="true">
               <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
@@ -1767,7 +1767,7 @@
           </div>
         </div>
         <div class="ds-section-head__actions u-flex-row">
-          <div class="ds-export-wrap" style="position:relative">
+          <div class="ds-export-wrap">
             <button class="btn-secondary ds-export-btn" id="equipe-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('equipe-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
@@ -1978,7 +1978,7 @@
           </div>
         </div>
         <div class="ds-section-head__actions u-flex-row">
-          <div class="ds-export-wrap" style="position:relative">
+          <div class="ds-export-wrap">
             <button class="btn-secondary ds-export-btn" id="alertes-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('alertes-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
@@ -2000,7 +2000,7 @@
       </div>
 
       <!-- Phase 36 refonte HTML : KPI grid (Critiques / Avertissements / Info) -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+      <div class="kpi-grid kpi-grid-3" style="margin-bottom:16px">
         <div class="kpi"><div class="kpi-lbl">Critiques</div><div class="kpi-val" id="alertes-kpi-critiques">—</div><div class="kpi-sub">Action immédiate requise</div></div>
         <div class="kpi"><div class="kpi-lbl">Avertissements</div><div class="kpi-val" id="alertes-kpi-alertes">—</div><div class="kpi-sub">À traiter cette semaine</div></div>
         <div class="kpi"><div class="kpi-lbl">Info</div><div class="kpi-val" id="alertes-kpi-info">—</div><div class="kpi-sub">Notifications légères</div></div>
@@ -2009,7 +2009,7 @@
       <!-- Phase 46 : card wrapper "Liste des alertes" + quick filters (mockup-matched) -->
       <div class="card" id="card-alertes-liste" style="margin-bottom:16px">
         <div class="card-header card-header-wrap">
-          <div style="font-family:var(--font-display);font-size:14px;font-weight:800">Liste des alertes</div>
+          <h3>Liste des alertes</h3>
           <!-- Phase 60 V7 M5 — Sub-tabs Critique/À traiter/Pour info/Reportées (mockup-aligned) -->
           <div role="tablist" aria-label="Filtres alertes par sévérité" style="display:flex;gap:4px;border-bottom:1px solid var(--border);padding:0 2px">
             <button class="rent-tab-btn active" role="tab" data-alerte-sevtab="toutes" onclick="filtreAlerteSeverite('toutes',this)">Toutes</button>
@@ -2104,7 +2104,7 @@
         </div>
         <!-- Phase 50 : Exporter dropdown mockup-aligned -->
         <div class="ds-section-head__actions u-flex-row">
-          <div class="ds-export-wrap" style="position:relative">
+          <div class="ds-export-wrap">
             <button class="btn-secondary ds-export-btn" id="tva-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('tva-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
@@ -2741,7 +2741,7 @@
         </div>
         <div class="ds-section-head__actions u-flex-row">
           <button class="btn-secondary" onclick="typeof envoyerRelancesEmail==='function'?envoyerRelancesEmail():void 0" style="white-space:nowrap">Envoyer relances</button>
-          <div class="liv-dropdown-wrap" style="position:relative">
+          <div class="liv-dropdown-wrap">
             <button class="btn-secondary liv-dropdown-btn" id="enc-export-btn" aria-haspopup="true" aria-expanded="false" onclick="this.closest('.liv-dropdown-wrap').classList.toggle('open');var o=this.closest('.liv-dropdown-wrap').classList.contains('open');this.setAttribute('aria-expanded',o)">
               <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
@@ -3099,7 +3099,7 @@
           </div>
         </div>
         <div class="ds-section-head__actions u-flex-row">
-          <div class="ds-export-wrap" style="position:relative">
+          <div class="ds-export-wrap">
             <button class="btn-secondary ds-export-btn" id="inc-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('inc-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
@@ -3218,7 +3218,7 @@
           </div>
         </div>
         <div class="ds-section-head__actions">
-          <div class="ds-export-wrap" style="position:relative">
+          <div class="ds-export-wrap">
             <button class="btn-secondary ds-export-btn" id="entr-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('entr-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
@@ -3365,7 +3365,7 @@
         </div>
         <div class="ds-section-head__actions">
           <button class="btn-secondary" onclick="(window.exporterHeuresPaie||window.exporterHeuresExcel||window.exporterRecapHeures||function(){})()">Export paie</button>
-          <div class="ds-export-wrap" style="position:relative">
+          <div class="ds-export-wrap">
             <button class="btn-secondary ds-export-btn" id="heures-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('heures-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
@@ -3572,7 +3572,7 @@
           </div>
         </div>
         <div class="page-actions-toolbar ds-section-head__actions">
-          <div class="ds-export-wrap" style="position:relative">
+          <div class="ds-export-wrap">
             <button class="btn-secondary ds-export-btn" id="planning-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('planning-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
@@ -3780,7 +3780,7 @@
           </div>
         </div>
         <div class="ds-section-head__actions u-flex-row">
-          <div class="ds-export-wrap" style="position:relative">
+          <div class="ds-export-wrap">
             <button class="btn-secondary ds-export-btn" id="insp-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('insp-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
