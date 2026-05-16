@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v257-a11y-decorative-icons-aria-hidden';
+const CACHE_VERSION = 'mca-v2026-05-16-v258-phase86-params-uppercase-logo-preview';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

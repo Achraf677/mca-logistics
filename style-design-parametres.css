@@ -358,6 +358,28 @@
   line-height: 1.6;
 }
 
+/* Phase 86 : params inputs text-transform:uppercase → CSS */
+#param-tva-intracom,
+#param-pays,
+#param-iban,
+#param-bic {
+  text-transform: uppercase;
+}
+
+/* Phase 86 : logo preview box */
+#param-logo-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-dark, #1a1d27);
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
 #nouveau-poste:focus {
   outline: none;
   border-color: var(--ds-brand);
