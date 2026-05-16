@@ -9795,11 +9795,16 @@ genererRentabilitePDF = function() {
     const filtres = getFiltresActifs();
     const today = startOfDay(new Date());
 
+    // Phase 91.52 — cap à 35 cellules si le mois tient sur 5 lignes (évite ligne grisâtre vide en bas)
+    const daysInMonth = new Date(c.getFullYear(), c.getMonth()+1, 0).getDate();
+    const totalCells = (dowStart + daysInMonth) <= 35 ? 35 : 42;
+    const gridRows = totalCells / 7;
+
     let html = '<div class="cal16-mois">';
     // Header jours
     html += '<div class="cal16-mois-header">' + JOURS_COURT.map(j => '<div class="cal16-mois-hcell">'+j+'</div>').join('') + '</div>';
-    html += '<div class="cal16-mois-body">';
-    for (let i = 0; i < 42; i++) {
+    html += '<div class="cal16-mois-body" style="grid-template-rows: repeat('+gridRows+', 1fr)">';
+    for (let i = 0; i < totalCells; i++) {
       const d = new Date(gridStart); d.setDate(d.getDate()+i);
       const isCurMonth = d.getMonth() === c.getMonth();
       const isToday = sameDay(d, today);
@@ -10269,7 +10274,56 @@ genererRentabilitePDF = function() {
     if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Export CSV calendrier', titre);
   }
 
-  window.cal16 = { render, naviguer, aujourdhui, changerVue, allerA, retourMois, imprimer, feriesDeLAnnee, feriePourDate };
+  // Phase 91.52 — Imprimer calendrier vierge (grille sans events, fond blanc, pour notes manuscrites)
+  function imprimerVierge() {
+    const { start } = getBounds();
+    const titre = MOIS[start.getMonth()] + ' ' + start.getFullYear();
+    const firstDay = new Date(start.getFullYear(), start.getMonth(), 1);
+    const dowStart = (firstDay.getDay()+6)%7;
+    const gridStart = new Date(firstDay); gridStart.setDate(gridStart.getDate()-dowStart);
+    const daysInMonth = new Date(start.getFullYear(), start.getMonth()+1, 0).getDate();
+    const totalCells = (dowStart + daysInMonth) <= 35 ? 35 : 42;
+    const gridRows = totalCells / 7;
+    const w = ouvrirPopupSecure('','cal16_print_vierge','width=1100,height=820');
+    if (!w) { toast('Popup bloquée','error'); return; }
+    let body = '<table class="mois"><tr>' + JOURS_COURT.map(j => '<th>'+j+'</th>').join('') + '</tr>';
+    for (let r = 0; r < gridRows; r++) {
+      body += '<tr>';
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(gridStart); d.setDate(d.getDate()+r*7+i);
+        const inMonth = d.getMonth() === start.getMonth();
+        const ferie = feriePourDate(d);
+        body += '<td class="'+(inMonth?'':'other')+(ferie?' fer':'')+'">';
+        body += '<div class="dn">'+d.getDate()+'</div>';
+        if (ferie) body += '<div class="fer-lbl">'+escHtml(ferie.nom)+'</div>';
+        body += '</td>';
+      }
+      body += '</tr>';
+    }
+    body += '</table>';
+    const html = '<!doctype html><html><head><meta charset="utf-8"><title>'+escHtml(titre)+' — calendrier vierge</title><style>'
+      + 'body{font-family:"DM Sans",system-ui,sans-serif;color:#1a1d22;margin:0;padding:24px}'
+      + 'h1{font-family:"Syne",sans-serif;font-size:22px;margin:0 0 8px;letter-spacing:-0.02em}'
+      + '.sub{font-size:12px;color:#6b7280;margin-bottom:16px}'
+      + 'table.mois{width:100%;border-collapse:collapse;table-layout:fixed}'
+      + 'table.mois th{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#6b7280;font-weight:700;padding:6px;border-bottom:2px solid #1a1d22;text-align:left}'
+      + 'table.mois td{border:1px solid #d1d5db;height:90px;vertical-align:top;padding:4px 6px;background:#fff}'
+      + 'table.mois td.other{background:#f9fafb;color:#9ca3af}'
+      + 'table.mois td.fer{background:rgba(167,139,250,0.08)}'
+      + '.dn{font-weight:700;font-size:13px}'
+      + '.fer-lbl{font-size:10px;color:#7c3aed;margin-top:2px}'
+      + '@page{size:A4 landscape;margin:12mm}'
+      + '</style></head><body>'
+      + '<h1>'+escHtml(titre)+'</h1>'
+      + '<div class="sub">Calendrier vierge — '+daysInMonth+' jours · zone de notes par cellule</div>'
+      + body
+      + '<script>window.onload=function(){setTimeout(function(){window.print()},250)}<\/script>'
+      + '</body></html>';
+    w.document.open(); w.document.write(html); w.document.close();
+  }
+
+  window.cal16 = { render, naviguer, aujourdhui, changerVue, allerA, retourMois, imprimer, imprimerVierge, feriesDeLAnnee, feriePourDate };
+  window.cal16ImprimerVierge = imprimerVierge;
   window.cal16ExportCSV = exporterCSV;
 
   /* WRAPPER S16 — Hook naviguerVers : déclencher render() du calendrier

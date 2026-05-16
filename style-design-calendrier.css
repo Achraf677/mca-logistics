@@ -245,24 +245,26 @@
 .cal16-kpi-tile:hover {
   border-color: rgba(255,255,255,0.18);
 }
+/* Phase 91.52 — KPI labels TOUS gris (avant : Échéances jaune, Encaissé vert → user veut uniforme) */
 .cal16-kpi-tile .cal16-kpi-lbl {
   font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ds-text-muted, #adb5bd);
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted, #adb5bd) !important;
 }
+/* Phase 91.52 — KPI values alignées 1:1 avec Dashboard (--ds-fs-kpi 32px + letter-spacing -0.03em) */
 .cal16-kpi-tile .cal16-kpi-val {
   font-family: var(--ds-font-display, 'Syne', system-ui, sans-serif);
-  font-size: 26px;
+  font-size: var(--ds-fs-kpi, 32px);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   color: var(--ds-text, #f1f3f5);
-  line-height: 1.05;
+  line-height: 1.1;
+  font-style: normal;
+  font-feature-settings: "tnum";
 }
-.cal16-kpi-tile:has(#cal16-kpi-ech) .cal16-kpi-lbl { color: var(--ds-warning, #ffd60a); }
-.cal16-kpi-tile:has(#cal16-kpi-pai) .cal16-kpi-lbl { color: var(--success, #06d6a0); }
 
 /* Filtres row inline pleine largeur */
 .cal16-filters-row {
