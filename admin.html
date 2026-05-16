@@ -360,22 +360,18 @@
       </button>
       <button class="btn-secondary" id="btn-install-pwa" type="button" onclick="declencherInstallPWA()" style="display:none" title="Installer l'application sur votre appareil"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Installer</button>
       <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre" aria-label="Basculer entre mode clair et sombre"><svg viewBox="0 0 24 24" width="16" height="16" class="u-svg-base"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+      <!-- Phase 91 : Agent IA + chatbot intégré (FAB ✨ bas-droite déplacé ici).
+           Clic sur la pill = panneau Agent. Clic sur l'icône ✨ = ouvrir le chatbot (déclenche #ai-chat-fab). -->
       <div id="ai-status-bar" onclick="togglePanneauAgent()">
         <span class="ai-pulse-dot"></span>
         <span class="ai-status-label">Agent IA</span>
         <span id="ai-decisions-badge" style="display:none">0</span>
-      </div>
-      <div class="topbar-user-menu" id="topbar-user-menu">
-        <button class="topbar-user" id="topbar-user-trigger" type="button" onclick="toggleAdminMenu(event)">
-          <div class="topbar-avatar" id="topbar-avatar-text">A</div>
-          <span id="topbar-admin-label">Admin</span>
-          <span class="topbar-user-caret"><svg viewBox="0 0 24 24" width="11" height="11" style="vertical-align:0;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        <button type="button" class="ai-status-chat-btn" onclick="event.stopPropagation();var f=document.getElementById('ai-chat-fab');if(f)f.click();" title="Ouvrir le chat IA" aria-label="Ouvrir le chatbot IA">
+          <span aria-hidden="true">✨</span>
         </button>
-        <div class="topbar-dropdown" id="topbar-admin-dropdown">
-          <button class="topbar-dropdown-item" id="admin-bug-report-btn" type="button" title="Capture URL, version, console, viewport et copie un rapport markdown a transmettre."><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;margin-right:6px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M19 7l-3 2"/><path d="M5 7l3 2"/><path d="M19 17l-3-2"/><path d="M5 17l3-2"/><path d="M12 6V2"/></svg>Signaler un bug</button>
-          <button class="topbar-dropdown-item" id="btn-admin-logout" type="button" onclick="deconnexionAdmin()"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;margin-right:6px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Déconnexion</button>
-        </div>
       </div>
+      <!-- Phase 91 : bouton user/admin retiré (user feedback : "enleve le bouton cliquable de mon nom").
+           Bug report + Déconnexion conservés en pied de sidebar (cf. script-sidebar-foot.js). -->
       <div class="topbar-date" id="currentDate"></div>
     </header>
 

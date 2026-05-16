@@ -159,14 +159,31 @@
   text-transform: uppercase;
   letter-spacing: 0.07em;
   font-weight: 700;
-  padding: 14px 10px;
+  padding: 14px 14px;
 }
 
 /* Rows : padding réduit pour cibler hauteur mockup ~53px (select natif ~32px + 2×10 + 1 border).
-   Phase 90 — padding-horizontal aligné header (10px) pour décaler colonnes à gauche
-   (user feedback : ressentait que les titres + cellules étaient "right-aligned"). */
+   Phase 90.2 — padding-horizontal aligné header (14px) ; column widths shrink-to-content
+   pour coller les colonnes à gauche (mockup). */
 .livraisons-table tbody td {
-  padding: 10px 10px;
+  padding: 10px 14px;
+}
+
+/* ============ Phase 90.2 — Column widths : shrink-to-content (mockup-aligned) ============
+   Empêche les colonnes courtes (N°, DATE, CLIENT…) d'être étirées sur toute la largeur dispo.
+   La dernière colonne visible (col 16 Montant HT) absorbe l'espace restant et reste right-aligned. */
+.livraisons-table {
+  table-layout: auto;
+  width: 100%;
+}
+.livraisons-table thead th,
+.livraisons-table tbody td {
+  width: 1%;
+  white-space: nowrap;
+}
+.livraisons-table th:nth-child(16),
+.livraisons-table td:nth-child(16) {
+  width: auto;
 }
 
 /* ============ Pagination footer polish ============ */
