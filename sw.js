@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v327-phase91-62-params-tabs-sticky';
+const CACHE_VERSION = 'mca-v2026-05-16-v328-phase91-63-polices-dynamiques';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -123,6 +123,8 @@ const CORE_ASSETS = [
   '/script-params-notifications.js',
   // Phase 91.58 — Tabs internes Encaissement
   '/script-encaissement-tabs.js',
+  // Phase 91.63 — Polices globales dynamiques
+  '/script-core-fonts.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts

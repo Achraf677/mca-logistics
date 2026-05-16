@@ -146,6 +146,8 @@
   <script defer src="script-params-notifications.js?v=1"></script>
   <!-- Phase 91.58 — Tabs internes Encaissement (Suivi / Détails / Analyse) -->
   <script defer src="script-encaissement-tabs.js?v=1"></script>
+  <!-- Phase 91.63 — Polices globales dynamiques (Paramètres → Apparence) -->
+  <script defer src="script-core-fonts.js?v=1"></script>
   <!-- Phase 2 HTML refonte Vehicules : counts total + alertes CT/assurance. -->
   <script defer src="script-vehicules-counts.js?v=2"></script>
   <!-- Phase 48 : Véhicules card grid (fleet view, mockup-aligned). -->
@@ -2603,7 +2605,12 @@
               </div>
             </div>
             <div class="field"><label for="param-police-body">Police body</label>
-              <select id="param-police-body"><option>DM Sans (défaut)</option><option>Inter</option><option>Roboto</option></select>
+              <select id="param-police-body" aria-label="Choix de la police body globale">
+                <option>DM Sans (défaut)</option>
+                <option>Inter</option>
+                <option>Roboto</option>
+                <option>Système</option>
+              </select>
             </div>
           </div>
         </div>
