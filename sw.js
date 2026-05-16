@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v385-phaseX-CB-CD-admin-legacy';
+const CACHE_VERSION = 'mca-v2026-05-17-v386-phaseX-CE-CG-bug-fixes-iifes';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -242,6 +242,10 @@ const CORE_ASSETS = [
   '/script-core-admin-legacy-rentabilite-stats.js',
   '/script-core-admin-legacy-planning-semaine.js',
   '/script-core-admin-final-lock-iife.js',
+  // Phase X.CE-CG : Top-level BUG fixes IIFEs
+  '/script-core-bug-014-double-click-guard.js',
+  '/script-core-bug-018-lifecycle-patches.js',
+  '/script-core-storage-patches.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts

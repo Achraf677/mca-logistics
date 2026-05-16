@@ -37,132 +37,16 @@ window.escHtml = escapeHtml; // alias attendu par certains call sites existants
 // Validation SIREN (9 chiffres, Luhn) — utilisée pour la validation inline du formulaire livraison
 // MOVED -> script-clients.js : validerSIREN
 
-// BUG-014 fix : guard double-clic — debounce sur boutons d'action (Créer/Générer/Valider/Enregistrer/Payer/Sauvegarder).
-// Détecte via label + attributs. Ignore les boutons de fermeture, navigation, tri, etc.
-(function() {
-  if (window.__delivproDoubleClickGuardInstalled) return;
-  window.__delivproDoubleClickGuardInstalled = true;
-  const GUARD_DELAY_MS = 700;
-  const DECLENCHEURS = /^(cr[ée]er|g[ée]n[ée]rer|valider|enregistrer|sauvegarder|payer|confirmer|envoyer|ajouter|soumettre|transmettre)/i;
-  function estBoutonAction(el) {
-    if (!(el instanceof HTMLElement)) return false;
-    if (el.tagName !== 'BUTTON') return false;
-    if (el.type === 'reset') return false;
-    if (el.hasAttribute('data-no-guard')) return false;
-    if (el.closest('.modal-header, .modal-close, .sidebar, .topbar-user-menu, .pagination, thead, .filters')) return false;
-    const txt = (el.textContent || '').trim();
-    if (!txt) return false;
-    if (el.classList.contains('btn-primary') || el.classList.contains('btn-success')) return DECLENCHEURS.test(txt);
-    return DECLENCHEURS.test(txt);
-  }
-  document.addEventListener('click', function(e) {
-    const btn = e.target.closest('button');
-    if (!estBoutonAction(btn)) return;
-    if (btn.__delivproBusy) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      return;
-    }
-    btn.__delivproBusy = true;
-    const prevDisabled = btn.disabled;
-    btn.disabled = true;
-    btn.setAttribute('aria-busy', 'true');
-    setTimeout(function() {
-      btn.__delivproBusy = false;
-      btn.disabled = prevDisabled;
-      btn.removeAttribute('aria-busy');
-    }, GUARD_DELAY_MS);
-  }, true);
-})();
+// MOVED -> script-core-bug-014-double-click-guard.js : 
 
 // BUG-029 fix : garde popup blocker — toute ouverture passe par ouvrirPopupSecure() qui détecte le blocage et notifie.
 // Centralisation : un seul site à auditer si on change le message / le fallback.
 // MOVED -> script-core-ui.js : ouvrirPopupSecure
 window.ouvrirPopupSecure = ouvrirPopupSecure;
 
-// BUG-018/019/031 fix : registre global + cleanup au unload (timers + observers orphelins).
-// Monkey-patch non invasif : les 35 setInterval et les MutationObserver existants sont captés automatiquement.
-if (!window.__delivproLifecyclePatched) {
-  window.__delivproLifecyclePatched = true;
-  window.__delivproIntervals = new Set();
-  window.__delivproObservers = new Set();
+// MOVED -> script-core-bug-018-lifecycle-patches.js : 
 
-  const nativeSetInterval = window.setInterval;
-  const nativeClearInterval = window.clearInterval;
-  window.setInterval = function() {
-    const id = nativeSetInterval.apply(this, arguments);
-    try { window.__delivproIntervals.add(id); } catch(_) { /* fail-silent: registre lifecycle non bloquant */ }
-    return id;
-  };
-  window.clearInterval = function(id) {
-    try { window.__delivproIntervals.delete(id); } catch(_) { /* fail-silent: registre lifecycle non bloquant */ }
-    return nativeClearInterval.call(this, id);
-  };
-
-  if (typeof window.MutationObserver === 'function') {
-    const NativeMO = window.MutationObserver;
-    function PatchedMO(cb) {
-      const inst = new NativeMO(cb);
-      try { window.__delivproObservers.add(inst); } catch(_) { /* fail-silent: registre lifecycle non bloquant */ }
-      const nativeDisc = inst.disconnect.bind(inst);
-      inst.disconnect = function() {
-        try { window.__delivproObservers.delete(inst); } catch(_) { /* fail-silent: registre lifecycle non bloquant */ }
-        return nativeDisc();
-      };
-      return inst;
-    }
-    PatchedMO.prototype = NativeMO.prototype;
-    window.MutationObserver = PatchedMO;
-  }
-
-  window.addEventListener('beforeunload', function() {
-    try { window.__delivproIntervals.forEach(function(id){ try { nativeClearInterval(id); } catch(_) { /* fail-silent: clearInterval cleanup au unload */ } }); } catch(_) { /* fail-silent: cleanup au unload non bloquant */ }
-    try { window.__delivproObservers.forEach(function(o){ try { o.disconnect(); } catch(_) { /* fail-silent: observer cleanup au unload */ } }); } catch(_) { /* fail-silent: cleanup au unload non bloquant */ }
-  });
-}
-
-const STORAGE_CACHE = new Map();
-let lastStorageWarningAt = 0;
-
-function emettreEvenementStockageLocal(cle, oldValue, newValue) {
-  window.dispatchEvent(new CustomEvent('delivpro:storage-sync', {
-    detail: {
-      key: cle || '',
-      oldValue: oldValue == null ? null : String(oldValue),
-      newValue: newValue == null ? null : String(newValue)
-    }
-  }));
-}
-
-if (!window.__delivproStoragePatched) {
-  window.__delivproStoragePatched = true;
-  const nativeSetItem = Storage.prototype.setItem;
-  const nativeRemoveItem = Storage.prototype.removeItem;
-  const nativeClear = Storage.prototype.clear;
-
-  Storage.prototype.setItem = function(cle, valeur) {
-    const ancienneValeur = this === window.localStorage ? this.getItem(cle) : null;
-    STORAGE_CACHE.delete(String(cle));
-    const resultat = nativeSetItem.call(this, cle, valeur);
-    if (this === window.localStorage) emettreEvenementStockageLocal(String(cle), ancienneValeur, valeur);
-    return resultat;
-  };
-
-  Storage.prototype.removeItem = function(cle) {
-    const ancienneValeur = this === window.localStorage ? this.getItem(cle) : null;
-    STORAGE_CACHE.delete(String(cle));
-    const resultat = nativeRemoveItem.call(this, cle);
-    if (this === window.localStorage) emettreEvenementStockageLocal(String(cle), ancienneValeur, null);
-    return resultat;
-  };
-
-  Storage.prototype.clear = function() {
-    STORAGE_CACHE.clear();
-    const resultat = nativeClear.call(this);
-    if (this === window.localStorage) emettreEvenementStockageLocal('', null, null);
-    return resultat;
-  };
-}
+// MOVED -> script-core-storage-patches.js : emettreEvenementStockageLocal + STORAGE_CACHE
 
 function dupliquerValeurStockage(valeur) {
   if (valeur === null || valeur === undefined) return valeur;
