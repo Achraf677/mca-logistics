@@ -824,7 +824,7 @@
               <thead><tr>
                 <th class="bulk-col"><input type="checkbox" id="bulk-select-all" onchange="toggleBulkSelectAll(this.checked)" aria-label="Tout sélectionner" /></th>
                 <th class="sortable" data-sort-key="numLiv">N°</th>
-                <th class="liv-injected-th" data-injected="date">Date</th>
+                <th class="liv-injected-th sortable" data-injected="date" data-sort-key="date">Date</th>
                 <th class="sortable" data-sort-key="client">Client</th>
                 <th class="sortable" data-sort-key="zone">Trajet</th>
                 <th class="sortable" data-sort-key="distance">Distance</th>
@@ -832,12 +832,12 @@
                 <th class="sortable" data-sort-key="tva">TVA</th>
                 <th class="sortable" data-sort-key="ttc">TTC</th>
                 <th class="sortable" data-sort-key="chauffeur">Chauffeur</th>
-                <th class="liv-injected-th" data-injected="vehicule">Véhicule</th>
+                <th class="liv-injected-th sortable" data-injected="vehicule" data-sort-key="vehicule">Véhicule</th>
                 <th class="sortable" data-sort-key="statut">Statut</th>
                 <th class="sortable" data-sort-key="paiement">Paiement</th>
                 <th class="sortable" data-sort-key="datePaiement">Date paiement</th>
                 <th>Actions</th>
-                <th class="liv-injected-th sortable" data-injected="montant-ht" data-sort-key="ht" style="text-align:right">Montant HT</th>
+                <th class="liv-injected-th sortable" data-injected="montant-ht" data-sort-key="ht">Montant HT</th>
               </tr></thead>
               <tbody id="tb-livraisons"><tr><td colspan="16" class="empty-row">Aucune livraison</td></tr></tbody>
             </table>

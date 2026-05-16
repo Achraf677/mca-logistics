@@ -8281,6 +8281,9 @@ genererRentabilitePDF = function() {
    */
   const LIVRAISONS_SORT_CONFIG = {
     numLiv:       { type: 'string', get: l => l.numLiv || '' },
+    // Phase 91.30 — date + vehicule triables (étaient absents)
+    date:         { type: 'date',   get: l => l.date || l.date_livraison || l.dateLivraison || '' },
+    vehicule:     { type: 'string', get: l => l.vehImmat || l.vehicule || l.vehiculeImmat || l.vehNom || '' },
     client:       { type: 'string', get: l => l.client || '' },
     zone:         { type: 'string', get: l => ((l.depart || '') + ' ' + (l.arrivee || '')).trim() },
     distance:     { type: 'number', get: l => parseFloat(l.distance) || 0 },
