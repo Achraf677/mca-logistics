@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v386-phaseX-CE-CG-bug-fixes-iifes';
+const CACHE_VERSION = 'mca-v2026-05-17-v387-phaseX-CH-date-money-utils';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -246,6 +246,8 @@ const CORE_ASSETS = [
   '/script-core-bug-014-double-click-guard.js',
   '/script-core-bug-018-lifecycle-patches.js',
   '/script-core-storage-patches.js',
+  // Phase X.CH : Core date/money utilities
+  '/script-core-date-money-utils.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
