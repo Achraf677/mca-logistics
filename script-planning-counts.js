@@ -39,6 +39,11 @@
       planifiesCnt = plannings.filter(function (p) { return p && p.jours && Object.keys(p.jours || {}).some(function (j) { return p.jours[j] && p.jours[j].heureDebut; }); }).length;
       var planifiesVal = planifiesCnt || (actifs > 0 ? actifs : '—');
       if (kpiPlanifies) kpiPlanifies.textContent = planifiesVal;
+      // Phase 81 : kpi-sub "X% de l'effectif" dynamique (mockup-aligned)
+      var kpiPlanifiesSub = document.getElementById('planning-kpi-planifies-sub');
+      if (kpiPlanifiesSub && actifs > 0 && planifiesCnt > 0) {
+        kpiPlanifiesSub.textContent = Math.round(planifiesCnt / actifs * 100) + '% de l\'effectif';
+      }
       var ov = document.getElementById('planning-overview-planifies');
       if (ov) ov.textContent = planifiesVal;
     }
@@ -54,7 +59,11 @@
           var end = a.date_fin || a.dateFin || start;
           return start <= nowWeekEnd.toISOString().slice(0, 10) && end >= nowWeekStart.toISOString().slice(0, 10);
         }).length;
-        if (kpiAbsences) kpiAbsences.textContent = absWeek;
+        if (kpiAbsences) {
+          kpiAbsences.textContent = absWeek;
+          // Phase 81 : warning color when absences > 0 (mockup: color:var(--warning))
+          kpiAbsences.style.color = absWeek > 0 ? 'var(--ds-warning, var(--warning, #ffd60a))' : '';
+        }
         var ovAbs = document.getElementById('planning-overview-absences');
         if (ovAbs) ovAbs.textContent = absWeek;
       } catch (_) {
