@@ -396,6 +396,10 @@ function changerStatutLivraison(id, statut) {
     try { if (typeof afficherLivraisons === 'function') afficherLivraisons(); } catch (_) {}
   }
 }
+// Phase 91.34 — handlers inline du dropdown statut table : exposés window.X pour éviter ReferenceError silencieux.
+window.changerStatutLivraison = changerStatutLivraison;
+window.styliserSelectLivraison = styliserSelectLivraison;
+window.getLivraisonInlineSelectClass = getLivraisonInlineSelectClass;
 
 // L2473 (script.js d'origine)
 async function supprimerLivraison(id) {

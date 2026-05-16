@@ -8354,9 +8354,12 @@ genererRentabilitePDF = function() {
   function bindSortableHeaders(tableSelector, key, rerender) {
     const table = document.querySelector(tableSelector);
     if (!table || table.dataset.sortBound) return;
-    table.addEventListener('click', function(e) {
-      const th = e.target.closest('th[data-sort-key]');
-      if (!th || !table.contains(th)) return;
+    // Phase 91.34 — a11y : rendre les TH sortable keyboard-accessible (role=button + tabindex)
+    table.querySelectorAll('th[data-sort-key]').forEach(function (th) {
+      if (!th.hasAttribute('role')) th.setAttribute('role', 'button');
+      if (!th.hasAttribute('tabindex')) th.setAttribute('tabindex', '0');
+    });
+    const handleSort = function (th) {
       const col = th.getAttribute('data-sort-key');
       const st = getSortState(key);
       let newDir;
@@ -8364,11 +8367,23 @@ genererRentabilitePDF = function() {
       else if (st.dir === 'asc') newDir = 'desc';
       else newDir = null;
       setSortState(key, newDir ? col : null, newDir);
-      // Reset page 1 quand on change de tri
       if (window.PAGINATION && typeof window.PAGINATION.setPageState === 'function') {
         window.PAGINATION.setPageState(key, { page: 1 });
       }
       if (typeof rerender === 'function') rerender();
+    };
+    table.addEventListener('click', function(e) {
+      const th = e.target.closest('th[data-sort-key]');
+      if (!th || !table.contains(th)) return;
+      handleSort(th);
+    });
+    // Phase 91.34 — Enter / Space déclenchent le tri (keyboard a11y)
+    table.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const th = e.target.closest('th[data-sort-key]');
+      if (!th || !table.contains(th)) return;
+      e.preventDefault();
+      handleSort(th);
     });
     table.dataset.sortBound = '1';
   }
