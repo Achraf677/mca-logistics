@@ -39,20 +39,48 @@
     var kpiInc = document.getElementById('equipe-kpi-incidents');
     var kpiPermis = document.getElementById('equipe-kpi-permis');
     if (kpiActifs) kpiActifs.textContent = actifs > 0 ? actifs : '—';
+    // Phase 82 : "+N ce mois" for chauffeurs actifs kpi-sub
+    var kpiActifsSub = document.getElementById('equipe-kpi-actifs-sub');
+    if (kpiActifsSub) {
+      var moisStartAct = new Date(); moisStartAct.setDate(1); moisStartAct.setHours(0, 0, 0, 0);
+      var newThisMois = salaries.filter(function (s) {
+        if (!s) return false;
+        var d = new Date(s.dateEmbauche || s.date_embauche || s.created_at || '');
+        return !isNaN(d.getTime()) && d >= moisStartAct;
+      }).length;
+      if (newThisMois > 0) {
+        kpiActifsSub.innerHTML = '<span class="up">+' + newThisMois + '</span> ce mois';
+      } else {
+        kpiActifsSub.textContent = 'Salariés en activité';
+      }
+    }
     if (kpiInc) kpiInc.textContent = incOuverts > 0 ? incOuverts : '0';
     if (kpiHeures) {
       var totalH = heures.reduce(function (s, h) { return s + (parseFloat(h.heures) || 0); }, 0);
       kpiHeures.textContent = totalH > 0 ? Math.round(totalH) + ' h' : '—';
     }
     if (kpiPermis) {
-      var now = Date.now();
+      var nowTs = Date.now();
       var seuil = 60 * 86400000;
-      var proches = salaries.filter(function (s) {
+      var prochesList = salaries.filter(function (s) {
         if (!s || !s.datePermis) return false;
         var d = new Date(s.datePermis).getTime();
-        return d > now && (d - now) < seuil;
-      }).length;
-      kpiPermis.textContent = proches > 0 ? proches : '0';
+        return d > nowTs && (d - nowTs) < seuil;
+      }).sort(function (a, b) { return new Date(a.datePermis) - new Date(b.datePermis); });
+      kpiPermis.textContent = prochesList.length > 0 ? prochesList.length : '0';
+      // Phase 82 : "Prénom N. dans Nj" for permis kpi-sub (mockup-aligned)
+      var kpiPermisSub = document.getElementById('equipe-kpi-permis-sub');
+      if (kpiPermisSub) {
+        if (prochesList.length > 0) {
+          var first = prochesList[0];
+          var parts = ((first.prenom || '') + ' ' + (first.nom || '')).trim().split(/\s+/);
+          var shortName = parts.length >= 2 ? parts[0] + ' ' + parts[parts.length - 1][0] + '.' : parts[0] || '—';
+          var joursRestants = Math.round((new Date(first.datePermis).getTime() - nowTs) / 86400000);
+          kpiPermisSub.textContent = shortName + ' dans ' + joursRestants + 'j';
+        } else {
+          kpiPermisSub.textContent = 'Dans les 60j';
+        }
+      }
     }
   }
   function tryAttach() {

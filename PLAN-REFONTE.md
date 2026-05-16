@@ -39,7 +39,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Statistiques | 92% | 100% | Phase 59 : exporterStatsCSV + exporterStatsExcel vraiment impl (étaient stubs alert). Sub-meta CA mockup. |
 | Calendrier | 91% | 100% | Phase 67 : #cal16-kpi-pai (Encaissé) maintenant calculé depuis livraisons livrées ce mois. |
 | Alertes | 91% | 100% | Phase 67 : alertes-titlerow-actives + critiques-wrap maintenant mis à jour (étaient bloqués à 0). |
-| Équipe | 91% | 100% | Phase 67 : .member-foot .btn-secondary override ajouté (même size que .btn). |
+| Équipe | 93% | 100% | Phase 82 : kpi-sub actifs "+N ce mois" + permis "Nom dans Nj" (mockup-aligned). |
 | Heures | 94% | 100% | Phase 79 : Km kpi-sub "Sur N véhicules" dynamique (était statique "Livraisons ce mois"). CE 561 sub color déjà en CSS (Phase 75). |
 | Incidents | 93% | 100% | Phase 66 : table Date/Type/Véhicule/Chauffeur/Description/Statut/Actions. Badge Type Accident/Avarie/Vol. Véhicule lookup. Modal ajout champ Type select. |
 | Paramètres | 93% | 100% | Phase 62 : h2→h3 card headers Entreprise (Informations entreprise/Identité visuelle/Postes) + Comptabilité (Fiscalité TVA→Paramétrage TVA/Trésorerie/Catégories). Nouvelle carte "Cabinet comptable" avec badge Sync OK, toggles FEC+sync, save localStorage. |
