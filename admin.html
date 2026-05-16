@@ -463,16 +463,19 @@
 
             <div class="health-sparkline-block">
               <div class="health-eyebrow">Évolution 6 mois</div>
+              <!-- Phase 91.72 : sparkline tokens — #06d6a0 → var(--green) via style inline
+                   (SVG <stop>/<stroke>/<fill> attrs n'acceptent pas les var(), donc on
+                   utilise les CSS properties via style=""). -->
               <svg class="health-sparkline" id="dashboard-health-sparkline" viewBox="0 0 200 40" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="dashboard-spark-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#06d6a0" stop-opacity="0.4"/>
-                    <stop offset="100%" stop-color="#06d6a0" stop-opacity="0"/>
+                    <stop offset="0%" style="stop-color:var(--green);stop-opacity:0.4"/>
+                    <stop offset="100%" style="stop-color:var(--green);stop-opacity:0"/>
                   </linearGradient>
                 </defs>
                 <path id="dashboard-sparkline-fill" fill="url(#dashboard-spark-grad)" d=""/>
-                <path id="dashboard-sparkline-line" fill="none" stroke="#06d6a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d=""/>
-                <circle id="dashboard-sparkline-last" cx="200" cy="8" r="3" fill="#06d6a0" stroke="#fff" stroke-width="1.5"/>
+                <path id="dashboard-sparkline-line" style="fill:none;stroke:var(--green);stroke-width:2" stroke-linecap="round" stroke-linejoin="round" d=""/>
+                <circle id="dashboard-sparkline-last" cx="200" cy="8" r="3" style="fill:var(--green);stroke:#fff;stroke-width:1.5"/>
               </svg>
               <div class="health-sparkline-ticks" id="dashboard-sparkline-ticks"></div>
             </div>
