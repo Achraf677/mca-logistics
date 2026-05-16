@@ -168,12 +168,11 @@
   padding: 10px 32px;
 }
 
-/* ============ Phase 91.10 — Column widths : distribution harmonieuse ============
-   Layout AUTO sans width hints → le browser distribue l'espace proportionnellement
-   au contenu de chaque colonne + extra width répartie partout (pas de trou béant
-   entre Statut et Montant HT comme avec width:1% + width:100% sur col 16). */
+/* ============ Phase 91.14 — Column widths : tailles cibles type Excel ============
+   Bases explicites pour Date/Client/Trajet ; le user peut resize via les handles
+   ajoutés par script-livraisons-resize.js (drag border droite des TH). */
 .livraisons-table {
-  table-layout: auto;
+  table-layout: fixed;
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
@@ -182,6 +181,49 @@
 .livraisons-table thead th,
 .livraisons-table tbody td {
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Largeurs cibles (user feedback : Date/Client petites, Trajet plus large) */
+.livraisons-table th.bulk-col,
+.livraisons-table td.bulk-col { width: 42px; }
+.livraisons-table th[data-sort-key="numLiv"],
+.livraisons-table td:nth-child(2) { width: 130px; }
+.livraisons-table th[data-injected="date"],
+.livraisons-table td:nth-child(3) { width: 70px; }
+.livraisons-table th[data-sort-key="client"],
+.livraisons-table td:nth-child(4) { width: 130px; }
+.livraisons-table th[data-sort-key="zone"],
+.livraisons-table td:nth-child(5) { width: 240px; }
+.livraisons-table th[data-sort-key="chauffeur"],
+.livraisons-table td:nth-child(10) { width: 160px; }
+.livraisons-table th[data-injected="vehicule"],
+.livraisons-table td:nth-child(11) { width: 90px; }
+.livraisons-table th[data-sort-key="statut"],
+.livraisons-table td:nth-child(12) { width: 130px; }
+.livraisons-table th[data-injected="montant-ht"],
+.livraisons-table td:nth-child(16) { width: auto; }
+
+/* Phase 91.14 — handles de resize ajoutés par script-livraisons-resize.js */
+.livraisons-table thead th {
+  position: relative;
+}
+.livraisons-table thead th .col-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  z-index: 5;
+  background: transparent;
+  transition: background 0.15s ease-out;
+}
+.livraisons-table thead th .col-resize-handle:hover,
+.livraisons-table thead th .col-resize-handle.is-resizing {
+  background: rgba(230, 57, 70, 0.35);
 }
 
 /* Phase 91 — coins arrondis sur première/dernière TH */

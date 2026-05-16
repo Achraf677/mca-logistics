@@ -183,6 +183,8 @@
   <script defer src="script-period-chips.js?v=1"></script>
   <!-- Phase 23 refonte : livraisons table polish (driver avatar post-render) -->
   <script defer src="script-livraisons-polish.js?v=2"></script>
+  <!-- Phase 91.14 — Excel-like column resize sur livraisons-table (handles + persistence) -->
+  <script defer src="script-livraisons-resize.js?v=1"></script>
   <!-- Phase 32 refonte : drawer 360 livraison (slide from right, 4 tabs) -->
   <script defer src="script-livraisons-drawer.js?v=1"></script>
   <!-- Solution B refonte visuelle : fake data seed pour démos Playwright (no-op sans ?seed=1) -->
@@ -4864,19 +4866,13 @@
         </section>
 
       </div>
-      <!-- Historique modifications -->
-      <div style="padding:0 20px 16px">
-        <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px">Historique des modifications</div>
-        <div class="modifs-container" id="historique-modifs-liv"><div style="font-size:.78rem;color:var(--text-muted)">Aucune modification</div></div>
+      <!-- Phase 91.15 — Historique modifications + Commentaires internes retirés (user feedback : "gâche la place et la vue"). Conteneurs cachés conservés pour compat scripts. -->
+      <div hidden id="historique-modifs-liv-wrap">
+        <div id="historique-modifs-liv"></div>
       </div>
-      <!-- Commentaires internes -->
-      <div style="padding:0 20px 20px">
-        <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px">Commentaires internes (admin uniquement)</div>
-        <div class="commentaires-container" id="commentaires-liv-list"></div>
-        <div class="commentaire-input-row">
-          <input type="text" id="commentaire-liv-input" placeholder="Ajouter un commentaire..." onkeydown="if(event.key==='Enter')ajouterCommentaireLiv(document.getElementById('edit-liv-id').value)" aria-label="Ajouter un commentaire..." />
-          <button class="btn-primary" onclick="ajouterCommentaireLiv(document.getElementById('edit-liv-id').value)" style="padding:7px 12px;font-size:.82rem" aria-label="Ajouter un commentaire">+</button>
-        </div>
+      <div hidden id="commentaires-liv-wrap">
+        <div id="commentaires-liv-list"></div>
+        <input type="text" id="commentaire-liv-input" />
       </div>
       <!-- Phase 91.9 — boutons "Bon de livraison" + "Facture" retirés du modal Modifier (accessibles via N° livraison + dropdown Générer dans la toolbar). -->
       <div class="modal-footer" style="gap:8px;flex-wrap:wrap"><button class="btn-secondary" onclick="closeModal('modal-edit-livraison')">Annuler</button><button class="btn-primary" onclick="confirmerEditLivraison()">Enregistrer</button></div>
