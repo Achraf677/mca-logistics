@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v276-phase91-modifier-parity-v2';
+const CACHE_VERSION = 'mca-v2026-05-16-v277-phase91-drawer-gen-dropdown';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

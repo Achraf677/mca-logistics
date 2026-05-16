@@ -137,10 +137,10 @@
 
     let html = '';
     if (docs.length === 0) {
+      // Phase 91.12 — empty state simplifié (retire la 2e phrase qui pointait vers toolbar).
       html = '<div class="dr-section-label">Aucun document généré</div>'
         + '<div style="padding:24px 16px;text-align:center;color:var(--ds-text-muted,var(--text-muted));font-size:12.5px;line-height:1.5;border:1px dashed var(--ds-border,var(--border));border-radius:8px;margin-bottom:16px">'
-        +   'Aucun document n\'a encore été généré pour cette livraison.<br>'
-        +   '<span style="font-size:11.5px">Cliquez sur <strong>Générer ⌄</strong> dans la toolbar pour créer une facture, un bon de livraison, ou une lettre de voiture.</span>'
+        +   'Aucun document n\'a encore été généré pour cette livraison.'
         + '</div>';
     } else {
       html = '<div class="dr-section-label">Documents générés (' + docs.length + ')</div>';
@@ -170,8 +170,17 @@
       });
     }
 
-    // Bouton "Générer un document" en bas
-    html += '<button class="dr-doc-btn" type="button" style="width:100%;margin-top:14px;padding:10px 14px;justify-content:center" onclick="window.fermerDrawerLivraison&&window.fermerDrawerLivraison();setTimeout(()=>{var d=document.querySelector(\'[data-dropdown=&quot;gen&quot;]\');if(d)d.click();},350)">+ Générer un nouveau document</button>';
+    // Phase 91.12 — dropdown Générer DÉDIÉ à cette livraison (sans repasser par la toolbar).
+    // Toggle local : on injecte le menu inline ; clic = pick le type → genererXxxLivraison(livId).
+    html += ''
+      + '<div class="dr-gen-wrap" style="position:relative;margin-top:14px">'
+      +   '<button class="dr-doc-btn" type="button" id="dr-liv-gen-trigger" style="width:100%;padding:10px 14px;justify-content:center" onclick="(function(b){var m=document.getElementById(\'dr-liv-gen-menu\');if(m){var open=m.style.display!==\'block\';m.style.display=open?\'block\':\'none\';b.setAttribute(\'aria-expanded\',String(open));}})(this)" aria-expanded="false" aria-controls="dr-liv-gen-menu">+ Générer un nouveau document</button>'
+      +   '<div class="dr-gen-menu" id="dr-liv-gen-menu" role="menu" style="display:none;position:absolute;left:0;right:0;bottom:calc(100% + 6px);background:var(--ds-bg-card,var(--bg-card));border:1px solid var(--ds-border,var(--border));border-radius:10px;padding:6px;box-shadow:0 16px 40px -8px rgba(0,0,0,0.5);z-index:50">'
+      +     '<button type="button" class="dr-gen-item" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;background:transparent;border:none;border-radius:7px;color:var(--ds-text,var(--text));text-align:left;cursor:pointer;font-family:inherit;font-size:13px" onclick="document.getElementById(\'dr-liv-gen-menu\').style.display=\'none\';if(window.actionGenererLivraisonPour)window.actionGenererLivraisonPour(\'facture\',\'' + liv.id + '\');else if(window.actionGenererLivraison){window._drawerLivIdForce=\'' + liv.id + '\';window.actionGenererLivraison(\'facture\');}">📄 Facture</button>'
+      +     '<button type="button" class="dr-gen-item" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;background:transparent;border:none;border-radius:7px;color:var(--ds-text,var(--text));text-align:left;cursor:pointer;font-family:inherit;font-size:13px" onclick="document.getElementById(\'dr-liv-gen-menu\').style.display=\'none\';if(window.actionGenererLivraisonPour)window.actionGenererLivraisonPour(\'bl\',\'' + liv.id + '\');else if(window.actionGenererLivraison){window._drawerLivIdForce=\'' + liv.id + '\';window.actionGenererLivraison(\'bl\');}">📦 Bon de livraison</button>'
+      +     '<button type="button" class="dr-gen-item" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;background:transparent;border:none;border-radius:7px;color:var(--ds-text,var(--text));text-align:left;cursor:pointer;font-family:inherit;font-size:13px" onclick="document.getElementById(\'dr-liv-gen-menu\').style.display=\'none\';if(window.actionGenererLivraisonPour)window.actionGenererLivraisonPour(\'cmr\',\'' + liv.id + '\');else if(window.actionGenererLivraison){window._drawerLivIdForce=\'' + liv.id + '\';window.actionGenererLivraison(\'cmr\');}">🚚 Lettre de voiture</button>'
+      +   '</div>'
+      + '</div>';
 
     return html;
   }

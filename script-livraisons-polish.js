@@ -344,7 +344,9 @@
         }
       },
       'cmr': () => {
-        if (typeof window.genererLettreVoiture === 'function') window.genererLettreVoiture(livId);
+        // Phase 91.12 — fonction exposée = genererLettreDeVoiture (cf. script.js:3706).
+        if (typeof window.genererLettreDeVoiture === 'function') window.genererLettreDeVoiture(livId);
+        else if (typeof window.genererLettreVoiture === 'function') window.genererLettreVoiture(livId);
         else alert('Fonction CMR absente');
         if (typeof window.enregistrerDocumentLivraison === 'function') {
           window.enregistrerDocumentLivraison(livId, { type: 'cmr', name: 'Lettre de voiture CMR' });
@@ -354,6 +356,38 @@
         if (typeof window.genererFacturesPeriode === 'function') window.genererFacturesPeriode(selected.length > 0 ? selected : null);
         else if (typeof window.genererFacturesGroupees === 'function') window.genererFacturesGroupees(selected);
         else alert('Fonction Facture groupée absente');
+      },
+    };
+    if (dispatch[type]) dispatch[type]();
+  };
+
+  // Phase 91.12 — helper appelé depuis le drawer Documents : génère pour UNE livraison précise
+  // (bypass de la logique "row sélectionnée / 1ere ligne visible" de actionGenererLivraison).
+  window.actionGenererLivraisonPour = function (type, livId) {
+    if (!livId) return;
+    const dispatch = {
+      'facture': () => {
+        if (typeof window.genererFactureLivraison === 'function') window.genererFactureLivraison(livId);
+        if (typeof window.enregistrerDocumentLivraison === 'function') {
+          const livs = (window.charger ? window.charger('livraisons') : []) || [];
+          const l = livs.find(x => x.id === livId);
+          const numLiv = l ? (l.numLiv || l.num_liv || livId) : livId;
+          window.enregistrerDocumentLivraison(livId, { type: 'facture', name: 'Facture ' + String(numLiv).replace(/^L-/, 'F-') });
+        }
+      },
+      'bl': () => {
+        if (typeof window.genererBonsLivraison === 'function') window.genererBonsLivraison(livId);
+        else if (typeof window.genererBonLivraison === 'function') window.genererBonLivraison(livId);
+        if (typeof window.enregistrerDocumentLivraison === 'function') {
+          window.enregistrerDocumentLivraison(livId, { type: 'bl', name: 'Bon de livraison' });
+        }
+      },
+      'cmr': () => {
+        if (typeof window.genererLettreDeVoiture === 'function') window.genererLettreDeVoiture(livId);
+        else if (typeof window.genererLettreVoiture === 'function') window.genererLettreVoiture(livId);
+        if (typeof window.enregistrerDocumentLivraison === 'function') {
+          window.enregistrerDocumentLivraison(livId, { type: 'cmr', name: 'Lettre de voiture CMR' });
+        }
       },
     };
     if (dispatch[type]) dispatch[type]();
