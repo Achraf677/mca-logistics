@@ -193,3 +193,24 @@
 
 /* Phase 75 : Heures CE 561 KPI sub color */
 #heures-kpi-ce561-sub { color: var(--brand, #e63946); }
+
+/* Phase 83 : inspections filters inline → CSS */
+#filtre-insp-sal-input {
+  width: 100%;
+  background: var(--bg-dark, #1a1d27);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  color: var(--text-primary, #e8eaf0);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: .85rem;
+}
+
+#filtre-insp-statut {
+  background: var(--bg-card-hover, var(--bg-dark, #1a1d27));
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  color: var(--text-primary, #e8eaf0);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: .85rem;
+  cursor: pointer;
+}

@@ -610,7 +610,7 @@
       <div class="dashboard-2col" style="display:none">
         <div class="card">
           <div class="card-header"><h3>Qui travaille aujourd'hui ?</h3><span class="kpi-value" id="kpi-travaillent">0</span></div>
-          <div style="padding:12px 18px;display:flex;flex-wrap:wrap;gap:6px" id="liste-travaillent">
+          <div id="liste-travaillent">
             <span class="u-muted-sm">Chargement...</span>
           </div>
         </div>
@@ -2026,7 +2026,7 @@
         <div class="alertes-card-body">
           <!-- Filtres alertes (sticky) -->
           <div class="filters alertes-filters-sticky">
-            <input type="search" id="filtre-alerte-recherche" oninput="afficherAlertes()" placeholder="Rechercher (message, salarié, client, immat…)" style="min-width:240px;flex:1 1 240px" aria-label="Rechercher (message, salarié, client, immat…)" />
+            <input type="search" id="filtre-alerte-recherche" oninput="afficherAlertes()" placeholder="Rechercher (message, salarié, client, immat…)" aria-label="Rechercher (message, salarié, client, immat…)" />
             <select id="filtre-alerte-type" onchange="afficherAlertes()" aria-label="Filtrer alerte par type">
               <option value="">Tous les types</option>
               <option value="ct_expire">CT expiré</option>
@@ -2329,7 +2329,7 @@
             <!-- Upload RIB (PDF ou image, 5 MB max, prive) -->
             <div class="form-section-title u-section-spacer">Document RIB</div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-              <span id="param-rib-status" style="font-size:.85rem;color:var(--text-muted)">Aucun document chargé</span>
+              <span id="param-rib-status">Aucun document chargé</span>
               <label class="btn-primary">
                 Importer / Remplacer RIB
                 <input type="file" id="param-rib-file" accept="application/pdf,image/jpeg,image/png,image/webp" style="display:none" onchange="uploaderRibEntreprise(this)" aria-label="Importer un RIB" />
@@ -2364,7 +2364,7 @@
           <div class="modal-body">
             <div id="liste-postes" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
             <div style="display:flex;gap:8px">
-              <input type="text" id="nouveau-poste" placeholder="Ajouter un poste ou une fonction" autocomplete="off" style="flex:1;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:.88rem;font-family:inherit" onkeydown="if(event.key==='Enter')ajouterPoste()" aria-label="Ajouter un poste ou une fonction" />
+              <input type="text" id="nouveau-poste" placeholder="Ajouter un poste ou une fonction" autocomplete="off" onkeydown="if(event.key==='Enter')ajouterPoste()" aria-label="Ajouter un poste ou une fonction" />
               <button class="btn-primary" onclick="ajouterPoste()" style="padding:8px 16px">+ Ajouter</button>
             </div>
           </div>
@@ -2476,10 +2476,10 @@
           <div class="modal-body">
             <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:14px">Les catégories utilisées pour classer les charges d'exploitation. Ajoute des catégories métier spécifiques à ton activité (péages, badges, formations…).</p>
             <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-              <input type="text" id="param-cat-charge-new" placeholder="Nouvelle catégorie (ex : péages)" style="flex:1;min-width:240px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-dark);color:var(--text-primary)" aria-label="Nouvelle catégorie de charge" />
+              <input type="text" id="param-cat-charge-new" placeholder="Nouvelle catégorie (ex : péages)" aria-label="Nouvelle catégorie de charge" />
               <button class="btn-primary" onclick="window.ajouterCategorieCharge&&window.ajouterCategorieCharge()" style="padding:8px 14px">Ajouter</button>
             </div>
-            <div id="param-cat-charges-list" style="display:flex;flex-wrap:wrap;gap:6px;min-height:40px"></div>
+            <div id="param-cat-charges-list"></div>
           </div>
         </div>
 
@@ -2679,7 +2679,7 @@
             <p style="font-size:12px;color:var(--text-muted);margin:0 0 14px">
               Liste chronologique des évolutions du site. Format complet dans <code>CHANGELOG.md</code>.
             </p>
-            <div id="changelog-content" style="max-height:480px;overflow:auto;font-size:13px;line-height:1.6">
+            <div id="changelog-content">
               <div style="color:var(--text-muted)">Chargement…</div>
             </div>
           </div>
@@ -3836,12 +3836,12 @@
       </div>
       <div class="filters" style="margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <div style="position:relative;flex:1;min-width:220px">
-          <input type="text" id="filtre-insp-sal-input" list="datalist-insp-sal" placeholder="Rechercher un salarié..." oninput="filtrerInspParSalarieInput()" style="width:100%;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:.85rem" aria-label="Rechercher un salarié..." />
+          <input type="text" id="filtre-insp-sal-input" list="datalist-insp-sal" placeholder="Rechercher un salarié..." oninput="filtrerInspParSalarieInput()" aria-label="Rechercher un salarié..." />
           <datalist id="datalist-insp-sal"></datalist>
           <input type="hidden" id="filtre-insp-sal" />
         </div>
         <!-- Phase 58 polish : status select mockup-aligned -->
-        <select id="filtre-insp-statut" onchange="if(typeof window.afficherInspections==='function')window.afficherInspections()" style="background:var(--bg-card-hover,var(--bg-dark));border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:.85rem;cursor:pointer" aria-label="Filtrer par statut">
+        <select id="filtre-insp-statut" onchange="if(typeof window.afficherInspections==='function')window.afficherInspections()" aria-label="Filtrer par statut">
           <option value="">Tous statuts</option>
           <option value="conforme">Conforme</option>
           <option value="defaut-mineur">Défaut mineur</option>

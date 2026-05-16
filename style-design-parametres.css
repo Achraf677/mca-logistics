@@ -311,11 +311,51 @@
   font-family: var(--ds-font-body);
 }
 
+#liste-travaillent {
+  padding: 12px 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+#param-rib-status {
+  font-size: .85rem;
+  color: var(--text-muted, #7c8299);
+}
+
 #nouveau-poste {
   background: var(--ds-bg-card);
   border: 1px solid var(--ds-border);
   color: var(--ds-text);
   border-radius: var(--ds-r-md);
+  flex: 1;
+  padding: 8px 12px;
+  font-size: .88rem;
+  font-family: inherit;
+}
+
+#param-cat-charge-new {
+  flex: 1;
+  min-width: 240px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border, var(--border));
+  border-radius: 8px;
+  background: var(--ds-bg-card, var(--bg-dark));
+  color: var(--ds-text, var(--text-primary));
+}
+
+#param-cat-charges-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 40px;
+}
+
+#changelog-content {
+  max-height: 480px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 #nouveau-poste:focus {

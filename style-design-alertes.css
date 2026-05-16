@@ -347,3 +347,9 @@
 
 /* Alertes categories bottom spacing */
 #alertes-categories { padding-bottom: 14px; }
+
+/* Phase 83 : alertes search input flex layout → CSS */
+#filtre-alerte-recherche {
+  min-width: 240px;
+  flex: 1 1 240px;
+}
