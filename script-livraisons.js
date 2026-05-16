@@ -391,6 +391,9 @@ function changerStatutLivraison(id, statut) {
     sauvegarder('livraisons', livraisons);
     ajouterEntreeAudit('Statut livraison', (livraisons[idx].numLiv || 'Livraison') + ' · ' + statut);
     afficherToast('✅ Statut mis à jour');
+    // Phase 91.28 — refresh chips toolbar (Brouillons / En cours / Livrées counts) après changement statut
+    try { if (typeof window.refreshLivraisonsChipsCounts === 'function') window.refreshLivraisonsChipsCounts(); } catch (_) {}
+    try { if (typeof afficherLivraisons === 'function') afficherLivraisons(); } catch (_) {}
   }
 }
 

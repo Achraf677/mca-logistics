@@ -12452,27 +12452,29 @@ genererRentabilitePDF = function() {
     const lastPay = paiements.sort((a,b) => new Date(b.date||0) - new Date(a.date||0))[0];
     const lastRel = relances.sort((a,b) => new Date(b.date||0) - new Date(a.date||0))[0];
     const delai = parseInt(c.delaiPaiementJours, 10) || 30;
-    // Phase 91.17 — emojis remplacés par SVG stroke (DA site) + couleurs harmonisées (muted mockup).
-    const ICO_SVG_ATTR = 'viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7" aria-hidden="true"';
+    // Phase 91.28 — SVG stroke (DA site) inline-flex pour alignement vertical propre.
+    const ICO_SVG_ATTR = 'viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7;vertical-align:middle" aria-hidden="true"';
     const icoLiv  = '<svg ' + ICO_SVG_ATTR + '><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>';
     const icoFact = '<svg ' + ICO_SVG_ATTR + '><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>';
     const icoPay  = '<svg ' + ICO_SVG_ATTR + '><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/></svg>';
     const icoRel  = '<svg ' + ICO_SVG_ATTR + '><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
     const icoInfo = '<svg ' + ICO_SVG_ATTR + '><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+    // Items timeline en flex pour alignement vertical icône + texte
+    const TL_ITEM_STYLE = 'display:flex;align-items:center;gap:8px';
     return `
       <div class="s25-tab-panel active" data-panel="vue">
         <div class="s25-section">
           <h4>Dernières interactions</h4>
           <div class="s25-timeline">
-            ${lastLiv ? '<div class="s25-tl-item">'+icoLiv+'<strong>Livraison</strong> '+esc(lastLiv.numero||'—')+' · '+fmtDate(lastLiv.date)+' · '+fmtEur(lastLiv.montant||lastLiv.totalHT||0)+'</div>' : ''}
-            ${lastFact ? '<div class="s25-tl-item">'+icoFact+'<strong>Facture</strong> '+esc(lastFact.numero||'—')+' · '+fmtDate(lastFact.dateFacture)+' · '+fmtEur(lastFact.montantTTC||lastFact.totalTTC||0)+'</div>' : ''}
-            ${lastPay ? '<div class="s25-tl-item">'+icoPay+'<strong>Paiement</strong> '+fmtDate(lastPay.date)+' · '+fmtEur(lastPay.montant||0)+' · '+esc(lastPay.mode||'—')+'</div>' : ''}
-            ${lastRel ? '<div class="s25-tl-item">'+icoRel+'<strong>Relance niv '+(lastRel.niveau||0)+'</strong> '+fmtDate(lastRel.date)+'</div>' : ''}
+            ${lastLiv ? '<div class="s25-tl-item" style="'+TL_ITEM_STYLE+'">'+icoLiv+'<span><strong>Livraison</strong> '+esc(lastLiv.numero||'—')+' · '+fmtDate(lastLiv.date)+' · '+fmtEur(lastLiv.montant||lastLiv.totalHT||0)+'</span></div>' : ''}
+            ${lastFact ? '<div class="s25-tl-item" style="'+TL_ITEM_STYLE+'">'+icoFact+'<span><strong>Facture</strong> '+esc(lastFact.numero||'—')+' · '+fmtDate(lastFact.dateFacture)+' · '+fmtEur(lastFact.montantTTC||lastFact.totalTTC||0)+'</span></div>' : ''}
+            ${lastPay ? '<div class="s25-tl-item" style="'+TL_ITEM_STYLE+'">'+icoPay+'<span><strong>Paiement</strong> '+fmtDate(lastPay.date)+' · '+fmtEur(lastPay.montant||0)+' · '+esc(lastPay.mode||'—')+'</span></div>' : ''}
+            ${lastRel ? '<div class="s25-tl-item" style="'+TL_ITEM_STYLE+'">'+icoRel+'<span><strong>Relance niv '+(lastRel.niveau||0)+'</strong> '+fmtDate(lastRel.date)+'</span></div>' : ''}
             ${!lastLiv && !lastFact && !lastPay && !lastRel ? '<div style="color:var(--text-muted);padding:12px;text-align:center">Aucune interaction</div>' : ''}
           </div>
         </div>
         <div class="s25-section">
-          <h4>${icoInfo}<span style="margin-left:6px">Infos clés</span></h4>
+          <h4 style="display:flex;align-items:center;gap:6px">${icoInfo}<span>Infos clés</span></h4>
           <div class="s25-infos">
             <div><span>Délai paiement</span><strong>${delai} jours</strong></div>
             <div><span>Adresse</span><strong>${esc(c.adresse||'—')}</strong></div>

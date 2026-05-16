@@ -57,6 +57,9 @@
     if (el) el.textContent = val;
   }
 
+  // Phase 91.28 — expose globalement pour refresh manuel après changement statut.
+  window.refreshLivraisonsChipsCounts = updateCounts;
+
   function updateCounts() {
     if (!document.getElementById('livraisons-chips-toolbar')) return;
     var c;
