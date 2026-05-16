@@ -137,7 +137,7 @@
       '#mca-setup-wizard .modal-header{padding:14px 18px;border-bottom:1px solid var(--border,#e5e7eb)}' +
       '#mca-setup-wizard .modal-body{padding:14px 18px}' +
       '#mca-setup-wizard input,#mca-setup-wizard select{padding:8px 10px;border:1px solid var(--border,#d1d5db);border-radius:8px;background:var(--bg-input,#fff);color:inherit;font-size:.92rem;width:100%;box-sizing:border-box}' +
-      '#mca-setup-wizard .btn-primary{background:var(--accent,#f5a623);color:#fff;border:none;padding:9px 14px;border-radius:8px;cursor:pointer;font-weight:600}' +
+      '#mca-setup-wizard .btn-primary{background:var(--accent,#e63946);color:#fff;border:none;padding:9px 14px;border-radius:8px;cursor:pointer;font-weight:600}' +
       '#mca-setup-wizard .btn-secondary{background:transparent;border:1px solid var(--border,#d1d5db);padding:9px 14px;border-radius:8px;cursor:pointer;color:inherit}' +
       '#mca-setup-wizard .modal-close{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-muted,#888)}' +
       '@media (max-width:600px){#mca-setup-wizard{padding:0}#mca-setup-wizard .modal{width:100%;max-width:100%;height:100vh;max-height:100vh;border-radius:0}}';
@@ -165,7 +165,7 @@
           '<div id="mca-setup-progress" style="display:flex;gap:6px;margin-bottom:18px" aria-label="Progression">' +
             [1,2,3,4].map(function (i) {
               var on = i <= state.step;
-              return '<div data-step-pip="' + i + '" style="flex:1;height:4px;border-radius:2px;background:' + (on ? 'var(--accent, #f5a623)' : 'var(--border, #e5e7eb)') + '"></div>';
+              return '<div data-step-pip="' + i + '" style="flex:1;height:4px;border-radius:2px;background:' + (on ? 'var(--accent, #e63946)' : 'var(--border, #e5e7eb)') + '"></div>';
             }).join('') +
           '</div>' +
           '<div id="mca-setup-body"></div>' +
@@ -185,7 +185,7 @@
     // Pips progression
     document.querySelectorAll('[data-step-pip]').forEach(function (el) {
       var i = parseInt(el.getAttribute('data-step-pip'), 10);
-      el.style.background = i <= state.step ? 'var(--accent, #f5a623)' : 'var(--border, #e5e7eb)';
+      el.style.background = i <= state.step ? 'var(--accent, #e63946)' : 'var(--border, #e5e7eb)';
     });
 
     if (state.step === 1) body.innerHTML = renderStep1();

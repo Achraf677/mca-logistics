@@ -2,9 +2,8 @@
    MCA Logistics — Design Setup Wizard (Phase 4 / PR-21)
 
    Restyle CSS-only du wizard onboarding 4 etapes (script-setup-wizard.js).
-   Le JS injecte ses styles inline dans `injectStylesOnce()` avec
-   var(--accent, #f5a623) (orange legacy). Mes regles ci-dessous overrident
-   via specificity #mca-setup-wizard.
+   Le JS utilise var(--accent, #e63946) (rouge palette) depuis Phase 91.63 cleanup.
+   Mes regles ci-dessous overrident via specificity #mca-setup-wizard.
 
    Aucun changement HTML/JS.
    ========================================================================== */
