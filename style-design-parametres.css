@@ -343,6 +343,22 @@ details .details-summary,
   user-select: none;
 }
 
+/* Phase 81 : integration sync notes (Pennylane / Qonto / Gemini / ORS) */
+.params-sync-note {
+  font-size: 12px;
+  color: var(--text-muted, #7c8299);
+  padding: 8px 0;
+}
+
+.params-sync-note.pb {
+  padding-top: 0;
+  padding-bottom: 10px;
+}
+
+.params-sync-note strong {
+  color: var(--text, #e8eaf0);
+}
+
 /* file-upload-button accent variant (carburant / salarie / charge smart-upload) */
 .file-upload-button-accent {
   background: var(--accent-soft, rgba(230,57,70,0.08));

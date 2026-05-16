@@ -88,6 +88,29 @@ tr[data-anomalie="1"]:hover td {
   color: var(--ds-text-muted);
 }
 
+/* ============ Phase 81 : carburant anomalie banner inline → CSS ============ */
+#carb-anomalie-banner {
+  background: rgba(230, 57, 70, 0.08);
+  border: 1px solid rgba(230, 57, 70, 0.25);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  align-items: center;
+  gap: 12px;
+}
+
+#carb-anomalie-banner-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--ds-text, var(--text, #e8eaf0));
+}
+
+#carb-anomalie-banner .btn-secondary {
+  font-size: 12px;
+  padding: 5px 12px;
+  flex-shrink: 0;
+}
+
 /* ============ Phase 34 : masquer colonnes hors-mockup ============ */
 /* TVA déductible (6) + Source (9) */
 .carburant-table th:nth-child(6),
