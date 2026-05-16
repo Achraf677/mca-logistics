@@ -158,6 +158,23 @@ function getPeriodeRange(mode, offset) {
     };
   }
 
+  // Phase 91.59 — support trimestre (utilisé par TVA : obligation fiscale CA3)
+  if (mode === 'trimestre') {
+    var trimRef = new Date(base.getFullYear(), base.getMonth(), 1);
+    var qIdx = Math.floor(trimRef.getMonth() / 3); // 0..3
+    var qStartMonth = qIdx * 3;
+    var trimStart = new Date(trimRef.getFullYear(), qStartMonth + (offset * 3), 1);
+    var trimEnd = new Date(trimStart.getFullYear(), trimStart.getMonth() + 3, 0);
+    var qNum = Math.floor(trimStart.getMonth() / 3) + 1;
+    return {
+      mode: mode,
+      debut: dateToLocalISO(trimStart),
+      fin: dateToLocalISO(trimEnd),
+      label: 'T' + qNum + ' ' + trimStart.getFullYear(),
+      datesLabel: 'Du ' + formatPeriodeDateFr(trimStart) + ' au ' + formatPeriodeDateFr(trimEnd)
+    };
+  }
+
   base.setDate(1);
   base.setMonth(base.getMonth() + offset);
   var debut = new Date(base.getFullYear(), base.getMonth(), 1);

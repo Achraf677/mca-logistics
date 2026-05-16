@@ -605,6 +605,24 @@ function afficherTva() {
   setT('tva-kpi-solde', summary.soldeBrut > 0 ? euros(summary.soldeBrut) : (summary.soldeBrut < 0 ? 'Crédit ' + euros(Math.abs(summary.soldeBrut)) : '—'));
   window.__lastTvaBrutSolde = summary.soldeBrut;
 
+  // Phase 91.59 : sticky banner "TVA à payer" — mirroir du KPI Solde
+  var bannerEl = document.getElementById('tva-banner-a-payer');
+  var bannerMontantEl = document.getElementById('tva-banner-montant');
+  if (bannerEl && bannerMontantEl) {
+    var solde = summary.soldeBrut;
+    bannerEl.classList.remove('is-payer','is-credit','is-zero');
+    if (solde > 0) {
+      bannerEl.classList.add('is-payer');
+      bannerMontantEl.textContent = euros(solde);
+    } else if (solde < 0) {
+      bannerEl.classList.add('is-credit');
+      bannerMontantEl.textContent = 'Crédit ' + euros(Math.abs(solde));
+    } else {
+      bannerEl.classList.add('is-zero');
+      bannerMontantEl.textContent = '—';
+    }
+  }
+
   var soldeEl = document.getElementById('tva-solde-detail');
   if (soldeEl) {
     var settlementsHtml = summary.settlements.length

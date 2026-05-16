@@ -2107,7 +2107,21 @@
         </div>
       </div>
 
-      <!-- Phase 50 : période nav combined row (mockup-aligned) -->
+      <!-- Phase 91.59 : bannière sticky "TVA à payer ce mois" (info la plus critique) -->
+      <div class="tva-sticky-banner" id="tva-banner-a-payer" role="status" aria-live="polite">
+        <div class="tva-sticky-banner__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2v20M5 9h11.5a3.5 3.5 0 0 1 0 7H6m13-3.5H7.5a3.5 3.5 0 1 0 0 7H17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <div class="tva-sticky-banner__body">
+          <div class="tva-sticky-banner__label">TVA à payer cette période</div>
+          <div class="tva-sticky-banner__value" id="tva-banner-montant">—</div>
+        </div>
+        <div class="tva-sticky-banner__meta">
+          <span class="tva-sticky-banner__echeance">Échéance <strong id="tva-banner-echeance">15/mois</strong></span>
+        </div>
+      </div>
+
+      <!-- Phase 50 : période nav combined row (mockup-aligned) — Phase 91.59 : chips Mois/Trim/An -->
       <div class="carb-period-nav">
         <div class="period-left">
           <button class="btn-secondary" aria-label="Période précédente" onclick="navTvaPeriode(-1)">←</button>
@@ -2118,15 +2132,13 @@
         </div>
         <div class="period-right">
           <select class="period-selector" id="vue-tva-select" onchange="changerVueTVA(this.value)" aria-label="Vue période TVA" style="display:none">
-            <option value="jour">Par jour</option>
-            <option value="semaine">Par semaine</option>
             <option value="mois" selected>Par mois</option>
+            <option value="trimestre">Par trimestre</option>
             <option value="annee">Par année</option>
           </select>
           <div class="period-chips" data-period-target="vue-tva-select">
-            <button class="chip-period" data-period="jour">Jour</button>
-            <button class="chip-period" data-period="semaine">Semaine</button>
             <button class="chip-period active" data-period="mois">Mois</button>
+            <button class="chip-period" data-period="trimestre">Trimestre</button>
             <button class="chip-period" data-period="annee">Année</button>
           </div>
         </div>
@@ -2140,9 +2152,8 @@
         <div class="kpi"><div class="kpi-lbl">Échéance</div><div class="kpi-val" id="tva-kpi-echeance">15/mois</div><div class="kpi-sub" id="tva-echeance-sub">Déclaration mensuelle</div></div>
       </div>
 
-      <div class="card mt-20">
-        <div class="modal-body" id="tva-mode-info"></div>
-      </div>
+      <!-- Phase 91.59 : tva-mode-info passé en strip inline (au lieu de card pleine largeur) -->
+      <div class="tva-mode-strip" id="tva-mode-info"></div>
 
       <!-- Phase 60 V7 H7 — Chart TVA Collectée vs Déductible (mockup) -->
       <div class="card mt-20 card-padded">

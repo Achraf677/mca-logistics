@@ -530,3 +530,78 @@ label.btn-secondary { margin: 0; cursor: pointer; }
   border-color: rgba(230,57,70,0.4);
   color: var(--ds-brand, var(--brand, #e63946));
 }
+
+/* ============ Phase 91.59 — TVA : bannière sticky "à payer" + mode strip ============ */
+
+/* Bannière "TVA à payer cette période" : info la plus critique de la page TVA,
+   affichée immédiatement sous le section-head, avant la grille KPI.
+   3 états visuels : is-payer (rouge, montant dû), is-credit (vert, crédit TVA),
+   is-zero (neutre, période vide). */
+.tva-sticky-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  margin: 16px 0 8px;
+  border-radius: 12px;
+  border: 1px solid var(--ds-border, rgba(255,255,255,0.12));
+  background: var(--ds-bg-card, rgba(255,255,255,0.04));
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
+}
+.tva-sticky-banner__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  color: var(--ds-brand, #e63946);
+  background: rgba(230,57,70,0.10);
+}
+.tva-sticky-banner__body { flex: 1 1 auto; min-width: 0; }
+.tva-sticky-banner__label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ds-text-muted, var(--text-muted, #7c8299));
+  text-transform: uppercase;
+}
+.tva-sticky-banner__value {
+  font-family: var(--ds-font-display, 'Syne', system-ui, sans-serif);
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1.15;
+  margin-top: 2px;
+  font-feature-settings: 'tnum' 1;
+}
+.tva-sticky-banner__meta {
+  flex: 0 0 auto;
+  font-size: 0.82rem;
+  color: var(--ds-text-muted, var(--text-muted, #7c8299));
+  text-align: right;
+}
+.tva-sticky-banner__meta strong { color: var(--ds-text, #f1f3f5); font-weight: 700; }
+.tva-sticky-banner.is-payer { border-color: rgba(231,76,60,0.35); background: rgba(231,76,60,0.06); }
+.tva-sticky-banner.is-payer .tva-sticky-banner__icon { color: #e74c3c; background: rgba(231,76,60,0.14); }
+.tva-sticky-banner.is-payer .tva-sticky-banner__value { color: #e74c3c; }
+.tva-sticky-banner.is-credit { border-color: rgba(46,204,113,0.35); background: rgba(46,204,113,0.06); }
+.tva-sticky-banner.is-credit .tva-sticky-banner__icon { color: #2ecc71; background: rgba(46,204,113,0.14); }
+.tva-sticky-banner.is-credit .tva-sticky-banner__value { color: #2ecc71; }
+.tva-sticky-banner.is-zero .tva-sticky-banner__value { color: var(--ds-text-muted, var(--text-muted, #7c8299)); }
+@media (max-width: 640px) {
+  .tva-sticky-banner { flex-wrap: wrap; }
+  .tva-sticky-banner__meta { width: 100%; text-align: left; padding-top: 4px; }
+}
+
+/* Strip inline pour le mode TVA actif (anciennement card pleine largeur trop lourde) */
+.tva-mode-strip {
+  margin: 12px 0 4px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--ds-bg-card, rgba(255,255,255,0.03));
+  border: 1px dashed var(--ds-border, rgba(255,255,255,0.10));
+  font-size: 0.82rem;
+  color: var(--ds-text-muted, var(--text-muted, #9aa0b4));
+}
+.tva-mode-strip:empty { display: none; }
