@@ -19,11 +19,11 @@
     if (!subPeriode && !subLivraisons) return;
 
     if (subPeriode) {
+      // Phase 91.56 III.2 : drop dates redondantes — la period-nav en-dessous affiche déjà
+      // "Mai 2026 Du 01/05/2026 au 31/05/2026". Sub-meta limitée au label seul.
       var label = document.getElementById('stats-mois-label');
-      var dates = document.getElementById('stats-mois-dates');
       var labelTxt = label && label.textContent ? label.textContent.trim() : '';
-      var datesTxt = dates && dates.textContent ? dates.textContent.trim() : '';
-      subPeriode.textContent = (labelTxt + (datesTxt ? ' (' + datesTxt + ')' : '')) || '—';
+      subPeriode.textContent = labelTxt || '—';
     }
 
     if (subLivraisons) {

@@ -1352,15 +1352,12 @@
         <div class="kpi"><div class="kpi-lbl">Marge brute</div><div class="kpi-val" id="rent-kpi-marge">—</div><div class="kpi-sub" id="rent-kpi-marge-sub">CA − Charges</div></div>
         <div class="kpi"><div class="kpi-lbl">Coût/km moyen</div><div class="kpi-val" id="rent-kpi-cout-km">—</div><div class="kpi-sub" id="rent-kpi-cout-km-sub">Charges / km total</div></div>
       </div>
-      <!-- Phase 60 V7 H8 — Charts rentabilité : Évolution CA/charges 6m + Donut charges -->
+      <!-- Phase 91.56 III.3 — Donut "Répartition charges" supprimé (doublon avec donut Charges).
+           Le chart "Évolution CA vs charges" prend désormais toute la largeur de la ligne. -->
       <div class="chart-row" style="margin-bottom:18px">
-        <div class="chart-card">
+        <div class="chart-card" style="flex:1">
           <h3>Évolution CA vs charges<span class="chart-legend">6 derniers mois</span></h3>
           <div class="chart-canvas"><canvas id="chart-rent-evol-6m"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <h3>Répartition charges<span class="chart-legend">par catégorie</span></h3>
-          <div class="chart-canvas"><canvas id="chart-rent-charges-donut"></canvas></div>
         </div>
       </div>
       <!-- Phase 59 polish : tabs-bar mockup-aligned (rent-tab-btn underline style au lieu de btn-secondary) -->
@@ -1636,11 +1633,7 @@
     <section class="page" id="page-statistiques">
       <!-- Phase 91.54 I.10 : breadcrumb retiré (page niveau 1 sidebar, le retour n'a pas de sens) -->
 
-      <!-- Phase 8 refonte HTML : title-row -->
-      <div class="title-row">
-        <h1 class="page-title">Statistiques</h1>
-        <div class="sub-meta">Indicateurs de performance · activité, CA, flotte, équipe</div>
-      </div>
+      <!-- Phase 91.56 : title-row supprimé (doublon avec ds-section-head Statistiques) -->
 
       <!-- Phase 45 refonte : section-head + Exporter dropdown + period-row (mockup-aligned) -->
       <div class="page-actions ds-section-head">
@@ -2068,11 +2061,7 @@
          TVA                                      : Récap TVA collectée / déductible (CA3)
          ============================================================ -->
     <section class="page" id="page-tva">
-      <!-- Phase 8 refonte HTML : title-row -->
-      <div class="title-row">
-        <h1 class="page-title">TVA</h1>
-        <div class="sub-meta">Récapitulatif TVA collectée et déductible · CA3 mensuel / trimestriel</div>
-      </div>
+      <!-- Phase 91.56 : title-row supprimé (doublon avec ds-section-head TVA) -->
 
       <!-- Phase 35 refonte HTML : section-head -->
       <div class="page-actions ds-section-head">
@@ -2709,11 +2698,7 @@
          ENCAISSEMENT                             : Factures à encaisser, DSO, relances (miroir Charges côté revenus)
          ============================================================ -->
     <section class="page" id="page-encaissement">
-      <!-- Phase 8 refonte HTML : title-row -->
-      <div class="title-row">
-        <h1 class="page-title">Encaissement</h1>
-        <div class="sub-meta">Suivi factures et relances clients · DSO et impayés</div>
-      </div>
+      <!-- Phase 91.56 : title-row supprimé (doublon avec ds-section-head Encaissement) -->
 
       <!-- Phase 50 refonte HTML : section-head mockup-aligned (Exporter dropdown + Enregistrer paiement) -->
       <div class="page-actions ds-section-head">
@@ -2872,18 +2857,13 @@
     <section class="page" id="page-charges">
       <!-- Phase 91.54 I.10 : breadcrumb retiré (page niveau 1 sidebar) -->
 
-      <!-- Phase 7 refonte HTML : title-row -->
-      <div class="title-row">
-        <h1 class="page-title">Charges</h1>
-        <div class="sub-meta">
-          <strong id="charges-titlerow-cemois">0</strong> charges ce mois
-          <span> · </span>
-          <strong id="charges-titlerow-montant">0 €</strong>
-          <span id="charges-titlerow-apayer-wrap" style="display:none">
-            <span> · </span>
-            <span class="alert"><strong id="charges-titlerow-apayer">0</strong> à payer</span>
-          </span>
-        </div>
+      <!-- Phase 91.56 : title-row supprimé (doublon avec ds-section-head). IDs legacy conservés cachés pour compat scripts -->
+      <div class="title-row-legacy" hidden>
+        <span id="charges-titlerow-cemois">0</span>
+        <span id="charges-titlerow-montant">0 €</span>
+        <span id="charges-titlerow-apayer-wrap" style="display:none">
+          <span id="charges-titlerow-apayer">0</span>
+        </span>
       </div>
 
       <!-- Phase 2 HTML refonte : section-head pattern mockup (title + sub-meta + actions) -->
