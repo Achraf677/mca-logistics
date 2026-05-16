@@ -2506,10 +2506,12 @@ function majBadgesBottomNav() {
   if (!salarieCourant) return;
   const msgs = JSON.parse(localStorage.getItem('messages_' + salarieCourant.id) || '[]');
   const nonLus = msgs.filter(m => m.auteur === 'admin' && !m.lu).length;
+  // Phase 91.87 : cap "99+" pour éviter débordement bottom-nav mobile
+  const display = nonLus > 99 ? '99+' : (nonLus || '');
   const bMsg = document.getElementById('bn-badge-messages');
   const bMsgAction = document.getElementById('badge-msg-action');
-  if (bMsg) { bMsg.textContent = nonLus || ''; bMsg.classList.toggle('visible', nonLus > 0); }
-  if (bMsgAction) { bMsgAction.textContent = nonLus || ''; bMsgAction.style.display = nonLus > 0 ? 'inline' : 'none'; }
+  if (bMsg) { bMsg.textContent = display; bMsg.classList.toggle('visible', nonLus > 0); }
+  if (bMsgAction) { bMsgAction.textContent = display; bMsgAction.style.display = nonLus > 0 ? 'inline' : 'none'; }
 }
 
 function initOfflineDetection() {
