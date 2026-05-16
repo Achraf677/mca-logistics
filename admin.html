@@ -3438,7 +3438,7 @@
       </div>
 
       <!-- Chips par chauffeur (peuplées dynamiquement par script-heures-counts.js) -->
-      <div id="heures-chauffeur-chips" class="chips-toolbar" style="margin-bottom:14px"></div>
+      <div id="heures-chauffeur-chips" class="chips-toolbar" role="tablist" aria-label="Filtrer par chauffeur" style="margin-bottom:14px"></div>
 
       <div class="filters" style="margin-bottom:16px">
         <div class="searchbar searchbar-heures">
@@ -3501,23 +3501,25 @@
       </div>
 
       <!-- Phase 45 : cal toolbar mockup-aligned (prev/today/next + period-chips Jour/Semaine/Mois/Année) -->
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <button class="btn-secondary" onclick="window.cal16?.naviguer(-1)" aria-label="Précédent">
-            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M15 18l-6-6 6-6"/></svg>
+      <div class="carb-period-nav">
+        <div class="period-left">
+          <button class="btn-secondary" onclick="window.cal16?.naviguer(-1)" aria-label="Période précédente">
+            <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
           <button class="btn-secondary btn-today-brand" onclick="window.cal16?.aujourdhui()">Aujourd'hui</button>
-          <button class="btn-secondary" onclick="window.cal16?.naviguer(1)" aria-label="Suivant">
-            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M9 18l6-6-6-6"/></svg>
+          <button class="btn-secondary" onclick="window.cal16?.naviguer(1)" aria-label="Période suivante">
+            <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base"><path d="M9 18l6-6-6-6"/></svg>
           </button>
-          <div id="cal16-label" style="font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize"></div>
-          <div id="cal16-sub"></div>
+          <div id="cal16-label" class="period-label"></div>
+          <div id="cal16-sub" class="period-dates"></div>
         </div>
-        <div class="period-chips" data-period-target="cal16-vue" style="display:flex;gap:6px">
-          <button class="chip-period" data-period="jour">Jour</button>
-          <button class="chip-period" data-period="semaine">Semaine</button>
-          <button class="chip-period active" data-period="mois">Mois</button>
-          <button class="chip-period" data-period="annee">Année</button>
+        <div class="period-right">
+          <div class="period-chips" data-period-target="cal16-vue">
+            <button class="chip-period" data-period="jour">Jour</button>
+            <button class="chip-period" data-period="semaine">Semaine</button>
+            <button class="chip-period active" data-period="mois">Mois</button>
+            <button class="chip-period" data-period="annee">Année</button>
+          </div>
         </div>
       </div>
       <!-- Hidden select kept for JS compat (cal16 reads cal16-vue) -->
@@ -3644,9 +3646,9 @@
       </div>
 
       <div class="card planning-card" style="margin-bottom:16px">
-        <div class="card-header" style="gap:12px;flex-wrap:wrap">
+        <div class="card-header card-header-wrap">
           <h3>Organisation du planning</h3>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div class="u-flex-row">
             <button class="btn-secondary" type="button" onclick="ouvrirPlanningRecurrence()">Horaires récurrents</button>
             <button class="btn-secondary" id="planning-toggle-quick-btn" onclick="togglePlanningQuickPanel()">+ Ajouter une période</button>
           </div>
@@ -3896,15 +3898,15 @@
         <div class="kpi"><div class="kpi-lbl">Économie temps</div><div class="kpi-val" id="brouillons-kpi-temps">—</div><div class="kpi-sub">Sur saisie manuelle</div></div>
       </div>
       <!-- Phase 45 — chips toolbar statut brouillons -->
-      <div class="ds-chips-toolbar" id="brouillons-chips" style="margin-bottom:12px">
-        <button class="ds-chip active" type="button" data-brouillons-statut="pending" onclick="brouillonsChipFilter(this)">En attente</button>
-        <button class="ds-chip" type="button" data-brouillons-statut="executed" onclick="brouillonsChipFilter(this)">Validées</button>
-        <button class="ds-chip" type="button" data-brouillons-statut="rejected" onclick="brouillonsChipFilter(this)">Rejetées</button>
-        <button class="ds-chip" type="button" data-brouillons-statut="ocr" onclick="brouillonsChipFilter(this)">OCR factures</button>
+      <div class="ds-chips-toolbar" id="brouillons-chips" role="tablist" aria-label="Filtrer les brouillons par statut" style="margin-bottom:12px">
+        <button class="ds-chip active" type="button" role="tab" aria-selected="true" data-brouillons-statut="pending" onclick="brouillonsChipFilter(this)">En attente</button>
+        <button class="ds-chip" type="button" role="tab" aria-selected="false" data-brouillons-statut="executed" onclick="brouillonsChipFilter(this)">Validées</button>
+        <button class="ds-chip" type="button" role="tab" aria-selected="false" data-brouillons-statut="rejected" onclick="brouillonsChipFilter(this)">Rejetées</button>
+        <button class="ds-chip" type="button" role="tab" aria-selected="false" data-brouillons-statut="ocr" onclick="brouillonsChipFilter(this)">OCR factures</button>
       </div>
       <div class="card">
         <div class="card-header">
-          <h3>Actions en attente</h3>
+          <h3 id="brouillons-card-title">Actions en attente</h3>
           <div class="u-muted-xs">Approuver ou rejeter chaque proposition</div>
         </div>
         <div style="padding:14px 18px" id="brouillons-ia-list">

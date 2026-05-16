@@ -410,3 +410,30 @@ label.btn-secondary { margin: 0; cursor: pointer; }
   align-items: center;
   gap: 4px;
 }
+
+/* Phase 84 : btn-chip alias → ds-chip style (stats granularity, enc period, heures legacy) */
+.btn-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--ds-bg-card, var(--bg-card, #1e2128));
+  border: 1px solid var(--ds-border, var(--border, rgba(255,255,255,0.08)));
+  color: var(--ds-text-muted, var(--text-muted, #7c8299));
+  border-radius: 999px;
+  font-family: var(--ds-font-body, inherit);
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease-out, border-color 0.15s ease-out, color 0.15s ease-out;
+  white-space: nowrap;
+}
+.btn-chip:hover {
+  border-color: var(--ds-border-strong, var(--border-strong, rgba(255,255,255,0.2)));
+  color: var(--ds-text, var(--text, #e8eaf0));
+}
+.btn-chip.active {
+  background: var(--ds-brand-soft, rgba(230,57,70,0.12));
+  border-color: rgba(230,57,70,0.4);
+  color: var(--ds-brand, var(--brand, #e63946));
+}

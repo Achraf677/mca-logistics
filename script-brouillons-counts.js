@@ -94,11 +94,17 @@
   }
 
   // Phase 58 polish (BUG-025) : chips filter wire AIBrouillons.setStatusFilter
+  var BROUILLONS_CHIP_LABELS = { pending: 'Actions en attente', executed: 'Brouillons validés', rejected: 'Brouillons rejetés', ocr: 'Imports OCR' };
   window.brouillonsChipFilter = function (btn) {
     document.querySelectorAll('#brouillons-chips .ds-chip').forEach(function (c) {
-      c.classList.toggle('active', c === btn);
+      var isActive = c === btn;
+      c.classList.toggle('active', isActive);
+      c.setAttribute('aria-selected', isActive ? 'true' : 'false');
     });
     var filter = btn.getAttribute('data-brouillons-statut') || 'pending';
+    // Update card-header title to reflect current view
+    var title = document.getElementById('brouillons-card-title');
+    if (title) title.textContent = BROUILLONS_CHIP_LABELS[filter] || 'Brouillons IA';
     if (window.AIBrouillons && typeof window.AIBrouillons.setStatusFilter === 'function') {
       window.AIBrouillons.setStatusFilter(filter);
     }

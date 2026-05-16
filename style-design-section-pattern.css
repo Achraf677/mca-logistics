@@ -97,7 +97,9 @@ nav.ds-crumbs {
   gap: 8px;
 }
 
-.period-row .period-chips .chip-period {
+.period-row .period-chips .chip-period,
+.carb-period-nav .period-chips .chip-period,
+.carb-period-nav .period-right .chip-period {
   padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid var(--ds-border, var(--border));
@@ -110,11 +112,15 @@ nav.ds-crumbs {
   transition: all 0.18s ease-out;
 }
 
-.period-row .period-chips .chip-period:hover {
+.period-row .period-chips .chip-period:hover,
+.carb-period-nav .period-chips .chip-period:hover,
+.carb-period-nav .period-right .chip-period:hover {
   color: var(--ds-text, var(--text));
 }
 
-.period-row .period-chips .chip-period.active {
+.period-row .period-chips .chip-period.active,
+.carb-period-nav .period-chips .chip-period.active,
+.carb-period-nav .period-right .chip-period.active {
   background: var(--ds-brand-soft, rgba(230,57,70,0.12));
   color: var(--ds-brand, var(--accent));
   border-color: rgba(230, 57, 70, 0.4);

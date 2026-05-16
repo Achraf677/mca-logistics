@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v258-phase86-params-uppercase-logo-preview';
+const CACHE_VERSION = 'mca-v2026-05-16-v259-chip-styles-aria-period-nav';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -171,6 +171,7 @@ const CORE_ASSETS = [
   '/script-rent-kpis.js',
   '/script-carburant.js',
   '/script-carburant-anomalies.js',
+  '/script-carburant-table.js',
   '/script-entretiens.js',
   '/script-alertes.js',
   '/script-stats.js',

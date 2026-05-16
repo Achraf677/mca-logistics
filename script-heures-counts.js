@@ -163,12 +163,12 @@
           chaufIdsAvecPlannings.push(p.salId);
         }
       });
-      var html = '<button class="btn-chip active" onclick="window.__heuresFiltreChauf=\'\';this.parentNode.querySelectorAll(\'.btn-chip\').forEach(function(b){b.classList.remove(\'active\')});this.classList.add(\'active\');var f=document.getElementById(\'filtre-heures-salarie\');if(f){f.value=\'\';var e=new Event(\'input\');f.dispatchEvent(e)}">Tous</button>';
+      var html = '<button class="ds-chip active" role="tab" aria-selected="true" onclick="window.__heuresFiltreChauf=\'\';this.parentNode.querySelectorAll(\'.ds-chip\').forEach(function(b){b.classList.remove(\'active\');b.setAttribute(\'aria-selected\',\'false\')});this.classList.add(\'active\');this.setAttribute(\'aria-selected\',\'true\');var f=document.getElementById(\'filtre-heures-salarie\');if(f){f.value=\'\';var e=new Event(\'input\');f.dispatchEvent(e)}">Tous</button>';
       chaufIdsAvecPlannings.forEach(function(salId) {
         var nom = nomsBySalId[salId] || salId;
         var parts = nom.trim().split(/\s+/);
         var label = parts.length >= 2 ? parts[0] + ' ' + parts[parts.length-1][0] + '.' : nom;
-        html += '<button class="btn-chip" data-sal-id="' + salId + '" onclick="(function(btn,n){window.__heuresFiltreChauf=n;btn.parentNode.querySelectorAll(\'.btn-chip\').forEach(function(b){b.classList.remove(\'active\')});btn.classList.add(\'active\');var f=document.getElementById(\'filtre-heures-salarie\');if(f){f.value=n;var e=new Event(\'input\');f.dispatchEvent(e)}})(this,\'' + nom.replace(/'/g, "\\'") + '\')">' + label + '</button>';
+        html += '<button class="ds-chip" role="tab" aria-selected="false" data-sal-id="' + salId + '" onclick="(function(btn,n){window.__heuresFiltreChauf=n;btn.parentNode.querySelectorAll(\'.ds-chip\').forEach(function(b){b.classList.remove(\'active\');b.setAttribute(\'aria-selected\',\'false\')});btn.classList.add(\'active\');btn.setAttribute(\'aria-selected\',\'true\');var f=document.getElementById(\'filtre-heures-salarie\');if(f){f.value=n;var e=new Event(\'input\');f.dispatchEvent(e)}})(this,\'' + nom.replace(/'/g, "\\'") + '\')">' + label + '</button>';
       });
       chipsContainer.innerHTML = html;
       chipsContainer.dataset.built = '1';
