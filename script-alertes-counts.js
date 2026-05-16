@@ -127,6 +127,18 @@
       var alerteKeys = Object.keys(alerteTypes);
       kpiAlertSub.textContent = alerteKeys.length > 0 ? alerteKeys.slice(0, 3).join(', ') : 'À traiter cette semaine';
     }
+    var kpiInfoSub = document.getElementById('alertes-kpi-info-sub');
+    if (kpiInfoSub) {
+      var firstInfoMsg = null;
+      alertes.forEach(function (a) {
+        if (!a || a.traite === true || a.traitee === true || firstInfoMsg) return;
+        if ((SEVERITY_MAP[a.type] || 'info') === 'info') {
+          var msg = (a.message || a.titre || '').slice(0, 36);
+          if (msg) firstInfoMsg = msg;
+        }
+      });
+      kpiInfoSub.textContent = firstInfoMsg || 'Notifications légères';
+    }
 
     // Phase 83 : colors on kpi-lbl + kpi-val (mockup-aligned)
     var critLbl = document.getElementById('alertes-kpi-critiques-lbl');
@@ -136,6 +148,7 @@
     if (critLbl) critLbl.style.color = critiques > 0 ? brandColor : '';
     if (kpiCrit) kpiCrit.style.color = critiques > 0 ? brandColor : '';
     if (alertLbl) alertLbl.style.color = alertesCnt > 0 ? warnColor : '';
+
 
     // Phase 67 : title-row sub-meta (alertes-titlerow-actives + critiques-wrap)
     var trActives = document.getElementById('alertes-titlerow-actives');

@@ -56,6 +56,39 @@
     if (kpiTotal) kpiTotal.textContent = totalH > 0 ? totalH + ' h' : '—';
     if (kpiSup) kpiSup.textContent = supH > 0 ? supH + ' h' : '—';
 
+    // kpi-sub "Heures totales" : comparaison mois précédent (via heures_pointage)
+    var subTotal = document.getElementById('heures-kpi-total-sub');
+    if (subTotal && totalH > 0) {
+      // Essayer de lire les pointages du mois précédent
+      try {
+        var heuresPointage = JSON.parse(localStorage.getItem('heures_pointage') || '[]') || [];
+        var moisPrec = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        var moisPrecFin = new Date(now.getFullYear(), now.getMonth(), 0);
+        var totalMoisPrecMin = 0;
+        heuresPointage.forEach(function (h) {
+          var d = new Date(h.date || h.datePointage || 0);
+          if (d >= moisPrec && d <= moisPrecFin) {
+            var dur = parseTime(h.heureFin) - parseTime(h.heureDebut);
+            if (!isNaN(dur) && dur > 0) totalMoisPrecMin += dur;
+          }
+        });
+        var totalMoisPrecH = Math.round(totalMoisPrecMin / 60);
+        if (totalMoisPrecH > 0) {
+          var diffH = totalH - totalMoisPrecH;
+          var moisPrecLabel = moisPrec.toLocaleDateString('fr-FR', { month: 'long' });
+          if (diffH > 0) subTotal.innerHTML = '<span style="color:#9bb1a4;font-weight:700">+' + diffH + 'h</span> vs ' + moisPrecLabel;
+          else if (diffH < 0) subTotal.innerHTML = '<span style="color:var(--brand);font-weight:700">' + diffH + 'h</span> vs ' + moisPrecLabel;
+          else subTotal.textContent = '= vs ' + moisPrecLabel;
+        } else {
+          subTotal.textContent = plannings.length + ' plannings actifs';
+        }
+      } catch (_) {
+        subTotal.textContent = plannings.length + ' plannings actifs';
+      }
+    } else if (subTotal) {
+      subTotal.textContent = plannings.length + ' plannings actifs';
+    }
+
     // Km parcourus ce mois (livraisons) + "Sur N véhicules" kpi-sub
     if (kpiKm) {
       var moisStart = new Date(now.getFullYear(), now.getMonth(), 1);

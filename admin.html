@@ -1261,15 +1261,23 @@
         <div class="kpi"><div class="kpi-lbl">Conso moyenne</div><div class="kpi-val" id="kpi-conso-l100">—</div><div class="kpi-sub">L/100 km flotte</div></div>
       </div>
 
-      <!-- Phase 60 V7 H5 — Charts mockup (Évolution conso 6m + Conso par véhicule) -->
+      <!-- Phase 69 — Charts + table mockup-aligned (Évolution conso 6m + Conso par véhicule table) -->
       <div class="charts-2col">
         <div class="card card-padded">
           <div class="chart-title">Évolution conso flotte — 6 derniers mois</div>
           <div class="chart-canvas"><canvas id="chart-carb-evol-6m"></canvas></div>
         </div>
-        <div class="card card-padded">
-          <div class="chart-title">Consommation par véhicule</div>
-          <div class="chart-canvas"><canvas id="chart-carb-par-vehicule"></canvas></div>
+        <div class="card" style="overflow:hidden">
+          <div class="card-header" style="padding:12px 16px">
+            <h3>Consommation par véhicule</h3>
+            <span id="carb-table-veh-badge" class="badge"></span>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table" style="font-size:12px">
+              <thead><tr><th>Véhicule</th><th>Conso 30j</th><th>Budget</th><th>Écart</th><th>Dernier plein</th><th>Statut</th></tr></thead>
+              <tbody id="tb-carb-par-vehicule"><tr><td colspan="6" class="empty-row">Chargement…</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -1999,11 +2007,11 @@
         </div>
       </div>
 
-      <!-- Phase 36 refonte HTML : KPI grid (Critiques / Avertissements / Info) -->
+      <!-- Phase 36 refonte HTML : KPI grid (Critiques / Avertissements / Info) — Phase 69: couleurs + subs dynamiques -->
       <div class="kpi-grid kpi-grid-3" style="margin-bottom:16px">
         <div class="kpi"><div class="kpi-lbl" id="alertes-kpi-critiques-lbl">Critiques</div><div class="kpi-val" id="alertes-kpi-critiques">—</div><div class="kpi-sub" id="alertes-kpi-critiques-sub">Action immédiate requise</div></div>
         <div class="kpi"><div class="kpi-lbl" id="alertes-kpi-alertes-lbl">Avertissements</div><div class="kpi-val" id="alertes-kpi-alertes">—</div><div class="kpi-sub" id="alertes-kpi-alertes-sub">À traiter cette semaine</div></div>
-        <div class="kpi"><div class="kpi-lbl">Info</div><div class="kpi-val" id="alertes-kpi-info">—</div><div class="kpi-sub">Notifications légères</div></div>
+        <div class="kpi"><div class="kpi-lbl">Info</div><div class="kpi-val" id="alertes-kpi-info">—</div><div class="kpi-sub" id="alertes-kpi-info-sub">Notifications légères</div></div>
       </div>
 
       <!-- Phase 46 : card wrapper "Liste des alertes" + quick filters (mockup-matched) -->
@@ -3398,7 +3406,7 @@
         </div>
       </div>
       <div class="kpi-grid" style="margin-bottom:16px">
-        <div class="kpi"><div class="kpi-lbl">Heures totales</div><div class="kpi-val" id="heures-kpi-total">—</div><div class="kpi-sub">Planning semaine</div></div>
+        <div class="kpi"><div class="kpi-lbl">Heures totales</div><div class="kpi-val" id="heures-kpi-total">—</div><div class="kpi-sub" id="heures-kpi-total-sub">Plannings actifs</div></div>
         <div class="kpi"><div class="kpi-lbl">Heures sup.</div><div class="kpi-val" id="heures-kpi-sup">—</div><div class="kpi-sub">25% + 50% inclus</div></div>
         <div class="kpi"><div class="kpi-lbl">Km parcourus</div><div class="kpi-val" id="heures-kpi-km">—</div><div class="kpi-sub" id="heures-kpi-km-sub">Livraisons ce mois</div></div>
         <div class="kpi"><div class="kpi-lbl">CE 561 alertes</div><div class="kpi-val" id="heures-kpi-ce561">—</div><div class="kpi-sub" id="heures-kpi-ce561-sub"></div></div>
@@ -5412,6 +5420,7 @@
   <script defer src="script-rent-kpis.js?v=1"></script>
   <script defer src="script-carburant.js?v=20260509e-60"></script>
   <script defer src="script-carburant-anomalies.js?v=20260509e-60"></script>
+  <script defer src="script-carburant-table.js?v=1"></script>
   <script defer src="script-entretiens.js?v=20260509e-60"></script>
   <script defer src="script-alertes.js?v=20260509e-60"></script>
   <!-- script-stats.js : lazy-load via lazy-stubs.js (Sprint C bundle splitting). getSalarieStatsMois extrait dans script-core-stats-helpers.js (boot). -->

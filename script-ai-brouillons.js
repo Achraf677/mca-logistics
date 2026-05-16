@@ -329,22 +329,43 @@
     `;
   }
 
+  // Derive source label from action (OCR ticket / OCR facture / Chat IA)
+  function sourceLabel(d) {
+    const a = d.action || '';
+    if (a.includes('carburant')) return '⛽ OCR ticket';
+    if (a.includes('charge') || a.includes('fournisseur')) return '📄 OCR facture';
+    return '💬 Chat IA';
+  }
+
   function renderCard(d) {
     const summary = summarizePayload(d.action, d.payload);
     const reasoning = d.reasoning ? escHtml(d.reasoning) : '';
+    const src = sourceLabel(d);
+    const isExecuted = d.status === 'executed';
+    const isRejected = d.status === 'rejected';
+    const statusBadge = isExecuted
+      ? '<span class="aib-status-badge aib-status-ok">✓ Validé</span>'
+      : isRejected
+        ? '<span class="aib-status-badge aib-status-rej">✗ Rejeté</span>'
+        : '';
     return `
       <div class="aib-card" data-id="${escHtml(d.id)}">
         <div class="aib-card-head">
+          <label class="aib-cb-wrap" title="Sélectionner"><input type="checkbox" class="aib-card-check" value="${escHtml(d.id)}" aria-label="Sélectionner ce brouillon" /></label>
+          <span class="aib-card-source">${src}</span>
           <h4 class="aib-card-title">${escHtml(humanizeAction(d.action))}</h4>
+          ${statusBadge}
           <span class="aib-card-date">${escHtml(formatDateTime(d.created_at))}</span>
         </div>
         ${summary ? `<div class="aib-card-summary">${escHtml(summary)}</div>` : ''}
         ${reasoning ? `<div class="aib-card-reasoning">${reasoning}</div>` : ''}
-        <div class="aib-card-actions">
+        ${!isExecuted && !isRejected ? `<div class="aib-card-actions">
           <button type="button" class="aib-btn aib-btn-approve" data-aib-approve="${escHtml(d.id)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polyline points="20 6 9 17 4 12"/></svg>Approuver</button>
           <button type="button" class="aib-btn aib-btn-reject" data-aib-reject="${escHtml(d.id)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Rejeter</button>
           <button type="button" class="aib-btn aib-btn-detail" data-aib-detail="${escHtml(d.id)}">Détail</button>
-        </div>
+        </div>` : `<div class="aib-card-actions">
+          <button type="button" class="aib-btn aib-btn-detail" data-aib-detail="${escHtml(d.id)}">Voir détail</button>
+        </div>`}
       </div>
     `;
   }
@@ -478,9 +499,15 @@
       .aib-count { font-size: .9rem; font-weight: 600; color: var(--text, #e8eaf0); }
       .aib-list { display: flex; flex-direction: column; gap: 12px; }
       .aib-card { background: var(--bg-card, #232733); border: 1px solid var(--border, #2a2d3d); border-radius: 12px; padding: 14px 16px; }
-      .aib-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
-      .aib-card-title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text, #e8eaf0); }
-      .aib-card-date { font-size: .76rem; color: var(--text-muted, #7c8299); white-space: nowrap; }
+      .aib-card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+      .aib-card-title { margin: 0; font-size: .95rem; font-weight: 700; color: var(--text, #e8eaf0); flex: 1; min-width: 0; }
+      .aib-card-date { font-size: .76rem; color: var(--text-muted, #7c8299); white-space: nowrap; margin-left: auto; }
+      .aib-card-source { font-size: .75rem; color: var(--text-muted, #7c8299); white-space: nowrap; background: rgba(255,255,255,0.05); border: 1px solid var(--border, #2a2d3d); border-radius: 6px; padding: 2px 7px; }
+      .aib-cb-wrap { display: flex; align-items: center; flex-shrink: 0; }
+      .aib-card-check { width: 16px; height: 16px; cursor: pointer; accent-color: var(--brand, #e63946); }
+      .aib-status-badge { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+      .aib-status-ok { background: rgba(46,204,113,0.15); color: #7ed8a3; border: 1px solid rgba(46,204,113,0.4); }
+      .aib-status-rej { background: rgba(231,76,60,0.12); color: #ff8b80; border: 1px solid rgba(231,76,60,0.4); }
       .aib-card-summary { font-size: .9rem; color: var(--text, #e8eaf0); margin-bottom: 6px; }
       .aib-card-reasoning { font-size: .82rem; color: var(--text-muted, #7c8299); font-style: italic; margin-bottom: 10px; line-height: 1.4; }
       .aib-card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
