@@ -1091,7 +1091,10 @@ function reinitialiserLivPeriode() {
       var ttc = parseFloat(l.prix) || 0;
       var tva = ttc - ht;
       var statutPaiement = l.statutPaiement || 'en-attente';
-      var selectStatut = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option><option value="brouillon" ' + (l.statut === 'brouillon' ? 'selected' : '') + '>Brouillon</option></select>';
+      // Phase 91.24 — dropdown statut : Brouillon remplace "En attente" (user feedback). 3 options : Brouillon / En cours / Livré.
+      // Pour livraisons existantes en statut="en-attente", on les map sur Brouillon (option selected).
+      var statutNorm = (l.statut === 'en-attente') ? 'brouillon' : l.statut;
+      var selectStatut = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', statutNorm) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="brouillon" ' + (statutNorm === 'brouillon' ? 'selected' : '') + '>Brouillon</option><option value="en-cours" ' + (statutNorm === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (statutNorm === 'livre' ? 'selected' : '') + '>Livré</option></select>';
       var selectPaiement = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>À payer</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
       var client = formatClientLabel(l.client || '—');
       var depart = l.depart || '';
