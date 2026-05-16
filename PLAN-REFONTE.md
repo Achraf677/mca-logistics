@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-16
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : Phase 69 — carburant table véhicule + alertes KPI info-sub + brouillons checkboxes + heures dynamic sub
+> **Dernier commit** : Phase 86 — m.html + salarie.html ARIA roles (tablist/tab/dialog) + reduced-motion CSS
 
 ---
 
@@ -45,8 +45,8 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Paramètres | 93% | 100% | Phase 62 : h2→h3 card headers Entreprise (Informations entreprise/Identité visuelle/Postes) + Comptabilité (Fiscalité TVA→Paramétrage TVA/Trésorerie/Catégories). Nouvelle carte "Cabinet comptable" avec badge Sync OK, toggles FEC+sync, save localStorage. |
 | Brouillons IA | 90% | 100% | Phase 59 : chips filtrent vraiment (setStatusFilter) + sub-meta mockup + Valider/Rejeter sélection batch wired |
 | Planning | 92% | 100% | Phase 81 : kpi-sub "X% de l'effectif" dynamique (Planifiés), couleur warning sur absences > 0, sub "Congés payés cette semaine". |
-| Mobile m.html | 80% | 100% | Phase 63 : :focus-visible tabs/drawer/header-action, @media (hover:hover), landscape compact, .m-loading abs positioning, disabled state. |
-| Mobile salarie.html | 83% | 100% | Phase 68 : 23 malformed `/ aria-label` → `aria-label` (HTML validity), label `for`/`id` sur 14 form-groups, 8 tab SVG inline styles → CSS `.tabs .tab svg`, bn-item + tabs `aria-label`/`aria-selected`/`role=tab`, focus-visible bn-item + tab CSS. |
+| Mobile m.html | 86% | 100% | Phase 86 : role="tablist" nav + role="tab"+aria-selected 5 tabs + role="dialog"+aria-modal drawer+sheet + aria-live badges. |
+| Mobile salarie.html | 90% | 100% | Phase 86 : 7 panneau → role="tabpanel"+aria-labelledby+tabindex, bottom-nav role="tablist", 7 bn-item role="tab"+aria-selected+aria-controls, modals role="dialog"+aria-modal+aria-labelledby, emoji→SVG (send/avatar), focus→focus-visible CSS, @media(prefers-reduced-motion) inline+refine.css. |
 
 ---
 
