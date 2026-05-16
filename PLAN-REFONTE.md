@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-16
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : Phase 68 salarie.html a11y + HTML validity + H3.6 catches logging
+> **Dernier commit** : Phase 69 — carburant table véhicule + alertes KPI info-sub + brouillons checkboxes + heures dynamic sub
 
 ---
 
@@ -219,6 +219,7 @@ Paramètres — gros formulaire
 | 2026-05-11 (après-midi) | 22-31 | `78e9a91` | Livraisons structure + table + drawer |
 | 2026-05-11 (soir) | 32-33 | `8b1fd99` | Drawer 360 + dropdowns + bugfix batch |
 | 2026-05-11 (nuit) | Plan | `<TBD>` | Plan MD persistent — pause user |
+| 2026-05-16 | 69 | `54f478a` | Carburant table véhicule (fuel-bar) + alertes KPI info-sub + brouillons source-badge + heures dynamic total-sub |
 
 ---
 
