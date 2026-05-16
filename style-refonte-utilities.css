@@ -375,3 +375,22 @@
 
 /* Full-width centered button (params integrations etc.) */
 .btn-full-center { width: 100%; justify-content: center; }
+
+/* Phase 82 : chart-container max-height variant (stats/rentabilité 300px vs base 350px) */
+.chart-container-sm { max-height: 300px; }
+
+/* Phase 82 : label acting as button — no extra margin, pointer cursor */
+label.btn-primary,
+label.btn-secondary { margin: 0; cursor: pointer; }
+
+/* Phase 82 : card-header compact padding variant */
+.card-header-sm { padding: 12px 16px; }
+
+/* Phase 82 : TVA Pennylane sync badge layout */
+#tva-pennylane-sync-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

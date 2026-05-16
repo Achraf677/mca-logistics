@@ -88,6 +88,15 @@ tr[data-anomalie="1"]:hover td {
   color: var(--ds-text-muted);
 }
 
+/* ============ Phase 82 : carb-filters-hidden → CSS ============ */
+.carb-filters-hidden {
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  margin: 0;
+  padding: 0;
+}
+
 /* ============ Phase 81 : carburant anomalie banner inline → CSS ============ */
 #carb-anomalie-banner {
   background: rgba(230, 57, 70, 0.08);

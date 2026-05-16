@@ -1274,7 +1274,7 @@
       </div>
 
       <!-- Filters (hidden visually, kept for script-carburant.js selects) -->
-      <div class="filters carb-filters-hidden" style="height:0;overflow:hidden;visibility:hidden;margin:0;padding:0">
+      <div class="filters carb-filters-hidden">
         <select id="filtre-carb-vehicule" onchange="afficherCarburant()" aria-label="Filtrer carburant par véhicule">
           <option value="">Tous les véhicules</option>
         </select>
@@ -1292,7 +1292,7 @@
 
       <!-- Pleins table (Registre complet) — cols nettoyées Phase 49 -->
       <div class="card">
-        <div class="card-header" style="padding:12px 16px">
+        <div class="card-header card-header-sm">
           <h3>Registre des pleins</h3>
         </div>
         <div class="table-wrapper">
@@ -1734,16 +1734,16 @@
       <div class="chart-row">
         <div class="chart-card">
           <h3>Performance par chauffeur<span class="chart-legend">CA généré</span></h3>
-          <div class="chart-container" style="max-height:300px"><canvas id="chartChauffeurs"></canvas></div>
+          <div class="chart-container chart-container-sm"><canvas id="chartChauffeurs"></canvas></div>
         </div>
         <div class="chart-card">
           <h3>Utilisation des véhicules<span class="chart-legend">Km parcourus</span></h3>
-          <div class="chart-container" style="max-height:300px"><canvas id="chartVehicules"></canvas></div>
+          <div class="chart-container chart-container-sm"><canvas id="chartVehicules"></canvas></div>
         </div>
       </div>
       <div class="chart-card">
         <h3>CA par chauffeur (détail)<span class="chart-legend">12 derniers mois</span></h3>
-        <div class="chart-container" style="max-height:300px"><canvas id="chartCAParChauffeur"></canvas></div>
+        <div class="chart-container chart-container-sm"><canvas id="chartCAParChauffeur"></canvas></div>
       </div>
     </section>
 
@@ -2096,7 +2096,7 @@
             <span id="tva-section-sub-count">0 écriture(s)</span>
             <span class="ds-section-head__sep">·</span>
             <!-- Phase 60 V7 M17 — Badge PENNYLANE SYNC -->
-            <span id="tva-pennylane-sync-badge" class="badge ok" style="font-size:10px;padding:2px 8px;display:inline-flex;align-items:center;gap:4px" title="Données synchronisées avec Pennylane">
+            <span id="tva-pennylane-sync-badge" class="badge ok" title="Données synchronisées avec Pennylane">
               <svg viewBox="0 0 24 24" width="10" height="10" style="fill:currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
               PENNYLANE SYNC
             </span>
@@ -2330,7 +2330,7 @@
             <div class="form-section-title u-section-spacer">Document RIB</div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
               <span id="param-rib-status" style="font-size:.85rem;color:var(--text-muted)">Aucun document chargé</span>
-              <label class="btn-primary" style="cursor:pointer;margin:0">
+              <label class="btn-primary">
                 Importer / Remplacer RIB
                 <input type="file" id="param-rib-file" accept="application/pdf,image/jpeg,image/png,image/webp" style="display:none" onchange="uploaderRibEntreprise(this)" aria-label="Importer un RIB" />
               </label>
@@ -2348,7 +2348,7 @@
             <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
               <div id="param-logo-preview" style="width:72px;height:72px;border-radius:14px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg-dark);font-size:2rem">🚐</div>
               <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <label class="btn-primary" style="cursor:pointer;margin:0">
+                <label class="btn-primary">
                   Importer
                   <input type="file" id="param-logo-file" accept="image/*" style="display:none" onchange="changerLogoEntreprise(this)" aria-label="Importer un logo entreprise" />
                 </label>
@@ -2648,7 +2648,7 @@
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
               <button class="btn btn-secondary btn-full-center" onclick="exporterSauvegardeAdmin()">Télécharger snapshot</button>
-              <label class="btn btn-secondary btn-full-center" style="cursor:pointer;margin:0">
+              <label class="btn btn-secondary btn-full-center">
                 Restaurer snapshot
                 <input type="file" id="param-backup-file" accept=".json,application/json" style="display:none" onchange="importerSauvegardeAdmin(this)" aria-label="Importer un fichier de sauvegarde JSON" />
               </label>
