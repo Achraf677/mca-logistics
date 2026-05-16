@@ -31,7 +31,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Véhicules | 92% | 100% | Phase 59 : exporterVehiculesCSV + exporterVehiculesExcel tous deux vraiment impl (étaient stubs/fallback) |
 | Carburant | 92% | 100% | Phase 59 : exporterCarburantExcel vraiment impl (était fallback CSV). Tous exports réels. |
 | Entretiens | 94% | 100% | Phase 80 : CT table 6 cols — "Dernier CT" ajouté (Véhicule/Immatriculation/Dernier CT/Prochain CT/Jours restants/Statut). Donnée depuis v.dateCTDernier. |
-| Inspections | 92% | 100% | Phase 59 : BUG-023 FIXED — table mockup-aligned (Date/Véhicule/Chauffeur/Photos/Défauts/Statut + badges ok/warn/alert). Photos count clickable → lightbox |
+| Inspections | 94% | 100% | Phase 85 : kpi-sub semaine "N véhicules contrôlés" + défauts "N véhicules touchés" + conformité "+N% vs S[N-1]". |
 | Charges | 92% | 100% | Phase 59 : exporterChargesExcel vraiment impl (était inexistant) + Phase 48+51 period nav/charts/Parking chip |
 | Encaissement | 92% | 100% | Phase 59 : exporterEncaissementExcel vraiment impl (was stub) + sub-meta 3 parties mockup |
 | TVA | 92% | 100% | Phase 59 : BUG-026 FIXED tabs + 3 exports impl (CA3 PDF + CSV taux + Excel annexes) + sub-meta mockup |
