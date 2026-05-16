@@ -3235,7 +3235,6 @@ function prixHT(prixTTC, tauxTVA) {
 // MOVED -> script-paiements.js : afficherRelances
 
 // MOVED -> script-core-livraisons-helpers.js (Phase X.G) : marquerPaye
-}
 // MOVED -> script-paiements.js : marquerRelance
 
 /* ===== TCO VÉHICULE ===== */
