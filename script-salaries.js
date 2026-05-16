@@ -922,6 +922,22 @@ async function supprimerSalarie(id) {
   livraisons.forEach(l => { if (l.chaufId === id) { l.chaufId = null; l.chaufNom = (sal?.nom||'Salarié supprimé') + ' (archivé)'; } });
   sauvegarder('livraisons', livraisons);
 
+  // Phase 91.44 (Agent Salariés H3) — cleanup heures + absences + incidents (avant : orphelins)
+  try {
+    const heures = charger('heures').filter(h => h && h.salId !== id && h.salarieId !== id);
+    sauvegarder('heures', heures);
+  } catch (_) {}
+  try {
+    const absences = loadSafe('absences_periodes', []).filter(a => a && a.salId !== id);
+    localStorage.setItem('absences_periodes', JSON.stringify(absences));
+  } catch (_) {}
+  try {
+    const incidents = charger('incidents').filter(inc => inc && inc.salId !== id && inc.chaufId !== id);
+    sauvegarder('incidents', incidents);
+  } catch (_) {}
+  // Hub Équipe refresh (Agent Salariés L5)
+  try { if (window.EquipeHub && typeof window.EquipeHub.renderKpisPC === 'function') window.EquipeHub.renderKpisPC(); } catch (_) {}
+
   afficherSalaries();
   rafraichirDependancesSalaries();
   afficherToast(`${sal?.nom || 'Salarié'} et toutes ses données supprimés`);

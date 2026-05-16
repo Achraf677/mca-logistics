@@ -66,11 +66,18 @@
 
     // Phase 59 — sub-meta mockup CA cumulé clients + Dépenses cumulées fournisseurs (12 mois)
     var seuil12m = new Date(); seuil12m.setFullYear(seuil12m.getFullYear() - 1);
+    // Phase 91.44 (Agent Clients H2) — utiliser getMontantHTLivraison (vs prixHT||prix qui gonfle si prixHT absent)
     var caClients12m = livraisons.reduce(function (s, l) {
       if (!l) return s;
+      // Exclut brouillons/annulées
+      var st = String(l.statut || '').toLowerCase();
+      if (st === 'brouillon' || st === 'draft' || st === 'annule' || st === 'annulee' || st === 'annulée') return s;
       var d = parseDate(l.date || l.dateLivraison);
       if (!d || d < seuil12m) return s;
-      return s + (parseFloat(l.prixHT || l.prix || 0));
+      var ht = (typeof window.getMontantHTLivraison === 'function')
+        ? (window.getMontantHTLivraison(l) || 0)
+        : (parseFloat(l.prixHT) || (parseFloat(l.prix || 0) / 1.2));
+      return s + ht;
     }, 0);
     var cliSubCa = document.getElementById('clients-section-sub-ca');
     var cliSep = document.getElementById('clients-section-sep-ca');

@@ -122,13 +122,19 @@ function afficherTopClients() {
   if (!cont) return;
 
   // Agréger par client
+  // Phase 91.44 (Agent Clients H1) — CA HT cohérent avec table+drawer (vs l.prix qui est TTC)
+  const _getHT = typeof getMontantHTLivraison === 'function' ? getMontantHTLivraison : null;
   const stats = {};
   livraisons.forEach(l => {
+    // Exclut brouillons/annulées (Agent Clients M1)
+    const st = String(l.statut || '').toLowerCase();
+    if (st === 'brouillon' || st === 'draft' || st === 'annule' || st === 'annulee' || st === 'annulée') return;
     const nom = l.client;
     if (!stats[nom]) stats[nom] = { nom, ca:0, nb:0, impaye:0, derniere:'' };
-    stats[nom].ca += l.prix || 0;
+    const ht = _getHT ? (_getHT(l) || 0) : (parseFloat(l.prix) || 0);
+    stats[nom].ca += ht;
     stats[nom].nb++;
-    if ((l.statutPaiement === 'en-attente' || !l.statutPaiement) && l.statut === 'livre') stats[nom].impaye += l.prix||0;
+    if ((l.statutPaiement === 'en-attente' || !l.statutPaiement) && l.statut === 'livre') stats[nom].impaye += (parseFloat(l.prix)||0);
     if (!stats[nom].derniere || l.date > stats[nom].derniere) stats[nom].derniere = l.date;
   });
 

@@ -99,6 +99,7 @@
     if (!sel) return;
 
     // Populate vehicle options
+    // Phase 91.44 (Agent Entretiens H4) — utiliser v.id comme value (vs immat) car entretiens.vehId est l'UUID
     var vehicules = [];
     try { vehicules = JSON.parse(localStorage.getItem('vehicules') || '[]'); } catch (e) {}
     sel.innerHTML = '<option value="">— Sélectionner un véhicule —</option>';
@@ -106,16 +107,16 @@
       var immat = v.immatriculation || v.immat || '';
       var label = ((v.marque || '') + ' ' + (v.modele || '')).trim() || immat;
       var opt = document.createElement('option');
-      opt.value = immat;
+      opt.value = v.id || immat;
       opt.textContent = immat ? label + (immat !== label ? ' (' + immat + ')' : '') : label;
       sel.appendChild(opt);
     });
   }
 
-  function renderHistoriqueVehicule(immat) {
+  function renderHistoriqueVehicule(vehIdOrImmat) {
     var tl = document.getElementById('entr-hist-vehicule-timeline');
     if (!tl) return;
-    if (!immat) {
+    if (!vehIdOrImmat) {
       tl.innerHTML = '<div style="font-size:13px;color:var(--ds-text-muted,var(--text-muted))">Sélectionnez un véhicule pour afficher son historique.</div>';
       return;
     }
@@ -123,9 +124,11 @@
     var entretiens = [];
     try { entretiens = JSON.parse(localStorage.getItem('entretiens') || '[]'); } catch (e) {}
 
+    // Phase 91.44 (Agent Entretiens H4) — filtre prioritaire par vehId, fallback legacy par immat
     var events = entretiens.filter(function (e) {
-      var ev = e.vehImmat || e.immatriculation || e.vehicule || '';
-      return ev.toLowerCase() === immat.toLowerCase();
+      if (e.vehId && e.vehId === vehIdOrImmat) return true;
+      var legacyImmat = (e.vehImmat || e.immatriculation || e.vehicule || '').toLowerCase();
+      return legacyImmat && legacyImmat === String(vehIdOrImmat).toLowerCase();
     }).sort(function (a, b) { return (b.date || '') > (a.date || '') ? 1 : -1; });
 
     if (!events.length) {
@@ -157,6 +160,8 @@
   window.__entrHistVehicule = renderHistoriqueVehicule;
 
   function showAll() { showAlertBanner(); showCTAVenir(); initHistoriqueVehicule(); }
+  // Phase 91.44 (Agent Entretiens M5) — expose pour rafraîchissement post-action (ajout/edit/supprime entretien)
+  window.entrRefreshAlerts = showAll;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(showAll, 200); });

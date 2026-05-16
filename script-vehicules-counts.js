@@ -13,29 +13,33 @@
     catch (_) { return []; }
   }
 
+  // Phase 91.44 (Agent Véhicules H2) — TZ-safe : forcer parse local via suffix T00:00:00 sur ISO court
+  function parseLocalDate(dateStr) {
+    if (!dateStr) return null;
+    var s = String(dateStr);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) s = s + 'T00:00:00';
+    var d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
   function estCTExpire(v) {
     if (!v || !v.ctDate) return false;
-    try {
-      var d = new Date(v.ctDate);
-      if (isNaN(d.getTime())) return false;
-      var today = new Date(); today.setHours(0, 0, 0, 0);
-      // Alerte si CT expire dans les 30 jours OU deja expire
-      var dans30j = new Date(today); dans30j.setDate(today.getDate() + 30);
-      return d < dans30j;
-    } catch (_) { return false; }
+    var d = parseLocalDate(v.ctDate);
+    if (!d) return false;
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var dans30j = new Date(today); dans30j.setDate(today.getDate() + 30);
+    return d < dans30j;
   }
 
   function estAssuranceExpire(v) {
     if (!v) return false;
     var dateAssurance = v.dateAssurance || (v.assurance && v.assurance.dateExpiration);
     if (!dateAssurance) return false;
-    try {
-      var d = new Date(dateAssurance);
-      if (isNaN(d.getTime())) return false;
-      var today = new Date(); today.setHours(0, 0, 0, 0);
-      var dans30j = new Date(today); dans30j.setDate(today.getDate() + 30);
-      return d < dans30j;
-    } catch (_) { return false; }
+    var d = parseLocalDate(dateAssurance);
+    if (!d) return false;
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var dans30j = new Date(today); dans30j.setDate(today.getDate() + 30);
+    return d < dans30j;
   }
 
   function computerCounts() {

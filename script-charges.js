@@ -552,7 +552,11 @@ async function basculerStatutCharge(id) {
   sauvegarder('charges', charges);
   ajouterEntreeAudit('Statut paiement charge', (c.description || c.categorie || '') + ' -> ' + c.statutPaiement);
   afficherCharges();
+  // Phase 91.44 (Agent Charges M6) — refresh TVA + Rentabilité (impacte régime encaissements + coûts)
   if (typeof rafraichirDashboard === 'function') rafraichirDashboard();
+  try { if (typeof afficherTva === 'function') afficherTva(); } catch (_) {}
+  try { if (typeof afficherRentabilite === 'function') afficherRentabilite(); } catch (_) {}
+  try { document.dispatchEvent(new CustomEvent('charges:updated', { detail: { id: c.id, action: 'statut' } })); } catch (_) {}
   afficherToast(c.statutPaiement === 'paye' ? '✅ Charge marquée payée' : '⏳ Charge à payer');
 }
 window.basculerStatutCharge = basculerStatutCharge;
@@ -610,13 +614,22 @@ function afficherCharges() {
   if (totalEl) totalEl.textContent = euros(total);
 
   // KPI statut paiement (sur les charges filtrees)
+  // Phase 91.44 (Agent Charges H2) — partiel : utilise c.montantPaye si présent, sinon 50/50 conservé en fallback
   var kpiImpaye = 0, kpiPaye = 0, kpiRetard = 0;
   charges.forEach(function(c) {
     var st = getChargeStatutEffectif(c);
     var m = c.montant || 0;
     if (st === 'paye') kpiPaye += m;
-    else if (st === 'partiel') { kpiPaye += m / 2; kpiImpaye += m / 2; }
-    else kpiImpaye += m;
+    else if (st === 'partiel') {
+      var paye = parseFloat(c.montantPaye);
+      if (Number.isFinite(paye) && paye >= 0) {
+        kpiPaye += Math.min(paye, m);
+        kpiImpaye += Math.max(0, m - paye);
+      } else {
+        kpiPaye += m / 2;
+        kpiImpaye += m / 2;
+      }
+    } else kpiImpaye += m;
     if (st === 'en_retard') kpiRetard++;
   });
   var elI = document.getElementById('charges-kpi-impaye');
@@ -635,11 +648,19 @@ function afficherCharges() {
 
   // #96 audit Chrome : libelles humains pour les categories raw (lld_credit ->
   // "Crédit-bail / LLD"). Avant le fix, le badge affichait "lld_credit" en raw.
-  const catIcons = { carburant:'⛽', peage:'🛣️', entretien:'🔧', assurance:'🛡️', salaires:'👥', lld_credit:'🚐', tva:'🧾', autre:'📝' };
+  // Phase 91.44 (Agent Charges M3) — ajout sociales/loyer/banque/comptabilite/telecom/hosting/fournitures/avoir
+  const catIcons = {
+    carburant:'⛽', peage:'🛣️', entretien:'🔧', assurance:'🛡️', salaires:'👥',
+    lld_credit:'🚐', tva:'🧾', autre:'📝',
+    sociales:'🏛️', loyer:'🏠', banque:'🏦', comptabilite:'📊', telecom:'📞', hosting:'☁️', fournitures:'📦', avoir:'↩️'
+  };
   const catLabels = {
     carburant: 'Carburant', peage: 'Péage', entretien: 'Entretien',
     assurance: 'Assurance', salaires: 'Salaires', lld_credit: 'Crédit-bail / LLD',
-    tva: 'TVA', autre: 'Autre'
+    tva: 'TVA', autre: 'Autre',
+    sociales: 'Charges sociales', loyer: 'Loyer', banque: 'Frais bancaires',
+    comptabilite: 'Comptabilité', telecom: 'Télécom', hosting: 'Hébergement',
+    fournitures: 'Fournitures', avoir: 'Avoir / Remboursement'
   };
   paginer(charges, 'tb-charges', function(items) {
     return items.map(c => {
@@ -707,7 +728,14 @@ async function ajouterCharge() {
     : '';
 
   if (!montant && !montantHT) { afficherToast('⚠️ Montant obligatoire','error'); return; }
-  if (hasNegativeNumber(montantHT, montant, tauxTVA)) {
+  // Phase 91.44 (Agent Charges H4) — avoirs fournisseurs autorisés via catégorie 'avoir' (montants négatifs)
+  // Taux TVA reste positif. Pour catégorie 'avoir', l'utilisateur saisit un montant positif → stocké négatif.
+  if (categorie === 'avoir') {
+    if (hasNegativeNumber(tauxTVA)) {
+      afficherToast('⚠️ Taux TVA doit être positif', 'error');
+      return;
+    }
+  } else if (hasNegativeNumber(montantHT, montant, tauxTVA)) {
     afficherToast('⚠️ Les montants doivent être positifs', 'error');
     return;
   }

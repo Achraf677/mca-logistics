@@ -573,10 +573,15 @@ function confirmerAffectationVehicule() {
 }
 
 // L3112 (script.js d'origine)
+// Phase 91.44 (Agent Véhicules H1) — purge Storage orphelin carte grise au delete
 async function supprimerVehicule(id) {
   const veh = charger('vehicules').find(v => v.id === id);
   const _ok2 = await confirmDialog(`Supprimer ${veh?.immat || 'ce véhicule'} ?`, {titre:'Supprimer le véhicule',icone:'🚐',btnLabel:'Supprimer'});
   if (!_ok2) return;
+  // Purge carte grise Supabase Storage (RGPD + cost optim)
+  if (veh && veh.carteGriseStoragePath && window.DelivProStorage && typeof window.DelivProStorage.remove === 'function') {
+    try { window.DelivProStorage.remove(veh.carteGriseBucket || 'vehicules-cartes-grises', veh.carteGriseStoragePath).catch(function(){}); } catch (_) {}
+  }
   // Supprimer le véhicule
   sauvegarder('vehicules', charger('vehicules').filter(v => v.id !== id));
   // Anonymiser les livraisons liées (garder l'historique)
@@ -584,6 +589,8 @@ async function supprimerVehicule(id) {
   livraisons.forEach(l => { if (l.vehId === id) { l.vehId = null; l.vehNom = (veh?.immat||'Véhicule supprimé') + ' (archivé)'; } });
   sauvegarder('livraisons', livraisons);
   afficherVehicules(); afficherChauffeurs();
+  // Phase 91.44 — refresh selects carburant/entretiens (un véhicule disparu doit disparaître des dropdowns)
+  try { if (typeof mettreAJourSelects === 'function') mettreAJourSelects(); } catch (_) {}
   afficherToast('Véhicule supprimé');
 }
 
@@ -979,6 +986,10 @@ function confirmerEditVehicule() {
   afficherVehicules();
   afficherTva();
   afficherEntretiens();
+  // Phase 91.44 (Agent Véhicules H3) — refresh selects carburant/entretiens/livraisons après edit
+  try { if (typeof mettreAJourSelects === 'function') mettreAJourSelects(); } catch (_) {}
+  try { if (typeof window.refonteVehiculesUpdateCounts === 'function') window.refonteVehiculesUpdateCounts(); } catch (_) {}
+  try { document.dispatchEvent(new CustomEvent('vehicules:updated', { detail: { id: vehId, action: 'update' } })); } catch (_) {}
   afficherToast('✅ Véhicule mis à jour');
 }
 

@@ -17,7 +17,7 @@
   <link rel="dns-prefetch" href="https://o4511305319907328.ingest.de.sentry.io">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <link rel="preload" as="style" href="style.css?v=20260509e-60">
-  <link rel="preload" as="script" href="script.js?v=20260510a-3">
+  <link rel="preload" as="script" href="script.js?v=20260516a-2">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
@@ -143,13 +143,13 @@
   <!-- Phase 60 V7 polish — Stubs pour 4 fns silent-fail (reinitialiserParametres, testerConnexionPennylane, envoyerChargesPennylane, envoyerRelancesEmail) -->
   <script defer src="script-stubs-fns.js?v=1"></script>
   <!-- Phase 2 HTML refonte Vehicules : counts total + alertes CT/assurance. -->
-  <script defer src="script-vehicules-counts.js?v=1"></script>
+  <script defer src="script-vehicules-counts.js?v=2"></script>
   <!-- Phase 48 : Véhicules card grid (fleet view, mockup-aligned). -->
   <script defer src="script-vehicules-cards.js?v=1"></script>
   <!-- Phase 2 HTML refonte Planning : section-head counts (semaine + planifies). -->
   <script defer src="script-planning-counts.js?v=3"></script>
   <!-- Phase 2 HTML refonte Clients/Fournisseurs : section-head counts (total + actifs 90j). -->
-  <script defer src="script-clients-fournisseurs-counts.js?v=2"></script>
+  <script defer src="script-clients-fournisseurs-counts.js?v=3"></script>
   <!-- Phase 39 : Clients + Fournisseurs chips toolbar filter. -->
   <script defer src="script-clients-fournisseurs-kpis.js?v=1"></script>
   <!-- Phase 47 : Clients + Fournisseurs table columns post-render (Ville/SIREN). -->
@@ -169,7 +169,7 @@
   <!-- Phase 44 refonte HTML : Entretiens type chips toolbar wiring. -->
   <script defer src="script-entretiens-chips.js?v=1"></script>
   <!-- Phase 51 refonte HTML — Entretiens alert banner (CT échéances) -->
-  <script defer src="script-entretiens-alert.js?v=1"></script>
+  <script defer src="script-entretiens-alert.js?v=2"></script>
   <script defer src="script-brouillons-counts.js?v=1"></script>
   <!-- Phase 3 refonte : dashboard "Points d'attention" preview (top 3 alertes) -->
   <script defer src="script-dashboard-attention.js?v=2"></script>
@@ -5480,7 +5480,7 @@
   <script defer src="script-carburant.js?v=20260516a-2"></script>
   <script defer src="script-carburant-anomalies.js?v=20260509e-60"></script>
   <script defer src="script-carburant-table.js?v=1"></script>
-  <script defer src="script-entretiens.js?v=20260509e-60"></script>
+  <script defer src="script-entretiens.js?v=20260516a-2"></script>
   <script defer src="script-alertes.js?v=20260516a-1"></script>
   <!-- script-stats.js : lazy-load via lazy-stubs.js (Sprint C bundle splitting). getSalarieStatsMois extrait dans script-core-stats-helpers.js (boot). -->
 
@@ -5489,18 +5489,18 @@
   <script defer src="script-heures.js?v=20260509e-60"></script>
   <script defer src="script-planning.js?v=20260509e-60"></script>
   <script defer src="script-fournisseurs.js?v=20260509e-60"></script>
-  <script defer src="script-clients.js?v=20260509e-60"></script>
-  <script defer src="script-charges.js?v=20260509f-1"></script>
+  <script defer src="script-clients.js?v=20260516a-2"></script>
+  <script defer src="script-charges.js?v=20260516a-2"></script>
   <script defer src="script-charges-recurrence.js?v=20260509e-61"></script>
   <script defer src="script-encaissement.js?v=20260509e-61"></script>
-  <script defer src="script-salaries.js?v=20260509f-2"></script>
-  <script defer src="script-vehicules.js?v=20260509e-60"></script>
+  <script defer src="script-salaries.js?v=20260516a-2"></script>
+  <script defer src="script-vehicules.js?v=20260516a-2"></script>
   <script defer src="script-livraisons.js?v=20260516a-1"></script>
-  <script defer src="script.js?v=20260510a-3"></script>
+  <script defer src="script.js?v=20260516a-2"></script>
   <!-- Drawer 360 PC : parite KPIs avec mobile (Sprint H2.4). Doit etre charge
        APRES script.js pour pouvoir hooker ouvrirFiche360Client/Fournisseur/
        Salarie/Vehicule. Voir script-drawer-360-pc-parite.js + tests/drawer-360-pc.test.js. -->
-  <script defer src="script-drawer-360-pc-parite.js?v=20260509f-2"></script>
+  <script defer src="script-drawer-360-pc-parite.js?v=20260516a-2"></script>
   <!-- Edit-locks bootstrap (PR #51) : wrappe ouvrirEditLivraison/Charge/Client
        avec acquireLock/refresh/release contre la table edit_locks. Charge APRES
        les modules metiers pour pouvoir intercepter les fonctions globales. -->

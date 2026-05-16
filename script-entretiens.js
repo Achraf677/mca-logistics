@@ -9,6 +9,7 @@
  */
 
 // L760 (script.js d'origine)
+// Phase 91.44 (Agent Entretiens H1) — ajout type controle_technique (chip "CT en cours" filtrait dessus sans valeur saisissable)
 function getTypeEntretienLabel(type) {
   return {
     revision: 'Révision',
@@ -18,6 +19,7 @@ function getTypeEntretienLabel(type) {
     courroie: 'Courroie de distribution',
     freins: 'Freins',
     carrosserie: 'Carrosserie',
+    controle_technique: 'Contrôle technique',
     autre: 'Autre'
   }[type] || 'Autre';
 }
@@ -279,10 +281,13 @@ function ajouterEntretien() {
   afficherEntretiens();
   afficherVehicules();
   afficherTva();
+  try { if (typeof window.entrRefreshAlerts === 'function') window.entrRefreshAlerts(); } catch (_) {}
+  try { document.dispatchEvent(new CustomEvent('entretiens:updated', { detail: { id: entretienId, action: 'create' } })); } catch (_) {}
   afficherToast('✅ Entretien enregistré');
 }
 
 // L10330 (script.js d'origine)
+// Phase 91.44 (Agent Entretiens H2) — charge prochainDate en édition (avant : perdue à chaque update)
 function ouvrirEditEntretien(id) {
   const e = charger('entretiens').find(x => x.id === id);
   if (!e) return;
@@ -293,14 +298,21 @@ function ouvrirEditEntretien(id) {
   document.getElementById('entr-desc').value = e.description || '';
   document.getElementById('entr-km').value = e.km || '';
   document.getElementById('entr-prochain-km').value = e.prochainKm || '';
+  const pd = document.getElementById('entr-prochain-date');
+  if (pd) pd.value = e.prochainDate || '';
   document.getElementById('entr-cout-ht').value = e.coutHT || '';
   document.getElementById('entr-taux-tva').value = e.tauxTVA || 20;
   document.getElementById('entr-cout').value = e.cout || '';
   calculerTTCDepuisHT('entr');
+  // Phase 91.44 (Agent Entretiens L5) — utiliser openModal pour cohérence focus trap / aria
+  if (typeof openModal === 'function') {
+    openModal('modal-entretien');
+  } else {
+    document.getElementById('modal-entretien').classList.add('open');
+  }
   const modal = document.getElementById('modal-entretien');
   modal.querySelector('h3').textContent = '✏️ Modifier un entretien';
   modal.querySelector('.modal-footer .btn-primary').textContent = '✅ Enregistrer';
-  modal.classList.add('open');
 }
 
 // L10350 (script.js d'origine)
@@ -316,6 +328,8 @@ function confirmerEditEntretien() {
   const description = document.getElementById('entr-desc')?.value.trim() || '';
   const km = parseFloat(document.getElementById('entr-km')?.value) || 0;
   const prochainKm = parseFloat(document.getElementById('entr-prochain-km')?.value) || 0;
+  // Phase 91.44 (Agent Entretiens H3) — sauvegarder prochainDate (avant : effacée à chaque update)
+  const prochainDate = document.getElementById('entr-prochain-date')?.value || '';
   const coutHT = parseFloat(document.getElementById('entr-cout-ht')?.value) || 0;
   const tauxTVA = parseFloat(document.getElementById('entr-taux-tva')?.value) || 20;
   const cout = parseFloat(document.getElementById('entr-cout')?.value) || (coutHT * (1 + tauxTVA/100));
@@ -326,7 +340,7 @@ function confirmerEditEntretien() {
   const veh = getVehiculeById(vehId);
   entretiens[idx] = {
     ...entretiens[idx],
-    vehId, date, type, description, km, prochainKm,
+    vehId, date, type, description, km, prochainKm, prochainDate,
     cout, coutHT: coutHT || cout/(1+tauxTVA/100), tauxTVA,
     tauxDeductible: 100,
     modifieLe: new Date().toISOString()
@@ -366,10 +380,13 @@ function confirmerEditEntretien() {
   afficherEntretiens();
   afficherVehicules();
   afficherTva();
+  try { if (typeof window.entrRefreshAlerts === 'function') window.entrRefreshAlerts(); } catch (_) {}
+  try { document.dispatchEvent(new CustomEvent('entretiens:updated', { detail: { id: id, action: 'update' } })); } catch (_) {}
   afficherToast('✅ Entretien modifié');
 }
 
 // L10415 (script.js d'origine)
+// Phase 91.44 (Agent Entretiens H5) — supprimerEntretien refresh afficherVehicules + banner alert
 async function supprimerEntretien(id) {
   const ok = await confirmDialog('Supprimer cet entretien ?',{titre:'Supprimer',icone:'🔧',btnLabel:'Supprimer'});
   if (!ok) return;
@@ -389,6 +406,10 @@ async function supprimerEntretien(id) {
   }
   afficherEntretiens();
   afficherTva();
+  // Phase 91.44 (Agent Entretiens H5+M5) — refresh véhicules + banner alert + dispatch event
+  try { if (typeof afficherVehicules === 'function') afficherVehicules(); } catch (_) {}
+  try { if (typeof window.entrRefreshAlerts === 'function') window.entrRefreshAlerts(); } catch (_) {}
+  try { document.dispatchEvent(new CustomEvent('entretiens:updated', { detail: { id: id, action: 'delete' } })); } catch (_) {}
   afficherToast('Entretien supprimé');
 }
 

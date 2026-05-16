@@ -109,10 +109,13 @@
    * Conformité Salarié : % de pièces (permis / assurance / visite médicale)
    * non expirées et présentes. Renvoie 0..100.
    */
+  // Phase 91.44 (Agent Salariés H1) — visiteMedicale est un objet {date,aptitude,dateExpiration}
+  // new Date(obj) = Invalid Date → conformité fausse. Extraire dateExpiration explicitement.
   function kpiConformiteSalarie(sal, now) {
     if (!sal) return 0;
     const t = (now && now.getTime ? now.getTime() : (now || Date.now()));
-    const items = [sal.datePermis, sal.dateAssurance, sal.visiteMedicale].filter(Boolean);
+    const visiteDate = sal.visiteMedicale && (sal.visiteMedicale.dateExpiration || sal.visiteMedicale.date);
+    const items = [sal.datePermis, sal.dateAssurance, visiteDate].filter(Boolean);
     if (!items.length) return 0;
     const okCount = items.reduce(function (acc, d) {
       const ts = new Date(d).getTime();
@@ -320,7 +323,8 @@
         } else {
           panel.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' + docs.map(function (k) {
             const d = sal.docs[k];
-            const name = (d && d.fileName) || k;
+            // Phase 91.44 (Agent Salariés M3) — schéma utilise d.nom, pas d.fileName
+            const name = (d && (d.nom || d.fileName)) || k;
             return '<div class="s21-link-card"><div class="s21-link-card-body"><div class="s21-link-card-lbl">' + esc(k) + '</div><div class="s21-link-card-val">' + esc(name) + '</div></div></div>';
           }).join('') + '</div>';
         }

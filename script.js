@@ -1103,12 +1103,20 @@ function mettreAJourSelects() {
   // Sélect salarié dans modal incident
   peupleIncSalarie();
 
+  // Phase 91.44 (Agent Salariés M2 + Véhicules M5) — exclure salariés/véhicules inactifs des selects
+  const salariesActifs = salaries.filter(s => s && s.actif !== false);
+  const vehiculesActifs = vehicules.filter(v => {
+    if (!v) return false;
+    const st = String(v.statut || 'actif').toLowerCase();
+    return st !== 'inactif' && st !== 'vendu' && st !== 'hors_service';
+  });
+
   // Sélect salarié dans modal planning
   const sp = document.getElementById('plan-salarie');
   if (sp) {
     const v = sp.value;
     sp.innerHTML = '<option value="">-- Choisir un salarié --</option>';
-    salaries.forEach(s => { sp.innerHTML += `<option value="${s.id}">${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
+    salariesActifs.forEach(s => { sp.innerHTML += `<option value="${s.id}">${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
     sp.value = v;
   }
 
@@ -1116,7 +1124,7 @@ function mettreAJourSelects() {
   if (sc) {
     const v = sc.value; sc.innerHTML = '<option value="">-- Choisir un salarié / chauffeur --</option>';
     // Salariés d'abord (avec badge), puis chauffeurs non-salariés
-    salaries.forEach(s => { sc.innerHTML += `<option value="${s.id}">${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
+    salariesActifs.forEach(s => { sc.innerHTML += `<option value="${s.id}">${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
     chauffeurs.filter(c => !salaries.find(s => s.id === c.id))
       .forEach(c => { sc.innerHTML += `<option value="${c.id}">${c.nom}</option>`; });
     sc.value = v;
@@ -1125,7 +1133,7 @@ function mettreAJourSelects() {
   const sec = document.getElementById('edit-liv-chauffeur');
   if (sec) {
     const v = sec.value; sec.innerHTML = '<option value="">-- Choisir un salarié / chauffeur --</option>';
-    salaries.forEach(s => { sec.innerHTML += `<option value="${s.id}">${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
+    salariesActifs.forEach(s => { sec.innerHTML += `<option value="${s.id}">${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
     chauffeurs.filter(c => !salaries.find(s => s.id === c.id))
       .forEach(c => { sec.innerHTML += `<option value="${c.id}">${c.nom}</option>`; });
     sec.value = v;
@@ -1134,7 +1142,7 @@ function mettreAJourSelects() {
   ['liv-vehicule','edit-liv-vehicule','carb-vehicule','entr-vehicule'].forEach(id => {
     const sel = document.getElementById(id); if (!sel) return;
     const v = sel.value; sel.innerHTML = '<option value="">-- Choisir un véhicule --</option>';
-    vehicules.forEach(veh => { sel.innerHTML += `<option value="${veh.id}">${veh.immat} — ${veh.modele}${veh.salNom ? ' ('+veh.salNom+')' : ''}</option>`; });
+    vehiculesActifs.forEach(veh => { sel.innerHTML += `<option value="${veh.id}">${veh.immat} — ${veh.modele}${veh.salNom ? ' ('+veh.salNom+')' : ''}</option>`; });
     sel.value = v;
   });
 
@@ -9437,7 +9445,8 @@ genererRentabilitePDF = function() {
   if (typeof window.confirmerEditClient === 'function' && !window.confirmerEditClient.__s15) {
     const orig = window.confirmerEditClient;
     const w = function() {
-      const id = document.getElementById('edit-client-id')?.value || '';
+      // Phase 91.44 (Agent Clients H5) — fix id selector (était edit-client-id, HTML utilise edit-cl-id)
+      const id = (document.getElementById('edit-cl-id')?.value) || (document.getElementById('edit-client-id')?.value) || '';
       const before = load(LS.clients).find(c => c.id === id);
       const r = orig.apply(this, arguments);
       const after = load(LS.clients).find(c => c.id === id);
