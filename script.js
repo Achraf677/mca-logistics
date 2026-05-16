@@ -209,51 +209,7 @@ window.genId = genId;
 // MOVED -> script-core-auth.js : saveAdminAccounts
 // MOVED -> script-core-security-helpers.js : getSecurityHelper + evaluerQualiteMotDePasseFort + btoaUnicodeSafe
 // MOVED -> script-core-auth.js : getAdminSession
-const ADMIN_EDIT_LOCKS_KEY = 'admin_edit_locks';
-const ADMIN_EDIT_LOCK_TTL_MS = 20 * 60 * 1000;
-const adminHeldEditLocks = new Set();
-let derniereAlerteConflitEdition = '';
-
-// MOVED -> script-core-auth.js : getAdminActorKey
-
-// MOVED -> script-core-auth.js : getAdminActorLabel
-
-// MOVED -> script-core-auth.js : getAdminEditLocks
-
-// MOVED -> script-core-auth.js : getAdminEditLockKey
-
-// MOVED -> script-core-edit-locks.js : synchroniserVerrousEdition
-
-// MOVED -> script-core-edit-locks.js : actualiserVerrousEditionDistance
-
-// MOVED -> script-core-ui.js : getModalIdForLockType
-
-// MOVED -> script-alertes.js : afficherAlerteVerrouModal
-
-// MOVED -> script-core-edit-locks.js : surveillerConflitsEditionActifs
-
-// MOVED -> script-core-edit-locks.js : prendreVerrouEdition
-
-// MOVED -> script-core-edit-locks.js : verifierVerrouEdition
-
-// MOVED -> script-core-edit-locks.js : libererVerrouEdition
-
-// MOVED -> script-core-edit-locks.js : libererTousVerrousEdition
-
-// MOVED -> script-core-ui.js : getEditLockContextForModal
-
-window.addEventListener('pagehide', libererTousVerrousEdition);
-window.addEventListener('beforeunload', libererTousVerrousEdition);
-window.addEventListener('storage', function(event) {
-  if (event.key === ADMIN_EDIT_LOCKS_KEY) {
-    surveillerConflitsEditionActifs();
-  }
-});
-window.addEventListener('delivpro:storage-sync', function(event) {
-  if (event.detail?.key === ADMIN_EDIT_LOCKS_KEY) {
-    surveillerConflitsEditionActifs();
-  }
-});
+// MOVED -> script-core-admin-edit-locks-init.js : ADMIN_EDIT_LOCKS_KEY + ADMIN_EDIT_LOCK_TTL_MS
 // MOVED -> script-core-auth.js : fermerMenuAdmin
 // MOVED -> script-exports.js : fermerHeuresRapportsMenu
 // MOVED -> script-exports.js : toggleHeuresRapportsMenu
@@ -371,13 +327,7 @@ const __modalFocusStack = [];
 
 // MOVED -> script-core-ui.js : openModal
 // MOVED -> script-core-ui.js : closeModal
-// Phase 91.18 — click hors modal ferme la modale, SAUF pour celles marquées data-persist="true"
-// (modal-livraison, modal-edit-livraison : user doit cliquer ✕/Annuler/Brouillon/Enregistrer).
-document.addEventListener('click', e => {
-  if (!e.target.classList.contains('modal-overlay')) return;
-  if (e.target.dataset && e.target.dataset.persist === 'true') return;
-  closeModal(e.target.id);
-});
+// MOVED -> script-core-modal-click-outside.js : 
 
 // MOVED -> script-core-maj-selects.js : mettreAJourSelects
 
@@ -390,23 +340,7 @@ const STORAGE_REFRESH_QUEUE = new Map();
 
 // MOVED -> script-core-storage.js : planifierRafraichissementStorage
 
-/* Auto-remplir le véhicule quand on choisit un salarié dans le modal livraison */
-document.addEventListener('DOMContentLoaded', () => {
-  const selChauf = document.getElementById('liv-chauffeur');
-  if (selChauf) selChauf.addEventListener('change', () => {
-    const chaufId = selChauf.value;
-    const vehAff  = getVehiculeParSalId(chaufId);
-    const selVeh  = document.getElementById('liv-vehicule');
-    if (vehAff && selVeh && !selVeh.value) selVeh.value = vehAff.id;
-  });
-
-  if (document.getElementById('charges-mois-label')) {
-    var rangeChargesInit = getChargesPeriodeRange();
-    majPeriodeDisplay('charges-mois-label', 'charges-mois-dates', rangeChargesInit);
-    var selectChargesInit = document.getElementById('vue-charges-select');
-    if (selectChargesInit) selectChargesInit.value = _chargesPeriode.mode;
-  }
-});
+// MOVED -> script-core-livraison-form-init.js : 
 
 // MOVED -> script-core-auth.js : getPageActiveAdminId
 
@@ -420,19 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // MOVED -> script-core-auth.js : gererChangementStorageAdmin
 
-/* ===== SYNCHRO STORAGE (salarié → admin en temps réel) ===== */
-window.addEventListener('storage', function(e) {
-  if (e.key) STORAGE_CACHE.delete(e.key);
-  else STORAGE_CACHE.clear();
-  gererChangementStorageAdmin(e.key);
-});
-
-window.addEventListener('delivpro:storage-sync', function(e) {
-  var key = e && e.detail ? e.detail.key : '';
-  if (key) STORAGE_CACHE.delete(key);
-  else STORAGE_CACHE.clear();
-  gererChangementStorageAdmin(key);
-});
+// MOVED -> script-core-synchro-storage-listeners.js : 
 
 // MOVED -> script-livraisons.js : afficherLivraisons
 

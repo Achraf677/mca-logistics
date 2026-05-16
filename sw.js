@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v388-phaseX-CI-CK-storage-log-dateproto';
+const CACHE_VERSION = 'mca-v2026-05-17-v389-phaseX-CL-CO-listeners-init';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -252,6 +252,11 @@ const CORE_ASSETS = [
   '/script-core-storage-readers.js',
   '/script-core-log-mca.js',
   '/script-core-date-prototype-extensions.js',
+  // Phase X.CL-CO : Edit locks init + Synchro storage listeners + Livraison form init + Modal click
+  '/script-core-admin-edit-locks-init.js',
+  '/script-core-synchro-storage-listeners.js',
+  '/script-core-livraison-form-init.js',
+  '/script-core-modal-click-outside.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
