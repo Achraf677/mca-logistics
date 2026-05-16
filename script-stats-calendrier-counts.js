@@ -1,6 +1,17 @@
 /* Phase 2 PR-I Stats + Calendrier section-head counts (period mirror + livraisons count) */
+/* Phase 88 — Stats KPI subs : % vs mois préc (mockup-aligned) */
 (function () {
   'use strict';
+
+  var MOIS_FR = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
+
+  function pctSub(cur, prev, suffix) {
+    if (prev <= 0 || cur <= 0) return '';
+    var d = Math.round((cur - prev) / prev * 100);
+    if (d > 0) return '<span class="up">+' + d + '%</span> vs ' + suffix;
+    if (d < 0) return '<span class="down">' + d + '%</span> vs ' + suffix;
+    return '= vs ' + suffix;
+  }
 
   function updateStats() {
     var subPeriode = document.getElementById('stats-section-sub-periode');
@@ -43,6 +54,54 @@
         } catch (_) {}
       }
     }
+
+    // Phase 88 : Stats KPI subs % vs mois préc (mockup-aligned)
+    try {
+      var livraisons = JSON.parse(localStorage.getItem('livraisons') || '[]');
+      var now2 = new Date();
+      var moisCurStart = new Date(now2.getFullYear(), now2.getMonth(), 1).getTime();
+      var moisCurEnd = new Date(now2.getFullYear(), now2.getMonth() + 1, 0, 23, 59, 59).getTime();
+      var moisPrevStart = new Date(now2.getFullYear(), now2.getMonth() - 1, 1).getTime();
+      var moisPrevEnd = new Date(now2.getFullYear(), now2.getMonth(), 0, 23, 59, 59).getTime();
+      var prevMoisNom = MOIS_FR[new Date(now2.getFullYear(), now2.getMonth() - 1, 1).getMonth()];
+
+      function livsInRange(start, end) {
+        return livraisons.filter(function(l) {
+          if (!l) return false;
+          var d = new Date(l.date || l.dateLivraison || '');
+          return !isNaN(d.getTime()) && d.getTime() >= start && d.getTime() <= end;
+        });
+      }
+      var curLivs = livsInRange(moisCurStart, moisCurEnd);
+      var prevLivs = livsInRange(moisPrevStart, moisPrevEnd);
+      var curCa = curLivs.reduce(function(s, l) { return s + (parseFloat(l.prixHT || l.prix || 0)); }, 0);
+      var prevCa = prevLivs.reduce(function(s, l) { return s + (parseFloat(l.prixHT || l.prix || 0)); }, 0);
+      var curPanier = curLivs.length > 0 ? curCa / curLivs.length : 0;
+      var prevPanier = prevLivs.length > 0 ? prevLivs.reduce(function(s, l) { return s + (parseFloat(l.prixHT || l.prix || 0)); }, 0) / prevLivs.length : 0;
+      var curKm = curLivs.reduce(function(s, l) { return s + (parseFloat(l.distance || 0)); }, 0);
+      var prevKm = prevLivs.reduce(function(s, l) { return s + (parseFloat(l.distance || 0)); }, 0);
+
+      var subCaEl = document.getElementById('stats-ca-sub');
+      if (subCaEl) {
+        var h = pctSub(curCa, prevCa, prevMoisNom);
+        if (h) subCaEl.innerHTML = h; else subCaEl.textContent = 'Montant hors taxes';
+      }
+      var subLivEl = document.getElementById('stats-livraisons-sub');
+      if (subLivEl) {
+        var h2 = pctSub(curLivs.length, prevLivs.length, prevMoisNom);
+        if (h2) subLivEl.innerHTML = h2;
+      }
+      var subPanierEl = document.getElementById('stats-panier-sub');
+      if (subPanierEl) {
+        var h3 = pctSub(curPanier, prevPanier, prevMoisNom);
+        if (h3) subPanierEl.innerHTML = h3; else subPanierEl.textContent = 'Moyenne hors taxes';
+      }
+      var subKmEl = document.getElementById('stats-km-sub');
+      if (subKmEl) {
+        var h4 = pctSub(curKm, prevKm, prevMoisNom);
+        if (h4) subKmEl.innerHTML = h4;
+      }
+    } catch (_) {}
   }
 
   function updateCalendrier() {

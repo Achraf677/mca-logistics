@@ -36,7 +36,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Encaissement | 94% | 100% | Phase 87 : enc-kpi-encaisse-sub "+X% vs [mois]" + impayes-sub "+N factures" + relances sub "À envoyer cette semaine". |
 | TVA | 94% | 100% | Phase 86 : kpi-lbl "(sortie)"/"(entrée)" + échéance "15/MM" dynamique + "N jours restants" + brand solde + CA/charges HT subs. |
 | Rentabilité | 92% | 100% | Phase 59 : CSV+Excel rentabilité vraiment impl + sub-meta mockup + tabs underline + Export 4 items |
-| Statistiques | 92% | 100% | Phase 59 : exporterStatsCSV + exporterStatsExcel vraiment impl (étaient stubs alert). Sub-meta CA mockup. |
+| Statistiques | 94% | 100% | Phase 88 : stats KPI subs "+X% vs [mois]" pour CA/Livraisons/Panier/Km (mockup-aligned). |
 | Calendrier | 91% | 100% | Phase 67 : #cal16-kpi-pai (Encaissé) maintenant calculé depuis livraisons livrées ce mois. |
 | Alertes | 93% | 100% | Phase 83 : kpi-sub critiques "CT expiré dans Nj" + alertes catégories + brand-color sur critiques/alertes KPI. |
 | Équipe | 93% | 100% | Phase 82 : kpi-sub actifs "+N ce mois" + permis "Nom dans Nj" (mockup-aligned). |
