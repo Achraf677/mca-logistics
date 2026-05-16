@@ -1774,24 +1774,7 @@ let accessSalarieTargetId=null, editSalarieId=null;
 
 // MOVED -> script-salaries.js : toggleFormulaireNewSalarie
 
-function genererMotDePasseFort(prefix) {
-  // Format : 1ère lettre majuscule + reste minuscule + '!' + 4 chiffres
-  // → satisfait les 4 règles : majuscule, minuscule, chiffre, caractère spécial
-  // Avant : 'MCA!8370' (sans minuscule) → user recevait l'erreur 'ajouter une minuscule'
-  // Après : 'Mca!8370'
-  const baseRaw = String(prefix || 'MCA').replace(/[^A-Za-z0-9]/g, '').slice(0, 4) || 'MCA';
-  const base = baseRaw.charAt(0).toUpperCase() + baseRaw.slice(1).toLowerCase();
-  const suffixe = String(Math.floor(1000 + Math.random() * 9000));
-  return base + '!' + suffixe;
-}
-
-function evaluerQualiteMotDePasse(value) {
-  const evaluation = evaluerQualiteMotDePasseFort(value);
-  return {
-    texte: evaluation.message,
-    couleur: evaluation.color
-  };
-}
+// MOVED -> script-core-password-utils.js : genererMotDePasseFort + evaluerQualiteMotDePasse
 
 // MOVED -> script-salaries.js : mettreAJourQualiteMdpSalarie
 
@@ -2362,12 +2345,7 @@ var _heuresAnneeOffset = 0;
 
 // MOVED -> script-core-storage.js : chargerNoteInterne
 
-function ouvrirNoteInterne(salId, salNom) {
-  document.getElementById('note-interne-sal-id').value  = salId;
-  document.getElementById('note-interne-sal-nom').textContent = salNom;
-  document.getElementById('note-interne-texte').value   = chargerNoteInterne(salId);
-  openModal('modal-note-interne');
-}
+// MOVED -> script-core-note-interne.js : ouvrirNoteInterne
 
 // MOVED -> script-core-ui.js : confirmerNoteInterne
 
@@ -2681,30 +2659,7 @@ window.toggleChampsClientPro = function(isEdit) {
 
 // MOVED -> script-clients.js : ouvrirCreationClientDepuisLivraison
 
-/* ===== COPIER PLANNING SEMAINE PRÉCÉDENTE ===== */
-function copierSemainePrecedente() {
-  const salId = document.getElementById('plan-salarie').value;
-  if (!salId) { afficherToast('⚠️ Choisissez un salarié','error'); return; }
-  const plannings = loadSafe('plannings', []);
-  const plan = plannings.find(p=>p.salId===salId);
-  if (!plan?.semaine?.length) { afficherToast('⚠️ Aucun planning précédent à copier','error'); return; }
-  // Pré-remplir la grille avec les données existantes
-  JOURS.forEach(jour => {
-    const j = plan.semaine.find(s=>s.jour===jour);
-    const cb = document.getElementById('plan-travaille-'+jour);
-    if (cb && j) {
-      cb.checked = j.travaille;
-      toggleJourPlanning(jour);
-      if (j.travaille) {
-        const d=document.getElementById('plan-debut-'+jour); if(d) d.value=j.heureDebut||'';
-        const f=document.getElementById('plan-fin-'+jour);   if(f) f.value=j.heureFin||'';
-        const z=document.getElementById('plan-zone-'+jour);  if(z) z.value=j.zone||'';
-        const n=document.getElementById('plan-note-'+jour);  if(n) n.value=j.note||'';
-      }
-    }
-  });
-  afficherToast('✅ Semaine précédente copiée — modifiez si nécessaire');
-}
+// MOVED -> script-core-copier-semaine-planning.js : copierSemainePrecedente
 
 /* ===== DÉCONNEXION AUTO ADMIN (inactivité configurable) ===== */
 let _timerInactivite = null;
@@ -2763,36 +2718,7 @@ const MCA_DEFAULTS_ENTREPRISE = {
 
 // MOVED -> script-tva.js : chargerConfigurationTVAParametres
 
-function chargerConfigurationTresorerieParametres() {
-  var cfg = (typeof chargerObj === 'function') ? chargerObj('treso_config', {}) : {};
-  var map = {
-    'param-treso-solde-depart': cfg.soldeDepart || 0,
-    'param-treso-echeance-tva': cfg.echeanceTVA || ''
-  };
-  Object.keys(map).forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.value = map[id];
-  });
-  var helper = document.getElementById('param-treso-helper');
-  if (helper) {
-    helper.textContent = 'Base de trésorerie : ' + euros(cfg.soldeDepart || 0)
-      + (cfg.echeanceTVA ? ' · Échéance TVA : ' + formatDateExport(cfg.echeanceTVA) : '');
-  }
-}
-
-// MOVED -> script-tva.js : sauvegarderConfigurationTVA
-
-function sauvegarderConfigurationTresorerie() {
-  var cfg = chargerObj('treso_config', {});
-  cfg.soldeDepart = parseFloat(document.getElementById('param-treso-solde-depart')?.value || '0') || 0;
-  cfg.echeanceTVA = document.getElementById('param-treso-echeance-tva')?.value || '';
-  delete cfg.chargesSalariales;
-  sauvegarder('treso_config', cfg);
-  chargerConfigurationTresorerieParametres();
-  rafraichirDashboard();
-  ajouterEntreeAudit('Configuration trésorerie', 'Base ' + euros(cfg.soldeDepart || 0) + (cfg.echeanceTVA ? ' · Échéance TVA ' + formatDateExport(cfg.echeanceTVA) : ''));
-  afficherToast('✅ Configuration de trésorerie enregistrée');
-}
+// MOVED -> script-core-tresorerie-config.js : chargerConfigurationTresorerieParametres + sauvegarderConfigurationTresorerie
 
 // MOVED -> script-livraisons.js : sauvegarderObjectifLivraisons
 
