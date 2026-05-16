@@ -72,9 +72,14 @@ test('script-core-stats-helpers.js : buildSimplePeriodeState declaree + exposee 
 });
 
 test('script.js : fallback window.buildSimplePeriodeState avant 1ere utilisation', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'script.js'), 'utf8');
-  // Le fallback doit exister
-  assert.match(src,
+  // Phase X.CT (2026-05-17) : les declarations _xxxPeriode ont ete extraites
+  // vers script-core-periode-state-vars.js. Le fallback `if (typeof window.buildSimplePeriodeState !== 'function')`
+  // reste dans script.js (ou dans le module si pertinent). On scanne les deux.
+  const srcMain = fs.readFileSync(path.join(ROOT, 'script.js'), 'utf8');
+  const srcPeriode = fs.readFileSync(path.join(ROOT, 'script-core-periode-state-vars.js'), 'utf8');
+  const combined = srcMain + '\n' + srcPeriode;
+  // Le fallback doit exister (dans l'un OU l'autre fichier)
+  assert.match(combined,
     /if\s*\(\s*typeof\s+window\.buildSimplePeriodeState\s*!==\s*['"]function['"]\s*\)/,
     'fallback typeof window.buildSimplePeriodeState absent');
   // Toutes les init de _xxxPeriode doivent passer par window.buildSimplePeriodeState
@@ -83,7 +88,7 @@ test('script.js : fallback window.buildSimplePeriodeState avant 1ere utilisation
                     '_chargesPeriode', '_carbPeriode', '_entrPeriode', '_tvaPeriode'];
   for (const p of periodes) {
     const re = new RegExp(`var\\s+${p}\\s*=\\s*window\\.buildSimplePeriodeState\\(`);
-    assert.match(src, re, `init ${p} doit passer par window.buildSimplePeriodeState`);
+    assert.match(combined, re, `init ${p} doit passer par window.buildSimplePeriodeState`);
   }
 });
 
