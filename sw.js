@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v290-phase91-saveDoc-logging-quota-retry';
+const CACHE_VERSION = 'mca-v2026-05-16-v291-phase91-exclude-docs-from-sync-wipe';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

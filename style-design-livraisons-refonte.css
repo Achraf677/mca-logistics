@@ -185,58 +185,39 @@
   text-overflow: ellipsis;
 }
 
-/* Largeurs cibles (user feedback : Date/Client petites, Trajet plus large) */
+/* Phase 91.26 — Largeurs FIXES en dur (le user-resize ne persistait pas, on revient sur des
+   tailles équilibrées qui exposent toujours le header MONTANT HT). */
 .livraisons-table th.bulk-col,
 .livraisons-table td.bulk-col { width: 42px; }
 .livraisons-table th[data-sort-key="numLiv"],
-.livraisons-table td:nth-child(2) { width: 130px; }
+.livraisons-table td:nth-child(2) { width: 140px; }
 .livraisons-table th[data-injected="date"],
-.livraisons-table td:nth-child(3) { width: 70px; }
+.livraisons-table td:nth-child(3) { width: 80px; }
 .livraisons-table th[data-sort-key="client"],
-.livraisons-table td:nth-child(4) { width: 130px; }
+.livraisons-table td:nth-child(4) { width: 150px; }
 .livraisons-table th[data-sort-key="zone"],
-.livraisons-table td:nth-child(5) { width: 240px; }
+.livraisons-table td:nth-child(5) { width: 230px; }
 .livraisons-table th[data-sort-key="chauffeur"],
-.livraisons-table td:nth-child(10) { width: 160px; }
+.livraisons-table td:nth-child(10) { width: 170px; }
 .livraisons-table th[data-injected="vehicule"],
-.livraisons-table td:nth-child(11) { width: 90px; }
+.livraisons-table td:nth-child(11) { width: 110px; }
 .livraisons-table th[data-sort-key="statut"],
-.livraisons-table td:nth-child(12) { width: 130px; }
+.livraisons-table td:nth-child(12) { width: 140px; }
 .livraisons-table th[data-injected="montant-ht"],
-.livraisons-table td:nth-child(16) { width: 170px; min-width: 160px; }
+.livraisons-table td:nth-child(16) { width: 180px; min-width: 180px; }
 
-/* Phase 91.18 — pas d'ellipsis sur les TH header (sinon "Montant HT" coupé en "..."). */
+/* Phase 91.26 — header thead : pas d'ellipsis (sinon "MONTANT HT" tronqué). */
 .livraisons-table thead th {
   overflow: visible;
   text-overflow: clip;
-}
-
-/* Phase 91.19 — réduit padding-horizontal sur col Montant HT pour que le label rentre */
-.livraisons-table thead th[data-injected="montant-ht"],
-.livraisons-table tbody td:nth-child(16) {
-  padding-left: 16px;
-  padding-right: 18px;
-}
-
-/* Phase 91.14 — handles de resize ajoutés par script-livraisons-resize.js */
-.livraisons-table thead th {
   position: relative;
 }
-.livraisons-table thead th .col-resize-handle {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 6px;
-  height: 100%;
-  cursor: col-resize;
-  user-select: none;
-  z-index: 5;
-  background: transparent;
-  transition: background 0.15s ease-out;
-}
-.livraisons-table thead th .col-resize-handle:hover,
-.livraisons-table thead th .col-resize-handle.is-resizing {
-  background: rgba(230, 57, 70, 0.35);
+
+/* Phase 91.26 — col Montant HT : padding réduit pour que le label rentre. */
+.livraisons-table thead th[data-injected="montant-ht"],
+.livraisons-table tbody td:nth-child(16) {
+  padding-left: 14px;
+  padding-right: 18px;
 }
 
 /* Phase 91 — coins arrondis sur première/dernière TH */

@@ -75,6 +75,11 @@
     if (key.indexOf('modifs_liv_') === 0) return false;
     // Cache messages auto par date : reconstruit au boot
     if (key.indexOf('msg_auto_') === 0) return false;
+    // Phase 91.27 — documents générés (factures/BL/CMR par livraison) : LOCAUX UNIQUEMENT.
+    // Sans cette exclusion, applyRemoteSnapshot wipe les docs au boot car le remote ne les a pas.
+    if (key.indexOf('documents_livraison_') === 0) return false;
+    // Commentaires internes locaux par livraison : idem (lecture locale, pas multi-device).
+    if (key.indexOf('commentaires_liv_') === 0) return false;
     // Phase 2.1 : clients sync via clients-supabase-adapter.js (table native public.clients)
     if (key === 'clients') return false;
     // Phase 2.2 : vehicules sync via vehicules-supabase-adapter.js (table native public.vehicules)
