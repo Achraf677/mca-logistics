@@ -105,6 +105,22 @@
       var actifsCli = actifsRecents(clients, livraisons, charges, 'client');
       if (cliKpiActifs) cliKpiActifs.textContent = actifsCli;
 
+      // "+N nouveaux ce mois" pour clients-kpi-actifs-sub (mockup: <span class="up">+3</span> ce mois)
+      var cliKpiActifsSub = document.getElementById('clients-kpi-actifs-sub');
+      if (cliKpiActifsSub) {
+        var moisStart = new Date(); moisStart.setDate(1); moisStart.setHours(0, 0, 0, 0);
+        var newThisMois = clients.filter(function (c) {
+          if (!c) return false;
+          var d = parseDate(c.dateCreation || c.created_at || c.date);
+          return d && d >= moisStart;
+        }).length;
+        if (newThisMois > 0) {
+          cliKpiActifsSub.innerHTML = '<span class="up">+' + newThisMois + '</span> ce mois';
+        } else {
+          cliKpiActifsSub.textContent = '90 derniers jours';
+        }
+      }
+
       // CA par client (12 mois)
       var caParClient = {};
       var now12 = new Date(); now12.setFullYear(now12.getFullYear() - 1);
@@ -117,9 +133,9 @@
         caParClient[nom] = (caParClient[nom] || 0) + (parseFloat(l.prixHT || l.prix || 0));
       });
       var topCli = Object.keys(caParClient).sort(function (a, b) { return caParClient[b] - caParClient[a]; })[0];
-      // Phase 60 polish : kpi-val = montant (gros), kpi-sub = nom (sous)
-      if (cliKpiTopNom) cliKpiTopNom.textContent = topCli ? fmtEuros(caParClient[topCli]) : '—';
-      if (cliKpiTopCa) cliKpiTopCa.textContent = topCli ? topCli + ' sur 12m' : '';
+      // Phase 78 fix : mockup shows val=nom (name), sub=montant (amount)
+      if (cliKpiTopNom) cliKpiTopNom.textContent = topCli || '—';
+      if (cliKpiTopCa) cliKpiTopCa.textContent = topCli ? fmtEuros(caParClient[topCli]) + ' sur 12m' : '';
 
       // Encours impayés
       var impayees = livraisons.filter(function (l) {
@@ -160,9 +176,9 @@
         depParFrn[nom] = (depParFrn[nom] || 0) + parseFloat(c.montant || 0);
       });
       var topFrn = Object.keys(depParFrn).sort(function (a, b) { return depParFrn[b] - depParFrn[a]; })[0];
-      // Phase 60 polish (Gemini audit MEDIUM) : kpi-val = montant (gros), kpi-sub = nom (sous)
-      if (frnKpiTopNom) frnKpiTopNom.textContent = topFrn ? fmtEuros(depParFrn[topFrn]) : '—';
-      if (frnKpiTopCa) frnKpiTopCa.textContent = topFrn ? topFrn + ' sur 12m' : '';
+      // Phase 78 fix : mockup shows val=nom (name), sub=montant (amount)
+      if (frnKpiTopNom) frnKpiTopNom.textContent = topFrn || '—';
+      if (frnKpiTopCa) frnKpiTopCa.textContent = topFrn ? fmtEuros(depParFrn[topFrn]) + ' sur 12m' : '';
 
       // Charges à régler
       var chargesImpayees = charges.filter(function (c) {

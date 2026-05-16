@@ -26,8 +26,8 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 |---|---|---|---|
 | **Dashboard** | 92% | 100% | Phase 59 : sub-meta date "Mai 2026" maintenant wired (était vide). User a confirmé "pas finie" comme toutes pages |
 | **Livraisons** | 95% | 100% | Phase 59 : exporterLivraisonsPDF + exporterLivraisonsXLSX vraiment implémentés (étaient fallback CSV silencieux). Reste couleurs visuelles à valider via screenshot user. |
-| Clients | 90% | 100% | Phase 59 : sub-meta mockup CA cumulé 12m ajouté (X clients · Y actifs 90j · CA cumulé Z €) |
-| Fournisseurs | 90% | 100% | Phase 59 : sub-meta mockup Dépenses cumulées 12m ajouté (X fourn · Y actifs 90j · Dépenses Z €) |
+| Clients | 92% | 100% | Phase 78 : Top client val=nom/sub=montant (était inversé) + "+N ce mois" sur clients-kpi-actifs-sub |
+| Fournisseurs | 92% | 100% | Phase 78 : Top dépense val=nom/sub=montant (était inversé, Phase 60 comment erroné) |
 | Véhicules | 92% | 100% | Phase 59 : exporterVehiculesCSV + exporterVehiculesExcel tous deux vraiment impl (étaient stubs/fallback) |
 | Carburant | 92% | 100% | Phase 59 : exporterCarburantExcel vraiment impl (était fallback CSV). Tous exports réels. |
 | Entretiens | 93% | 100% | Phase 65 : CT table 5 cols (Véhicule/Immatriculation/Prochain CT/Jours restants/Statut badge Expiré/Urgent/Bientôt/OK). Fenêtre 30j→60j. |
