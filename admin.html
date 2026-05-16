@@ -1797,12 +1797,12 @@
       </div>
 
       <!-- Phase 37/46 refonte HTML : tabs-bar mockup pattern + count badges -->
-      <nav class="tabs-bar" id="equipe-tabs-nav" role="tablist">
-        <button class="tab-btn active" id="equipe-tab-overview" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOngletOverview&&window.EquipeHub.ouvrirOngletOverview()" role="tab">Vue d'ensemble</button>
-        <button class="tab-btn" id="equipe-tab-salaries" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('salaries')" role="tab">Salariés <span class="count" id="equipe-tab-sal-count"></span></button>
-        <button class="tab-btn" id="equipe-tab-planning" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('planning')" role="tab">Planning</button>
-        <button class="tab-btn" id="equipe-tab-heures" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('heures')" role="tab">Heures</button>
-        <button class="tab-btn" id="equipe-tab-incidents" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('incidents')" role="tab">Incidents <span class="count" id="equipe-tab-inc-count"></span></button>
+      <nav class="tabs-bar" id="equipe-tabs-nav" role="tablist" aria-label="Sections Équipe">
+        <button type="button" class="tab-btn active" id="equipe-tab-overview" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOngletOverview&&window.EquipeHub.ouvrirOngletOverview()" role="tab" aria-selected="true">Vue d'ensemble</button>
+        <button type="button" class="tab-btn" id="equipe-tab-salaries" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('salaries')" role="tab" aria-selected="false" tabindex="-1">Salariés <span class="count" id="equipe-tab-sal-count"></span></button>
+        <button type="button" class="tab-btn" id="equipe-tab-planning" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('planning')" role="tab" aria-selected="false" tabindex="-1">Planning</button>
+        <button type="button" class="tab-btn" id="equipe-tab-heures" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('heures')" role="tab" aria-selected="false" tabindex="-1">Heures</button>
+        <button type="button" class="tab-btn" id="equipe-tab-incidents" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('incidents')" role="tab" aria-selected="false" tabindex="-1">Incidents <span class="count" id="equipe-tab-inc-count"></span></button>
       </nav>
 
       <!-- Phase 60 V7 H21 — Vue d'ensemble : team-grid avec cards chauffeurs (mockup) -->
@@ -2012,11 +2012,11 @@
           <h3>Liste des alertes</h3>
           <!-- Phase 60 V7 M5 — Sub-tabs Critique/À traiter/Pour info/Reportées (mockup-aligned) -->
           <div role="tablist" aria-label="Filtres alertes par sévérité" style="display:flex;gap:4px;border-bottom:1px solid var(--border);padding:0 2px">
-            <button class="rent-tab-btn active" role="tab" data-alerte-sevtab="toutes" onclick="filtreAlerteSeverite('toutes',this)">Toutes</button>
-            <button class="rent-tab-btn" role="tab" data-alerte-sevtab="critique" onclick="filtreAlerteSeverite('critique',this)">Critique</button>
-            <button class="rent-tab-btn" role="tab" data-alerte-sevtab="atraiter" onclick="filtreAlerteSeverite('atraiter',this)">À traiter</button>
-            <button class="rent-tab-btn" role="tab" data-alerte-sevtab="info" onclick="filtreAlerteSeverite('info',this)">Pour info</button>
-            <button class="rent-tab-btn" role="tab" data-alerte-sevtab="reportees" onclick="filtreAlerteSeverite('reportees',this)">Reportées</button>
+            <button type="button" class="rent-tab-btn active" role="tab" aria-selected="true" data-alerte-sevtab="toutes" onclick="filtreAlerteSeverite('toutes',this)">Toutes</button>
+            <button type="button" class="rent-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-alerte-sevtab="critique" onclick="filtreAlerteSeverite('critique',this)">Critique</button>
+            <button type="button" class="rent-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-alerte-sevtab="atraiter" onclick="filtreAlerteSeverite('atraiter',this)">À traiter</button>
+            <button type="button" class="rent-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-alerte-sevtab="info" onclick="filtreAlerteSeverite('info',this)">Pour info</button>
+            <button type="button" class="rent-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-alerte-sevtab="reportees" onclick="filtreAlerteSeverite('reportees',this)">Reportées</button>
           </div>
           <div style="display:flex;gap:6px">
             <button id="btn-alerte-quick-toutes" class="btn-secondary" style="padding:6px 10px;min-height:30px;font-size:12px" onclick="filtreAlerteQuick('toutes')">Toutes</button>
