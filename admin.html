@@ -2385,7 +2385,7 @@
               <div class="form-group full-width"><label for="param-cabinet-nom">Nom du cabinet</label><input type="text" id="param-cabinet-nom" placeholder="ex : EXCO Eurasud" /></div>
               <div class="form-group"><label for="param-cabinet-email">Email export compta</label><input type="email" id="param-cabinet-email" placeholder="compta@cabinet.fr" /></div>
               <div class="form-group"><label for="param-cabinet-plateforme">Plateforme comptable</label>
-                <select id="param-cabinet-plateforme" aria-label="Plateforme comptable">
+                <select id="param-cabinet-plateforme">
                   <option value="pennylane">Pennylane</option>
                   <option value="sage">Sage</option>
                   <option value="cegid">Cegid</option>
@@ -3976,13 +3976,13 @@
               <div class="form-grid fp-grid fp-grid-dense">
                 <div class="form-group">
                   <label for="liv-chauffeur">Chauffeur</label>
-                  <select id="liv-chauffeur" onchange="autoRemplirVehicule();window.mcaLivForm&&window.mcaLivForm.onInput('liv-chauffeur')" aria-label="Chauffeur affecté">
+                  <select id="liv-chauffeur" onchange="autoRemplirVehicule();window.mcaLivForm&&window.mcaLivForm.onInput('liv-chauffeur')">
                     <option value="">-- Choisir --</option>
                   </select>
                 </div>
                 <div class="form-group">
                   <label for="liv-vehicule">Véhicule</label>
-                  <select id="liv-vehicule" onchange="autoRemplirChauffeurDepuisVehicule();window.mcaLivForm&&window.mcaLivForm.onInput('liv-vehicule')" aria-label="Véhicule affecté"><option value="">-- Choisir --</option></select>
+                  <select id="liv-vehicule" onchange="autoRemplirChauffeurDepuisVehicule();window.mcaLivForm&&window.mcaLivForm.onInput('liv-vehicule')"><option value="">-- Choisir --</option></select>
                 </div>
               </div>
             </section>
@@ -4333,7 +4333,7 @@
           <div class="form-group"><label for="veh-conso">Consommation (L/100 km)</label><input type="number" id="veh-conso" placeholder="8.5" min="0" step="0.1" /></div>
           <div class="form-group"><label for="veh-capacite-reservoir">Capacité réservoir (L)</label><input type="number" id="veh-capacite-reservoir" placeholder="80" min="0" step="1" /></div>
           <div class="form-group"><label for="veh-mode-acquisition">Mode d'acquisition</label>
-            <select id="veh-mode-acquisition" onchange="mettreAJourFormulaireVehicule()" aria-label="Mode d'acquisition véhicule">
+            <select id="veh-mode-acquisition" onchange="mettreAJourFormulaireVehicule()">
               <option value="achat">Achat comptant</option>
               <option value="occasion">Achat occasion</option>
               <option value="lld">LCD / LMD / LLD</option>
@@ -4533,7 +4533,7 @@
           <div class="form-group form-group-full"><label for="cfg-rent-tarif-horaire">Tarif horaire chauffeur par défaut (€/h, brut chargé)</label><input type="number" id="cfg-rent-tarif-horaire" min="0" step="0.5" placeholder="12" /></div>
           <div class="form-group form-group-full">
             <label for="cfg-rent-methode">Méthode de répartition des coûts indirects</label>
-            <select id="cfg-rent-methode" aria-label="Méthode de calcul rentabilité">
+            <select id="cfg-rent-methode">
               <option value="livraisons">Au prorata du nombre de livraisons</option>
               <option value="ca">Au prorata du CA</option>
               <option value="km">Au prorata des km parcourus</option>
@@ -4759,7 +4759,7 @@
           <div class="form-group"><label for="edit-liv-date">Date</label><input type="date" id="edit-liv-date" /></div>
           <div class="form-group"><label for="edit-liv-heure-debut">Heure début</label><input type="time" id="edit-liv-heure-debut" /></div>
           <div class="form-group"><label for="edit-liv-statut">Statut</label>
-            <select id="edit-liv-statut" aria-label="Statut de la livraison">
+            <select id="edit-liv-statut">
               <option value="en-attente">En attente</option>
               <option value="en-cours">En cours</option>
               <option value="livre">Livré</option>
@@ -4913,8 +4913,8 @@
             <input type="date" id="charge-date-paiement" aria-label="Date paiement charge" />
           </div>
           <div class="form-group" id="charge-mode-paiement-wrap" style="display:none">
-            <label>Mode paiement</label>
-            <select id="charge-mode-paiement" aria-label="Mode paiement charge">
+            <label for="charge-mode-paiement">Mode paiement</label>
+            <select id="charge-mode-paiement">
               <option value="">— Aucun —</option>
               <option value="virement">Virement</option>
               <option value="prelevement">Prélèvement</option>
@@ -4973,7 +4973,7 @@
           <div class="form-group"><label for="entr-veh">Véhicule *</label><select id="entr-veh" onchange="autoFillKmEntretien()"><option value="">— Choisir —</option></select></div>
           <div class="form-group"><label for="entr-date">Date *</label><input type="date" id="entr-date" /></div>
           <div class="form-group"><label for="entr-type">Type *</label>
-            <select id="entr-type" aria-label="Type entretien" required>
+            <select id="entr-type" required>
               <option value="" disabled selected>— Choisir un type —</option>
               <option value="revision">Révision</option>
               <option value="vidange">Vidange</option>
@@ -5125,18 +5125,18 @@
         <div class="form-grid">
           <div class="form-group full-width">
             <label for="paiement-liv-select">Livraison impayée *</label>
-            <select id="paiement-liv-select" aria-label="Sélectionner la livraison à régler">
+            <select id="paiement-liv-select">
               <option value="">— Choisir une livraison —</option>
             </select>
             <div style="font-size:11px;color:var(--text-muted);margin-top:4px" id="paiement-liv-info">Seules les livraisons non payées sont listées.</div>
           </div>
           <div class="form-group">
             <label for="paiement-date">Date paiement *</label>
-            <input type="date" id="paiement-date" aria-label="Date paiement" />
+            <input type="date" id="paiement-date" />
           </div>
           <div class="form-group">
             <label for="paiement-mode">Mode</label>
-            <select id="paiement-mode" aria-label="Mode paiement">
+            <select id="paiement-mode">
               <option value="virement">Virement</option>
               <option value="cheque">Chèque</option>
               <option value="cb">Carte bancaire</option>
