@@ -135,7 +135,8 @@
       if (verify !== json) {
         console.error('[saveLivDocument] ÉCHEC ÉCRITURE — read-after-write mismatch sur', key);
       } else {
-        console.log('[saveLivDocument] ✓', key, '—', docs.length, 'doc(s), ' + Math.round(json.length / 1024) + ' KB');
+        // Phase 91.82 : downgrade log de succès vers console.debug (verbeux en prod)
+        console.debug('[saveLivDocument] ✓', key, '—', docs.length, 'doc(s), ' + Math.round(json.length / 1024) + ' KB');
       }
     } catch (e) {
       // QuotaExceededError = HTML trop gros → on retry SANS html
