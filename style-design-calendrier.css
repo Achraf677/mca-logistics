@@ -74,7 +74,7 @@
 
 /* Phase 91.47 — palette moderne unifiée Cal Livraisons */
 .cal-liv-item {
-  font-family: var(--ds-font-body, 'Inter', 'Segoe UI', sans-serif);
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
   font-size: var(--ds-fs-xs);
   font-weight: 600;
   background: rgba(96,165,250,0.14);
@@ -246,7 +246,7 @@
   border-color: rgba(255,255,255,0.18);
 }
 .cal16-kpi-tile .cal16-kpi-lbl {
-  font-family: var(--ds-font-body, 'Inter', 'Segoe UI', sans-serif);
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -254,7 +254,7 @@
   color: var(--ds-text-muted, #adb5bd);
 }
 .cal16-kpi-tile .cal16-kpi-val {
-  font-family: var(--ds-font-display, 'Syne', sans-serif);
+  font-family: var(--ds-font-display, 'Syne', system-ui, sans-serif);
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -303,7 +303,7 @@
   justify-content: flex-end;
   background: transparent;
   color: var(--ds-text-muted, #adb5bd);
-  font-family: var(--ds-font-body, 'Inter', 'Segoe UI', sans-serif);
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
 }
 .cal16-legend-inline .cal16-legend-item {
   display: inline-flex;
@@ -317,7 +317,7 @@
 
 /* Phase 91.47 — Police period-nav (Mai 2026 plus lisible, Inter au lieu de Syne) */
 .cal16-period-nav .period-label {
-  font-family: var(--ds-font-body, 'Inter', 'Segoe UI', sans-serif) !important;
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif) !important;
   font-size: 1.05rem !important;
   font-weight: 700 !important;
   letter-spacing: -0.01em !important;
@@ -325,7 +325,7 @@
   text-transform: capitalize;
 }
 .cal16-period-nav .period-dates {
-  font-family: var(--ds-font-body, 'Inter', 'Segoe UI', sans-serif) !important;
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif) !important;
   font-size: 0.78rem !important;
   color: var(--ds-text-muted, #adb5bd);
   font-weight: 500;
@@ -345,7 +345,7 @@
   padding: 5px 8px;
   border-radius: 20px;
   font-size: 0.82rem;
-  font-family: var(--ds-font-body, 'Inter', 'Segoe UI', sans-serif);
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
   font-weight: 500;
   color: var(--ds-text-muted, #adb5bd);
   cursor: pointer;

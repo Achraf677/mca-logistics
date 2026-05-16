@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v314-phase91-50-fix-kpi-encaisse-calendriers';
+const CACHE_VERSION = 'mca-v2026-05-16-v315-phase91-51-italic-purge-cell-clip';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

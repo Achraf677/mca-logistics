@@ -216,7 +216,7 @@
 #plan-total-heures {
   font-family: var(--ds-font-display);
   font-weight: var(--ds-fw-display);
-  font-style: italic;
+  font-style: normal;
   letter-spacing: -0.02em;
   color: var(--ds-text);
   font-feature-settings: "tnum";
