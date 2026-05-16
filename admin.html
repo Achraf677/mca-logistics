@@ -4641,9 +4641,9 @@
   </div>
 
   <!-- Modifier fiche salarié -->
-  <div class="modal-overlay" id="modal-edit-salarie">
+  <div class="modal-overlay" id="modal-edit-salarie" role="dialog" aria-modal="true" aria-labelledby="modal-edit-salarie-title">
     <div class="modal">
-      <div class="modal-header"><h3>Modifier la fiche salarié</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-salarie')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-edit-salarie-title">Modifier la fiche salarié</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-salarie')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label for="edit-sal-nom">Nom *</label><input type="text" id="edit-sal-nom" /></div>
@@ -4749,9 +4749,9 @@
   </div>
 
   <!-- Modifier livraison -->
-  <div class="modal-overlay" id="modal-edit-livraison">
+  <div class="modal-overlay" id="modal-edit-livraison" role="dialog" aria-modal="true" aria-labelledby="modal-edit-livraison-title">
     <div class="modal">
-      <div class="modal-header"><h3>Modifier la livraison</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-livraison')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-edit-livraison-title">Modifier la livraison</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-livraison')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-liv-id" />
         <div class="form-grid">
@@ -4851,9 +4851,9 @@
   </div>
 
   <!-- Modal Nouvelle charge -->
-  <div class="modal-overlay" id="modal-charge">
+  <div class="modal-overlay" id="modal-charge" role="dialog" aria-modal="true" aria-labelledby="modal-charge-title">
     <div class="modal">
-      <div class="modal-header"><h3>Nouvelle charge</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-charge')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-charge-title">Nouvelle charge</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-charge')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="charge-edit-id" />
         <!-- SmartUpload mode auto : drop facture / ticket -> OCR detecte + pre-remplit -->
@@ -4931,9 +4931,9 @@
   </div>
 
   <!-- Modal Incident -->
-  <div class="modal-overlay" id="modal-incident">
+  <div class="modal-overlay" id="modal-incident" role="dialog" aria-modal="true" aria-labelledby="modal-incident-title">
     <div class="modal">
-      <div class="modal-header"><h3>Signaler un incident</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-incident')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-incident-title">Signaler un incident</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-incident')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label for="inc-date">Date *</label><input type="date" id="inc-date" /></div>
@@ -4964,9 +4964,9 @@
   </div>
 
   <!-- Modal Entretien -->
-  <div class="modal-overlay" id="modal-entretien">
+  <div class="modal-overlay" id="modal-entretien" role="dialog" aria-modal="true" aria-labelledby="modal-entretien-title">
     <div class="modal">
-      <div class="modal-header"><h3>Ajouter un entretien</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-entretien')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-entretien-title">Ajouter un entretien</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-entretien')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label for="entr-veh">Véhicule *</label><select id="entr-veh" onchange="autoFillKmEntretien()"><option value="">— Choisir —</option></select></div>
