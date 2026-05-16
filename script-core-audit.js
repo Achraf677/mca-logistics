@@ -219,7 +219,7 @@ function afficherDecisionsAgent() {
     const couleurBord = couleurs[d.priorite] || '#2a2d3d';
     const lu = d.lu ? '' : 'border-left:3px solid #e63946;';
     const sourceTag = d.source === 'ai-brief' ? ' · IA' : '';
-    const actions = (d.actions || []).map(a => `<button onclick="executerActionAgent('${d.id}','${a.id}')" style="background:${a.style === 'primary' ? '#f5a623' : 'rgba(255,255,255,0.08)'};color:${a.style === 'primary' ? '#000' : '#e8eaf0'};border:1px solid ${a.style === 'primary' ? '#f5a623' : '#2a2d3d'};border-radius:8px;padding:6px 12px;font-size:.78rem;font-weight:600;cursor:pointer">${a.label}</button>`).join('');
+    const actions = (d.actions || []).map(a => `<button onclick="executerActionAgent('${d.id}','${a.id}')" style="background:${a.style === 'primary' ? '#e63946' : 'rgba(255,255,255,0.08)'};color:${a.style === 'primary' ? '#fff' : '#e8eaf0'};border:1px solid ${a.style === 'primary' ? '#e63946' : '#2a2d3d'};border-radius:8px;padding:6px 12px;font-size:.78rem;font-weight:600;cursor:pointer">${a.label}</button>`).join('');
     // Bouton "Discuter avec l'IA" (parite mobile) — ouvre le chatbot avec un
     // message pre-rempli construit a partir de la decision. Permet a Achraf
     // de creuser une decision sans retaper le contexte.

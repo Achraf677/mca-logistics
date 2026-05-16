@@ -400,7 +400,7 @@ function renderFacturePiedMentionsLegales(params, livraison, clientFiche) {
 function renderBlocInfosEntreprise(params) {
   const logo = renderLogoEntrepriseExport();
   return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:18px">`
-    + `<div><div style="font-size:1.35rem;font-weight:800;color:#f5a623">${planningEscapeHtml(params.nom || 'MCA Logistics')}</div>`
+    + `<div><div style="font-size:1.35rem;font-weight:800;color:#e63946">${planningEscapeHtml(params.nom || 'MCA Logistics')}</div>`
     + (params.adresse ? `<div style="font-size:.86rem;color:#6b7280;margin-top:4px">${planningEscapeHtml(params.adresse)}</div>` : '')
     + (params.tel ? `<div style="font-size:.82rem;color:#6b7280;margin-top:2px">Tél. : ${planningEscapeHtml(params.tel)}</div>` : '')
     + (params.email ? `<div style="font-size:.82rem;color:#6b7280;margin-top:2px">Email : ${planningEscapeHtml(params.email)}</div>` : '')
@@ -2778,7 +2778,7 @@ function afficherDocumentDansFenetre(url, isPdf, titre) {
     bodyHtml = '<div style="background:#1a1d27;border-radius:14px;padding:32px 26px;max-width:380px;width:100%;text-align:center;color:#fff">'
       + '<div style="font-size:3.5rem;line-height:1;margin-bottom:14px">📄</div>'
       + '<div style="font-weight:600;font-size:1.05rem;margin-bottom:22px;word-break:break-word">' + escHtml(titre || 'Document PDF') + '</div>'
-      + '<a href="' + url + '" target="_blank" rel="noopener" style="display:block;background:#f5a623;color:#1a1208;text-decoration:none;font-weight:700;padding:14px;border-radius:12px;margin-bottom:10px;font-size:.95rem">Ouvrir le PDF</a>'
+      + '<a href="' + url + '" target="_blank" rel="noopener" style="display:block;background:#e63946;color:#fff;text-decoration:none;font-weight:700;padding:14px;border-radius:12px;margin-bottom:10px;font-size:.95rem">Ouvrir le PDF</a>'
       + '<a href="' + url + '" download="' + escHtml(fname) + '" style="display:block;background:#374151;color:#fff;text-decoration:none;font-weight:600;padding:14px;border-radius:12px;font-size:.95rem">⬇ Télécharger</a>'
       + '</div>';
   } else {
@@ -2892,9 +2892,9 @@ function genererFicheTournee(salId, date) {
 
   const html = `
   <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #e63946;margin-bottom:24px">
       <div>
-        <div style="font-size:1.4rem;font-weight:800;color:#f5a623">${nom}</div>
+        <div style="font-size:1.4rem;font-weight:800;color:#e63946">${nom}</div>
       </div>
       <div style="text-align:right">
         <div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Fiche de tournée</div>
@@ -4460,7 +4460,7 @@ construireEnteteExport = function(params, titre, sousTitre, dateExp, metaCustom)
     titreLigne = '<div style="font-size:.82rem;color:#111827;margin-top:8px;font-weight:600">' + inner + '</div>';
   }
   var blocGauche = '<div>'
-    + '<div style="font-size:1.4rem;font-weight:900;color:#f5a623">' + esc(params.nom || 'MCA LOGISTICS') + '</div>'
+    + '<div style="font-size:1.4rem;font-weight:900;color:#e63946">' + esc(params.nom || 'MCA LOGISTICS') + '</div>'
     + (siege ? '<div style="font-size:.78rem;color:#6b7280;margin-top:2px">' + siege + '</div>' : '')
     + mentionsLegales
     + titreLigne
@@ -4469,7 +4469,7 @@ construireEnteteExport = function(params, titre, sousTitre, dateExp, metaCustom)
     + (dateExp ? '<div>Généré le <strong>' + esc(dateExp) + '</strong></div>' : '')
     + (metaCustom ? '<div style="margin-top:2px">' + metaCustom + '</div>' : '')
     + '</div>';
-  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:14px;border-bottom:2px solid #f5a623;margin-bottom:22px">'
+  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:14px;border-bottom:2px solid #e63946;margin-bottom:22px">'
     + blocGauche + blocDroit
     + '</div>';
 };
@@ -4721,7 +4721,7 @@ construireEnteteExport = function(params, titre, sousTitre, dateExp, metaCustom)
     titreLigne = '<div style="font-size:.82rem;color:#111827;margin-top:8px;font-weight:600">' + inner + '</div>';
   }
   var blocGauche = '<div>'
-    + '<div style="font-size:1.4rem;font-weight:900;color:#f5a623">' + esc(params.nom || 'MCA LOGISTICS') + '</div>'
+    + '<div style="font-size:1.4rem;font-weight:900;color:#e63946">' + esc(params.nom || 'MCA LOGISTICS') + '</div>'
     + (siege ? '<div style="font-size:.78rem;color:#6b7280;margin-top:2px">' + siege + '</div>' : '')
     + mentionsLegales
     + titreLigne
@@ -4730,7 +4730,7 @@ construireEnteteExport = function(params, titre, sousTitre, dateExp, metaCustom)
     + (dateExp ? '<div>Généré le <strong>' + esc(dateExp) + '</strong></div>' : '')
     + (metaCustom ? '<div style="margin-top:2px">' + metaCustom + '</div>' : '')
     + '</div>';
-  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:14px;border-bottom:2px solid #f5a623;margin-bottom:22px">'
+  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:14px;border-bottom:2px solid #e63946;margin-bottom:22px">'
     + blocGauche + blocDroit
     + '</div>';
 };
@@ -7016,7 +7016,7 @@ genererRentabilitePDF = function() {
       ['CA HT', euros(results.caHT), '#177245'],
       ['CA TTC', euros(results.caTTC), '#2563eb'],
       ['Bénéfice net', euros(results.beneficeNet), results.beneficeNet >= 0 ? '#177245' : '#e74c3c'],
-      ['Seuil de rentabilité', rentabiliteFormatJours(results.seuilJours), '#f5a623'],
+      ['Seuil de rentabilité', rentabiliteFormatJours(results.seuilJours), '#e63946'],
       ['Point mort', results.pointMortCA != null ? euros(results.pointMortCA) : 'Non atteignable', '#7c3aed'],
       ['Coût / km', euros(results.coutParKm) + '/km', '#4b5563'],
       ['Marge / km', euros(results.margeParKm) + '/km', results.margeParKm >= 0 ? '#177245' : '#e74c3c'],
@@ -7903,9 +7903,9 @@ genererRentabilitePDF = function() {
 
     const html =
       '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">' +
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #f5a623">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #e63946">' +
           '<div>' +
-            '<div style="font-size:1.4rem;font-weight:900;color:#f5a623">' + nomEntr + '</div>' +
+            '<div style="font-size:1.4rem;font-weight:900;color:#e63946">' + nomEntr + '</div>' +
             '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">Récapitulatif livraisons</div>' +
           '</div>' +
           '<div style="text-align:right;font-size:.82rem;color:#6b7280">' +
@@ -12532,7 +12532,7 @@ genererRentabilitePDF = function() {
     const html = `
       <div class="s25-drawer-head">
         <button class="s25-close" onclick="window.s25FermerDrawer()" aria-label="Fermer">✕</button>
-        <div class="s25-avatar" style="background:rgba(245,166,35,0.18);color:#f5a623">${esc(initials(f.nom))}</div>
+        <div class="s25-avatar" style="background:rgba(230,57,70,0.18);color:#e63946">${esc(initials(f.nom))}</div>
         <div class="s25-head-body">
           <div class="s25-head-title">${esc(f.nom||'—')}</div>
           <div class="s25-head-meta">

@@ -280,7 +280,7 @@ if (!toutesDejaLues) {
           if (enModeReportees) {
             btnActions = `<button class="btn-icon" style="background:rgba(155,89,182,.12);color:#9b59b6;border:1px solid rgba(155,89,182,.3)" onclick="reprendreAlerte('${a.id}')" title="Réafficher l'alerte maintenant">▶️ Reprendre</button>`;
           } else if (estPrixManquant) {
-            btnActions = `<button class="btn-icon" style="background:rgba(245,166,35,0.12);color:var(--accent);border:1px solid rgba(245,166,35,0.3)" onclick="ouvrirLivraisonPourPrix('${a.meta?.client||''}')">Saisir</button>
+            btnActions = `<button class="btn-icon" style="background:rgba(230,57,70,0.12);color:var(--accent);border:1px solid rgba(230,57,70,0.3)" onclick="ouvrirLivraisonPourPrix('${a.meta?.client||''}')">Saisir</button>
               ${snoozeSelect(a.id)}
               <button class="btn-icon danger" onclick="ignorerAlerte('${a.id}')" style="margin-left:4px" title="Ignorer (silencieuse 30 jours)">✕ Ignorer</button>`;
           } else if (estCritique) {

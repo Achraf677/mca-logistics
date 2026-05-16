@@ -46,9 +46,9 @@
   // --- Computer KPIs par categorie
   function computerKPIsParCategorie() {
     var charges = lireChargesMoisCourant();
-    var sums = { carburant: 0, entretien: 0, peage: 0, assurance: 0, autre: 0, all: 0 };
-    var counts = { carburant: 0, entretien: 0, peage: 0, assurance: 0, autre: 0, all: 0 };
-    var categoriesConnues = ['carburant', 'entretien', 'peage', 'assurance'];
+    var sums = { carburant: 0, entretien: 0, peage: 0, assurance: 0, salaires: 0, autre: 0, all: 0 };
+    var counts = { carburant: 0, entretien: 0, peage: 0, assurance: 0, salaires: 0, autre: 0, all: 0 };
+    var categoriesConnues = ['carburant', 'entretien', 'peage', 'assurance', 'salaires'];
 
     for (var i = 0; i < charges.length; i++) {
       var c = charges[i] || {};
@@ -95,6 +95,7 @@
     setText('charges-chip-count-carburant', data.counts.carburant);
     setText('charges-chip-count-entretien', data.counts.entretien);
     setText('charges-chip-count-peage', data.counts.peage);
+    setText('charges-chip-count-assurance', data.counts.assurance);
     setText('charges-chip-count-autre', data.counts.autre);
     // Section-head sub-meta
     setText('charges-section-sub-count', data.counts.all);

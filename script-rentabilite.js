@@ -121,7 +121,7 @@ function genererRentabilitePDF() {
     ${construireEnteteExport(params, 'Rapport de rentabilité', '', dateExp)}
     ${renderBlocInfosEntreprise(params)}
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px">
-      ${[['CA',ca,'#f5a623'],['⛽ Carburant',carb,'#e74c3c'],['Entretien',entr,'#3498db'],['Autres charges',autres,'#9b59b6'],['Coût/km',coutKm,'#6b7280'],['Profit',profit,'#2ecc71'],['Marge',marge,'#9b59b6']].map(([l,v,c])=>`<div style="background:#f8f9fc;border-radius:10px;padding:14px;text-align:center;border-top:3px solid ${c}"><div style="font-size:.72rem;color:#9ca3af;margin-bottom:6px">${l}</div><div style="font-size:1.1rem;font-weight:800;color:${c}">${v}</div></div>`).join('')}
+      ${[['CA',ca,'#e63946'],['Carburant',carb,'#e74c3c'],['Entretien',entr,'#3498db'],['Autres charges',autres,'#9b59b6'],['Coût/km',coutKm,'#6b7280'],['Profit',profit,'#2ecc71'],['Marge',marge,'#9b59b6']].map(([l,v,c])=>`<div style="background:#f8f9fc;border-radius:10px;padding:14px;text-align:center;border-top:3px solid ${c}"><div style="font-size:.72rem;color:#9ca3af;margin-bottom:6px">${l}</div><div style="font-size:1.1rem;font-weight:800;color:${c}">${v}</div></div>`).join('')}
     </div>
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;

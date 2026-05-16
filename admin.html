@@ -369,7 +369,7 @@
         <div class="page-actions-toolbar ds-section-head__actions">
           <div class="view-toggle">
             <button class="btn-view active" id="btn-vue-tableau" onclick="changerVueLivraisons('tableau')" title="Tableau">Tableau</button>
-            <button class="btn-view" id="btn-vue-kanban" onclick="changerVueLivraisons('kanban')" title="Kanban">⬜ Kanban</button>
+            <button class="btn-view" id="btn-vue-kanban" onclick="changerVueLivraisons('kanban')" title="Kanban"><svg viewBox="0 0 24 24" width="12" height="12" style="vertical-align:-1px;margin-right:4px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="11" rx="1"/></svg>Kanban</button>
             <button class="btn-view" id="btn-vue-calendrier" onclick="changerVueLivraisons('calendrier')" title="Calendrier">Cal.</button>
           </div>
           <div class="density-toggle">
@@ -392,8 +392,7 @@
         </button>
         <button class="ds-chip" type="button" data-livraisons-statut="livre" onclick="appliquerChipLivraisons('livre')" role="tab" aria-selected="false">Livrées <span class="ds-chip__count" id="livraisons-chip-count-livre">0</span>
         </button>
-        <button class="ds-chip" type="button" data-livraisons-statut="en-attente" onclick="appliquerChipLivraisons('en-attente')" role="tab" aria-selected="false">
-          ⏳ En attente <span class="ds-chip__count" id="livraisons-chip-count-en-attente">0</span>
+        <button class="ds-chip" type="button" data-livraisons-statut="en-attente" onclick="appliquerChipLivraisons('en-attente')" role="tab" aria-selected="false">En attente <span class="ds-chip__count" id="livraisons-chip-count-en-attente">0</span>
         </button>
         <button class="ds-chip" type="button" data-livraisons-statut="retard" onclick="appliquerChipLivraisons('retard')" role="tab" aria-selected="false">Retard <span class="ds-chip__count" id="livraisons-chip-count-retard">0</span>
         </button>
@@ -1218,7 +1217,7 @@
         </select>
         <select id="filtre-alerte-statut" onchange="afficherAlertes()" aria-label="filtre alerte statut">
           <option value="actives">Alertes actives</option>
-          <option value="reportees">⏰ Alertes reportées</option>
+          <option value="reportees">Alertes reportées</option>
           <option value="traitees">Historique traité</option>
           <option value="toutes">Toutes</option>
         </select>
@@ -1709,6 +1708,10 @@
         </button>
         <button class="ds-chip" type="button" data-charges-cat="peage" onclick="appliquerChipCharges('peage')" role="tab" aria-selected="false">Péages <span class="ds-chip__count" id="charges-chip-count-peage">0</span>
         </button>
+        <button class="ds-chip" type="button" data-charges-cat="assurance" onclick="appliquerChipCharges('assurance')" role="tab" aria-selected="false">Assurance <span class="ds-chip__count" id="charges-chip-count-assurance">0</span>
+        </button>
+        <button class="ds-chip" type="button" data-charges-cat="salaires" onclick="appliquerChipCharges('salaires')" role="tab" aria-selected="false">Salaires
+        </button>
         <button class="ds-chip" type="button" data-charges-cat="autre" onclick="appliquerChipCharges('autre')" role="tab" aria-selected="false">Autres <span class="ds-chip__count" id="charges-chip-count-autre">0</span>
         </button>
       </div>
@@ -1730,7 +1733,7 @@
         </select>
         <select id="filtre-charge-statut" onchange="afficherCharges()" aria-label="filtre charge statut">
           <option value="">Tous statuts</option>
-          <option value="a_payer">⏳ À payer</option>
+          <option value="a_payer">À payer</option>
           <option value="paye">Payé</option>
           <option value="partiel">Partiel</option>
           <option value="en_retard">En retard</option>
@@ -1976,7 +1979,7 @@
           <h3 style="margin:0 0 10px;font-size:1rem">Mois en cours</h3>
           <div class="cal16-kpi-grid">
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">Livs</div><div class="cal16-kpi-val" id="cal16-kpi-liv">0</div></div>
-            <div class="cal16-kpi"><div class="cal16-kpi-lbl">⏰ Échéances</div><div class="cal16-kpi-val" id="cal16-kpi-ech">0</div></div>
+            <div class="cal16-kpi"><div class="cal16-kpi-lbl">Échéances</div><div class="cal16-kpi-val" id="cal16-kpi-ech">0</div></div>
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">Encaissé</div><div class="cal16-kpi-val" id="cal16-kpi-pai">—</div></div>
           </div>
 
@@ -2279,7 +2282,7 @@
               </div>
             </section>
 
-            <div class="alerte-rentabilite" id="alerte-rent" style="display:none">⚠️ <strong>Livraison peu rentable</strong> — Le coût carburant estimé est proche ou supérieur au prix.</div>
+            <div class="alerte-rentabilite" id="alerte-rent" style="display:none"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;margin-right:4px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><strong>Livraison peu rentable</strong> — Le coût carburant estimé est proche ou supérieur au prix.</div>
             <div class="profit-recap" id="profit-recap" style="display:none">Profit estimé : <strong id="profit-estime">0 €</strong></div>
 
             <section class="fp-section fp-section-compact fp-section-ldv">
@@ -2890,7 +2893,7 @@
           </div>
           <select id="plan-salarie" style="display:none" tabindex="-1" aria-hidden="true" aria-label="plan salarie"><option value="">-- Choisir un salarié --</option></select>
         </div>
-        <div class="card" style="margin-bottom:12px;background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.16)">
+        <div class="card" style="margin-bottom:12px;background:rgba(230,57,70,.06);border:1px solid rgba(230,57,70,.16)">
           <div class="modal-body" style="padding:12px 14px">
             <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
               <div>
@@ -3029,7 +3032,7 @@
             </div>
           </div>
         </div>
-        <div style="font-size:.78rem;color:var(--text-muted);background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);padding:10px 12px;border-radius:8px">
+        <div style="font-size:.78rem;color:var(--text-muted);background:rgba(230,57,70,.08);border:1px solid rgba(230,57,70,.25);padding:10px 12px;border-radius:8px">
           ⚠️ Demandez au chauffeur de changer son mot de passe lors de sa première connexion (page <em>Mon compte</em> côté salarié).
         </div>
       </div>
@@ -3195,7 +3198,7 @@
           <div class="form-group">
             <label>Statut paiement *</label>
             <select id="charge-statut-paiement" onchange="toggleChargeStatutPaiement()" aria-label="charge statut paiement">
-              <option value="a_payer">⏳ À payer</option>
+              <option value="a_payer">À payer</option>
               <option value="paye">Payé</option>
               <option value="partiel">Paiement partiel</option>
             </select>
@@ -3509,7 +3512,7 @@
       <div class="modal-header"><h3>Réinitialiser le compteur de livraisons</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-reset-compteur')">✕</button></div>
       <div class="modal-body">
         <div style="padding:14px;background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:14px">
-          <div style="font-weight:700;color:#ef4444;margin-bottom:6px">⚠️ Opération irréversible</div>
+          <div style="font-weight:700;color:#ef4444;margin-bottom:6px"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;margin-right:4px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Opération irréversible</div>
           <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.5">
             Cette action va <strong>supprimer toutes les livraisons enregistrées</strong> et remettre le compteur LIV à 0.<br><br>
             <strong>À utiliser uniquement en phase de test</strong>, avant toute exploitation réelle.
@@ -3575,7 +3578,7 @@
     </div>
     <div id="agent-decisions-list" style="flex:1;overflow-y:auto;padding:14px 20px">
       <div style="text-align:center;padding:40px 20px;color:#7c8299">
-        <div style="font-size:2.5rem;margin-bottom:12px">✨</div>
+        <div style="margin-bottom:12px;display:flex;justify-content:center"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#e63946" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="opacity:.75"><path d="M12 2l1.5 6.5L20 10l-6.5 1.5L12 18l-1.5-6.5L4 10l6.5-1.5L12 2z"/><path d="M5 4l.5 2L7 6.5 5.5 7 5 9l-.5-2L3 6.5 4.5 6 5 4z"/><path d="M19 15l.5 2 1.5.5-1.5.5-.5 2-.5-2-1.5-.5 1.5-.5.5-2z"/></svg></div>
         <div style="font-size:.95rem;margin-bottom:6px;font-weight:600;color:#e8eaf0">Aucune decision en attente</div>
         <div style="font-size:.8rem">Le brief Gemini scanne tes donnees automatiquement a chaque session.</div>
       </div>

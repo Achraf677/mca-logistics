@@ -180,7 +180,7 @@ function genererLettreRelance(livId, niveau) {
 
   var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:700px;margin:0 auto;padding:40px;color:#1a1d27">' +
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px">' +
-      '<div><div style="font-size:1.3rem;font-weight:800;color:#f5a623">' + nom + '</div>' +
+      '<div><div style="font-size:1.3rem;font-weight:800;color:#e63946">' + nom + '</div>' +
       (params.adresse ? '<div style="font-size:.82rem;color:#6b7280;margin-top:2px">' + params.adresse + '</div>' : '') +
       (params.tel ? '<div style="font-size:.82rem;color:#6b7280">📞 ' + params.tel + '</div>' : '') +
       (params.email ? '<div style="font-size:.82rem;color:#6b7280">✉️ ' + params.email + '</div>' : '') +

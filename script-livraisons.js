@@ -676,9 +676,9 @@ function genererBonLivraison(livId) {
   const html = `
     <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:0 auto;padding:32px;color:#1a1d27">
       <!-- EN-TÊTE -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid #f5a623">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid #e63946">
         <div>
-          <div style="font-size:1.6rem;font-weight:800;color:#f5a623;letter-spacing:1px">${nom}</div>
+          <div style="font-size:1.6rem;font-weight:800;color:#e63946;letter-spacing:1px">${nom}</div>
           ${adresse ? `<div style="font-size:.85rem;color:#6b7280;margin-top:4px">${adresse}</div>` : ''}
           ${tel     ? `<div style="font-size:.85rem;color:#6b7280">${tel}</div>` : ''}
           ${siret !== '—' ? `<div style="font-size:.78rem;color:#9ca3af;margin-top:2px">SIRET : ${siret}</div>` : ''}
@@ -687,7 +687,7 @@ function genererBonLivraison(livId) {
           ${logo || ''}
           <div>
           <div style="font-size:1.1rem;font-weight:700;color:#1a1d27">BON DE LIVRAISON</div>
-          <div style="font-size:1.3rem;font-weight:800;color:#f5a623">${l.numLiv || '—'}</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#e63946">${l.numLiv || '—'}</div>
           <div style="font-size:.82rem;color:#6b7280;margin-top:4px">Date : ${formatDateExport(l.date) || '—'}</div>
           ${l.heureDebut ? `<div style="font-size:.82rem;color:#6b7280">Heure : ${l.heureDebut}</div>` : ''}
           </div>
@@ -715,7 +715,7 @@ function genererBonLivraison(livId) {
         <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:10px">Itinéraire</div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           ${l.depart  ? `<div style="flex:1;min-width:180px"><div style="font-size:.72rem;color:#9ca3af">DÉPART</div><div style="font-weight:600">${l.depart}</div></div>` : ''}
-          ${l.depart && l.arrivee ? `<div style="font-size:1.2rem;color:#f5a623">→</div>` : ''}
+          ${l.depart && l.arrivee ? `<div style="font-size:1.2rem;color:#e63946">→</div>` : ''}
           ${l.arrivee ? `<div style="flex:1;min-width:180px"><div style="font-size:.72rem;color:#9ca3af">ARRIVÉE</div><div style="font-weight:600">${l.arrivee}</div></div>` : ''}
         </div>
       </div>` : ''}
@@ -726,7 +726,7 @@ function genererBonLivraison(livId) {
         <div style="padding:16px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <div style="font-size:.9rem">Prestation de livraison (TTC)</div>
-            <div style="font-size:1.4rem;font-weight:800;color:#f5a623">\${l.prix ? new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(l.prix) : 'Sur devis'}</div>
+            <div style="font-size:1.4rem;font-weight:800;color:#e63946">\${l.prix ? new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(l.prix) : 'Sur devis'}</div>
           </div>
           \${l.prix ? (() => {
             const taux = parseFloat(localStorage.getItem('taux_tva')||'20');
@@ -855,7 +855,7 @@ function genererFactureLivraison(livId) {
     .filter(Boolean).join(', ') || params.adresse;
   const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:28px;color:#111827">'
     + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px">'
-    + '<div><div style="font-size:1.7rem;font-weight:900;color:#f5a623;margin-bottom:8px">' + planningEscapeHtml(params.nom || 'MCA Logistics') + '</div>'
+    + '<div><div style="font-size:1.7rem;font-weight:900;color:#e63946;margin-bottom:8px">' + planningEscapeHtml(params.nom || 'MCA Logistics') + '</div>'
     + '<div style="font-size:.92rem;line-height:1.6;color:#4b5563">'
     + (adresseEntreprise ? '<div>' + planningEscapeHtml(adresseEntreprise) + '</div>' : '')
     + (params.tel ? '<div>Tél. : ' + planningEscapeHtml(params.tel) + '</div>' : '')

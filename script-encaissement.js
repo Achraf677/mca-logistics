@@ -359,7 +359,7 @@
 
       lettres.push(
         '<div style="page-break-after:always;font-family:Segoe UI,Arial,sans-serif;max-width:700px;margin:0 auto;padding:40px;color:#1a1d27">' +
-          '<div style="display:flex;justify-content:space-between;margin-bottom:24px"><div><div style="font-size:1.2rem;font-weight:800;color:#f5a623">' + escH(params.nom || 'MCA Logistics') + '</div>' +
+          '<div style="display:flex;justify-content:space-between;margin-bottom:24px"><div><div style="font-size:1.2rem;font-weight:800;color:#e63946">' + escH(params.nom || 'MCA Logistics') + '</div>' +
             (params.adresse ? '<div style="font-size:.8rem;color:#6b7280">' + escH(params.adresse) + '</div>' : '') +
             (params.siret ? '<div style="font-size:.75rem;color:#9ca3af">SIRET : ' + escH(params.siret) + '</div>' : '') +
           '</div><div style="font-size:.82rem;color:#9ca3af">' + escH(dateExp) + '</div></div>' +
@@ -496,17 +496,17 @@
     var nbE = rows.filter(function (r) { return r.statut === 'encaisse'; }).length;
     var entete = (typeof window.construireEnteteExport === 'function')
       ? window.construireEnteteExport(params, 'État des encaissements', null, dateExp, rows.length + ' livraison(s) · ' + nbA + ' à encaisser · ' + nbR + ' en retard · ' + nbE + ' encaissée(s)')
-      : '<h1 style="color:#f5a623">État des encaissements — ' + dateExp + '</h1>';
+      : '<h1 style="color:#e63946">État des encaissements — ' + dateExp + '</h1>';
     var tableRows = rows.map(function (r) {
-      var color = r.statut === 'encaisse' ? '#06d6a0' : (r.statut === 'retard' ? '#e63946' : '#f5a623');
+      var color = r.statut === 'encaisse' ? '#06d6a0' : (r.statut === 'retard' ? '#e63946' : '#e63946');
       return '<tr><td>' + r.date + '</td><td>' + r.num_liv + '</td><td>' + (r.client || '').replace(/[<>]/g, '') + '</td>'
         + '<td style="text-align:right">' + Number(r.ttc).toFixed(2).replace('.', ',') + ' €</td>'
         + '<td style="color:' + color + ';font-weight:700">' + r.statut + '</td>'
         + '<td>' + r.date_paiement + '</td><td>' + r.mode_paiement + '</td></tr>';
     }).join('');
     var html = entete
-      + '<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:.84rem"><thead><tr style="background:#f5a62333"><th style="padding:8px;text-align:left;border-bottom:2px solid #f5a623">Date</th><th style="padding:8px;text-align:left;border-bottom:2px solid #f5a623">N°</th><th style="padding:8px;text-align:left;border-bottom:2px solid #f5a623">Client</th><th style="padding:8px;text-align:right;border-bottom:2px solid #f5a623">TTC</th><th style="padding:8px;text-align:left;border-bottom:2px solid #f5a623">Statut</th><th style="padding:8px;text-align:left;border-bottom:2px solid #f5a623">Date payé</th><th style="padding:8px;text-align:left;border-bottom:2px solid #f5a623">Mode</th></tr></thead><tbody>' + tableRows + '</tbody>'
-      + '<tfoot><tr style="background:#f5a62333;font-weight:700"><td colspan="3" style="padding:8px;border-top:2px solid #f5a623">TOTAL</td><td style="padding:8px;text-align:right;border-top:2px solid #f5a623">' + totalTtc.toFixed(2).replace('.', ',') + ' €</td><td colspan="3" style="border-top:2px solid #f5a623"></td></tr></tfoot></table>';
+      + '<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:.84rem"><thead><tr style="background:#e6394633"><th style="padding:8px;text-align:left;border-bottom:2px solid #e63946">Date</th><th style="padding:8px;text-align:left;border-bottom:2px solid #e63946">N°</th><th style="padding:8px;text-align:left;border-bottom:2px solid #e63946">Client</th><th style="padding:8px;text-align:right;border-bottom:2px solid #e63946">TTC</th><th style="padding:8px;text-align:left;border-bottom:2px solid #e63946">Statut</th><th style="padding:8px;text-align:left;border-bottom:2px solid #e63946">Date payé</th><th style="padding:8px;text-align:left;border-bottom:2px solid #e63946">Mode</th></tr></thead><tbody>' + tableRows + '</tbody>'
+      + '<tfoot><tr style="background:#e6394633;font-weight:700"><td colspan="3" style="padding:8px;border-top:2px solid #e63946">TOTAL</td><td style="padding:8px;text-align:right;border-top:2px solid #e63946">' + totalTtc.toFixed(2).replace('.', ',') + ' €</td><td colspan="3" style="border-top:2px solid #e63946"></td></tr></tfoot></table>';
     if (typeof window.ouvrirFenetreImpression === 'function') {
       window.ouvrirFenetreImpression('Encaissement — ' + (params.nom || 'MCA Logistics'), html, 'width=1200,height=820');
       if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Rapport Encaissement', rows.length + ' ligne(s)');

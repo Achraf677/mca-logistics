@@ -494,7 +494,7 @@
     tb.innerHTML = stats.map(function (s) {
       var couleur = s.marge >= 0 ? '#28a745' : '#dc3545';
       var warnSal = s.salairManquant
-        ? ' <span style="background:rgba(245,166,35,.12);color:var(--accent);padding:2px 6px;border-radius:8px;font-size:.7rem" title="Aucune charge \'salaires\' avec salId=chauffeur trouvée — coût salaire non comptabilisé">⚠</span>'
+        ? ' <span style="background:rgba(230,57,70,.12);color:var(--accent);padding:2px 6px;border-radius:8px;font-size:.7rem" title="Aucune charge \'salaires\' avec salId=chauffeur trouvée — coût salaire non comptabilisé">⚠</span>'
         : '';
       return '<tr>' +
         '<td><strong>' + escapeHtml(s.chaufNom) + '</strong>' + warnSal + '</td>' +
