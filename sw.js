@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v303-phase91-events-bus-client-fallback';
+const CACHE_VERSION = 'mca-v2026-05-16-v304-phase91-12agents-tz-money-a11y-kanban';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

@@ -2215,17 +2215,21 @@ function afficherKanban() {
         ondrop="dropKanban(event,'${statut}')">
         ${items.length === 0
           ? `<div style="text-align:center;padding:24px 8px;color:var(--text-muted);font-size:.8rem;opacity:.5">Aucune livraison</div>`
-          : items.map(l => `
+          : items.map(l => {
+              // Phase 91.40 — escape pour éviter XSS via client/numLiv/chaufNom/arrivee (agent kanban #XSS)
+              const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+              return `
             <div class="kanban-card" draggable="true"
-              ondragstart="dragKanban(event,'${l.id}')"
+              ondragstart="dragKanban(event,'${esc(l.id)}')"
               ondragend="document.querySelectorAll('.kanban-col-body').forEach(c=>c.classList.remove('drag-over'))"
-              onclick="ouvrirEditLivraison('${l.id}')">
-              <div class="kanban-card-client">${l.client}</div>
-              <div class="kanban-card-sub">${l.numLiv||'—'} · ${l.date}</div>
-              ${l.chaufNom ? `<div class="kanban-card-sub">${l.chaufNom}</div>` : ''}
-              ${l.arrivee  ? `<div class="kanban-card-sub">${l.arrivee}</div>` : ''}
+              onclick="ouvrirEditLivraison('${esc(l.id)}')">
+              <div class="kanban-card-client">${esc(l.client)}</div>
+              <div class="kanban-card-sub">${esc(l.numLiv||'—')} · ${esc(l.date)}</div>
+              ${l.chaufNom ? `<div class="kanban-card-sub">${esc(l.chaufNom)}</div>` : ''}
+              ${l.arrivee  ? `<div class="kanban-card-sub">${esc(l.arrivee)}</div>` : ''}
               <div class="kanban-card-prix">${l.prix ? euros(l.prix) : 'Prix manquant'}</div>
-            </div>`).join('')}
+            </div>`;
+            }).join('')}
       </div>
     </div>`).join('');
 }
@@ -8341,8 +8345,12 @@ genererRentabilitePDF = function() {
     const st = getSortState(key);
     tableEl.querySelectorAll('th[data-sort-key]').forEach(th => {
       th.classList.remove('sort-asc', 'sort-desc');
+      // Phase 91.40 — a11y : aria-sort état actuel
       if (th.getAttribute('data-sort-key') === st.col && st.dir) {
         th.classList.add(st.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+        th.setAttribute('aria-sort', st.dir === 'asc' ? 'ascending' : 'descending');
+      } else {
+        th.setAttribute('aria-sort', 'none');
       }
     });
   }

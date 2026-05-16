@@ -170,6 +170,9 @@ function ajouterLivraison() {
     afficherToast('⚠️ Les montants et distances doivent être positifs', 'error');
     return;
   }
+  // Phase 91.40 — checks edge cases supplémentaires (agent edge cases #3, #7)
+  if (prixHT > prix) { afficherToast('⚠️ Prix HT > Prix TTC : incohérent', 'error'); return; }
+  if (tauxTVA > 100) { afficherToast('⚠️ Taux TVA > 100 % : invalide', 'error'); return; }
 
   // Si prix manquant → créer une alerte et continuer quand même
   if (!prix || isNaN(prix)) {
@@ -504,6 +507,10 @@ function confirmerEditLivraison() {
   livraisons[idx].date      = document.getElementById('edit-liv-date').value;
   livraisons[idx].heureDebut = document.getElementById('edit-liv-heure-debut')?.value || '';
   livraisons[idx].modePaiement = document.getElementById('edit-liv-mode-paiement')?.value || '';
+  // Phase 91.40 — checks edge cases monétaires (agent edge cases)
+  if (livraisons[idx].prix <= 0) { afficherToast('⚠️ Prix TTC doit être > 0', 'error'); return; }
+  if (livraisons[idx].prixHT > livraisons[idx].prix) { afficherToast('⚠️ Prix HT > Prix TTC : incohérent', 'error'); return; }
+  if (livraisons[idx].tauxTVA > 100) { afficherToast('⚠️ Taux TVA > 100 % : invalide', 'error'); return; }
   livraisons[idx].statut   = document.getElementById('edit-liv-statut').value;
   livraisons[idx].notes    = document.getElementById('edit-liv-notes').value.trim();
   livraisons[idx].profit   = livraisons[idx].prix - livraisons[idx].distance * config.coutKmEstime;

@@ -126,7 +126,8 @@ function afficherRelances() {
     const dateEcheance = new Date(dateBase);
     const delaiClient = getDelaiPourLiv(l);
     dateEcheance.setDate(dateEcheance.getDate() + delaiClient);
-    const joursRetard = Math.floor((today - dateEcheance) / (1000*60*60*24));
+    // Phase 91.40 — Math.round (au lieu de Math.floor) car DST traverse fait 23h ou 25h → drift d'1 jour 2x/an
+    const joursRetard = Math.round((today - dateEcheance) / (1000*60*60*24));
     const joursAffiches = Math.max(0, joursRetard);
     const niveau = joursRetard > 30 ? 3 : joursRetard > 15 ? 2 : joursRetard > 0 ? 1 : 0;
     const niveauLabel = niveau===3 ? 'Dernier avis' : niveau===2 ? 'Mise en demeure' : niveau===1 ? 'Amiable' : 'À suivre';

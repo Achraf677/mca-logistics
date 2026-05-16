@@ -75,7 +75,13 @@
   function calcCAMois(livraisons, mois, avoirsEmis) {
     var arr = Array.isArray(livraisons) ? livraisons : [];
     var moisCle = String(mois || '').slice(0, 7);
-    var livMois = arr.filter(function (l) { return l && (l.date || '').startsWith(moisCle); });
+    // Phase 91.40 — filtre statut : exclut brouillons et annulées du CA (agent edge cases #10)
+    var livMois = arr.filter(function (l) {
+      if (!l || !(l.date || '').startsWith(moisCle)) return false;
+      var s = String(l.statut || '').toLowerCase();
+      if (s === 'brouillon' || s === 'draft' || s === 'annule' || s === 'annulee') return false;
+      return true;
+    });
     var caHTBrut = livMois.reduce(function (s, l) { return s + getMontantHT(l); }, 0);
     var caTTCBrut = livMois.reduce(function (s, l) { return s + getMontantTTC(l); }, 0);
     var avoirs = Array.isArray(avoirsEmis) ? avoirsEmis : [];

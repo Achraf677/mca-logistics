@@ -34,7 +34,11 @@
   function fmtDateFr(iso) {
     if (!iso) return '—';
     try {
-      const d = new Date(iso);
+      // Phase 91.40 — fix TZ : `new Date('2026-05-16')` parse en UTC → user CEST voit J-1.
+      // On suffixe T00:00:00 pour forcer parse local quand format ISO court.
+      var input = iso;
+      if (typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input)) input += 'T00:00:00';
+      const d = new Date(input);
       if (isNaN(d.getTime())) return '—';
       return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
     } catch (_) { return '—'; }
@@ -398,6 +402,26 @@
       panels.forEach(p => {
         p.classList.toggle('active', p.getAttribute('data-dr-panel') === target);
       });
+    });
+
+    // Phase 91.40 — a11y : Arrow keys + Home/End naviguent les tabs drawer (pattern WAI-ARIA Tabs)
+    document.addEventListener('keydown', function (e) {
+      const tab = document.activeElement && document.activeElement.closest && document.activeElement.closest('.dr-tab[data-dr-tab]');
+      if (!tab) return;
+      const tablist = tab.parentElement;
+      if (!tablist) return;
+      const tabs = Array.from(tablist.querySelectorAll('.dr-tab[data-dr-tab]'));
+      const idx = tabs.indexOf(tab);
+      let nextIdx = -1;
+      if (e.key === 'ArrowRight') nextIdx = (idx + 1) % tabs.length;
+      else if (e.key === 'ArrowLeft') nextIdx = (idx - 1 + tabs.length) % tabs.length;
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = tabs.length - 1;
+      if (nextIdx >= 0) {
+        e.preventDefault();
+        tabs[nextIdx].focus();
+        tabs[nextIdx].click();
+      }
     });
   }
 

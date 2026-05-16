@@ -22,8 +22,16 @@
     if (!document.getElementById('rent-kpi-ca')) return;
 
     var now = new Date();
-    var moisDebut = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    var moisFin   = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+    // Phase 91.40 — fix timezone : `.toISOString().slice(0,10)` sur Date locale décalait d'1 jour pour user CEST.
+    // Format local YYYY-MM-DD manuel garantit le même jour que l'utilisateur.
+    var fmtLocalISO = function (d) {
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var j = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + j;
+    };
+    var moisDebut = fmtLocalISO(new Date(now.getFullYear(), now.getMonth(), 1));
+    var moisFin   = fmtLocalISO(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 
     var livraisons = lire('livraisons');
     var charges = lire('charges');
@@ -34,12 +42,16 @@
     // qui drift de 20% TVA en cas d'absence de prixHT explicite.
     var caHT = 0, kmTotal = 0;
     var getHT = (typeof window.getMontantHTLivraison === 'function') ? window.getMontantHTLivraison : null;
+    // Phase 91.40 — exclusion brouillons + annulées du CA (agent edge cases #10)
+    var STATUTS_CA = ['en-cours', 'livre', 'en-attente'];
     livraisons.forEach(function (l) {
       var d = (l.dateLivraison || l.dateLiv || l.date || '');
+      var statut = String(l.statut || '').toLowerCase();
+      // Phase 91.40 — exclut brouillons et annulées
+      if (statut === 'brouillon' || statut === 'draft' || statut === 'annule' || statut === 'annulee') return;
       if (d >= moisDebut && d <= moisFin) {
         var htVal = getHT ? getHT(l) : parseFloat(l.prixHT || l.montantHT || 0);
         if (!htVal && l.prix) {
-          // Fallback : si prix TTC seul, déduire HT via taux TVA livraison
           var taux = parseFloat(l.tauxTVA || 20) / 100;
           htVal = parseFloat(l.prix) / (1 + taux);
         }
