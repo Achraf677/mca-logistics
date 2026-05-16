@@ -41,7 +41,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Alertes | 93% | 100% | Phase 83 : kpi-sub critiques "CT expiré dans Nj" + alertes catégories + brand-color sur critiques/alertes KPI. |
 | Équipe | 93% | 100% | Phase 82 : kpi-sub actifs "+N ce mois" + permis "Nom dans Nj" (mockup-aligned). |
 | Heures | 94% | 100% | Phase 79 : Km kpi-sub "Sur N véhicules" dynamique (était statique "Livraisons ce mois"). CE 561 sub color déjà en CSS (Phase 75). |
-| Incidents | 93% | 100% | Phase 66 : table Date/Type/Véhicule/Chauffeur/Description/Statut/Actions. Badge Type Accident/Avarie/Vol. Véhicule lookup. Modal ajout champ Type select. |
+| Incidents | 94% | 100% | Phase 84 : kpi-val "Ouverts" brand-red quand > 0 + kpi-sub "Résolus mois" "+N vs [mois préc]" (mockup-aligned). |
 | Paramètres | 93% | 100% | Phase 62 : h2→h3 card headers Entreprise (Informations entreprise/Identité visuelle/Postes) + Comptabilité (Fiscalité TVA→Paramétrage TVA/Trésorerie/Catégories). Nouvelle carte "Cabinet comptable" avec badge Sync OK, toggles FEC+sync, save localStorage. |
 | Brouillons IA | 90% | 100% | Phase 59 : chips filtrent vraiment (setStatusFilter) + sub-meta mockup + Valider/Rejeter sélection batch wired |
 | Planning | 92% | 100% | Phase 81 : kpi-sub "X% de l'effectif" dynamique (Planifiés), couleur warning sur absences > 0, sub "Congés payés cette semaine". |

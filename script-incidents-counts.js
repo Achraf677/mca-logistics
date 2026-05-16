@@ -32,10 +32,36 @@
       return !isNaN(d.getTime()) && d >= moisStart;
     });
 
-    if (kpiOuverts) kpiOuverts.textContent = ouverts.length > 0 ? ouverts.length : '—';
+    if (kpiOuverts) {
+      kpiOuverts.textContent = ouverts.length > 0 ? ouverts.length : '—';
+      // Phase 84 : brand color when incidents open (mockup-aligned)
+      kpiOuverts.style.color = ouverts.length > 0 ? 'var(--brand, #e63946)' : '';
+    }
     if (kpiResolus) kpiResolus.textContent = resolus.length > 0 ? resolus.length : '—';
     if (subOuverts) subOuverts.textContent = ouverts.length;
     if (subResolus) subResolus.textContent = resolus.length;
+
+    // Phase 84 : "+N vs [mois préc]" for resolus kpi-sub (mockup-aligned)
+    var kpiResolusSub = document.getElementById('inc-kpi-resolus-sub');
+    if (kpiResolusSub) {
+      var prevMoisStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      var prevMoisEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+      var MOIS_FR = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
+      var prevMoisNom = MOIS_FR[prevMoisStart.getMonth()];
+      var resolusPrev = incidents.filter(function (i) {
+        if (!i || i.statut !== 'traite') return false;
+        var d = new Date(i.resolviLe || i.modifieLe || i.creeLe || '');
+        return !isNaN(d.getTime()) && d >= prevMoisStart && d <= prevMoisEnd;
+      }).length;
+      var delta = resolus.length - resolusPrev;
+      if (delta > 0) {
+        kpiResolusSub.innerHTML = '<span class="up">+' + delta + '</span> vs ' + prevMoisNom;
+      } else if (delta < 0) {
+        kpiResolusSub.innerHTML = '<span class="down">' + delta + '</span> vs ' + prevMoisNom;
+      } else {
+        kpiResolusSub.textContent = resolus.length > 0 ? '= ' + prevMoisNom : 'Ce mois';
+      }
+    }
 
     // Phase 59 — sub-meta "en attente expertise" (mockup-aligned)
     var subExpertise = document.getElementById('inc-section-sub-expertise');
