@@ -2186,7 +2186,7 @@
             <tbody id="tb-tva-collectee"></tbody>
           </table>
         </div>
-        <div class="modal-body" id="tva-non-exigible-info" style="padding-top:0"></div>
+        <div class="modal-body" id="tva-non-exigible-info"></div>
       </div>
 
       <!-- TVA Déductible détail -->
@@ -2740,7 +2740,7 @@
           </div>
         </div>
         <div class="ds-section-head__actions u-flex-row">
-          <button class="btn-secondary" onclick="typeof envoyerRelancesEmail==='function'?envoyerRelancesEmail():void 0" style="white-space:nowrap">Envoyer relances</button>
+          <button class="btn-secondary u-nowrap" onclick="typeof envoyerRelancesEmail==='function'?envoyerRelancesEmail():void 0">Envoyer relances</button>
           <div class="liv-dropdown-wrap">
             <button class="btn-secondary liv-dropdown-btn" id="enc-export-btn" aria-haspopup="true" aria-expanded="false" onclick="this.closest('.liv-dropdown-wrap').classList.toggle('open');var o=this.closest('.liv-dropdown-wrap').classList.contains('open');this.setAttribute('aria-expanded',o)">
               <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -4563,7 +4563,7 @@
           <div class="form-group"><label for="cfg-carb-fenetre">Fenêtre historique (nb pleins)</label><input type="number" id="cfg-carb-fenetre" min="2" max="20" step="1" placeholder="6" /></div>
         </div>
 
-        <div style="font-weight:600;margin:14px 0 8px;font-size:.92rem">Patterns suspects</div>
+        <div class="anomalie-section-head">Patterns suspects</div>
         <div class="form-grid">
           <div class="form-group form-group-full"><label><input type="checkbox" id="cfg-carb-doublons" /> Détecter 2 pleins en moins de 24h sans km parcourus</label></div>
           <div class="form-group form-group-full"><label><input type="checkbox" id="cfg-carb-regression" /> Détecter régression km (km saisi &lt; km précédent)</label></div>
@@ -4571,7 +4571,7 @@
           <div class="form-group"><label for="cfg-carb-km-jour">Seuil km/jour max</label><input type="number" id="cfg-carb-km-jour" min="100" max="3000" step="50" placeholder="1000" /></div>
         </div>
 
-        <div style="font-weight:600;margin:14px 0 8px;font-size:.92rem">Pleins hors heures (week-end / nuit)</div>
+        <div class="anomalie-section-head">Pleins hors heures (week-end / nuit)</div>
         <div class="form-grid">
           <div class="form-group form-group-full"><label><input type="checkbox" id="cfg-carb-hors-heures" /> Activer la détection (alertes peuvent être nombreuses)</label></div>
           <div class="form-group"><label for="cfg-carb-h-debut">Heure début journée normale</label><input type="number" id="cfg-carb-h-debut" min="0" max="23" step="1" placeholder="6" /></div>
@@ -5099,7 +5099,7 @@
              depart/retour). Auto-creation incident pour chaque KO. -->
         <div class="form-group full-width">
           <label style="margin-bottom:8px">Points de contrôle</label>
-          <div id="admin-insp-checkpoints" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;font-size:.88rem">
+          <div id="admin-insp-checkpoints">
             <label class="u-check-row"><input type="checkbox" data-checkpoint="pneus" checked /> Pneus (pression + état)</label>
             <label class="u-check-row"><input type="checkbox" data-checkpoint="freins" checked /> Freins</label>
             <label class="u-check-row"><input type="checkbox" data-checkpoint="niveaux" checked /> Niveaux (huile, lave-glace)</label>

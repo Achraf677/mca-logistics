@@ -194,6 +194,14 @@
 /* Phase 75 : Heures CE 561 KPI sub color */
 #heures-kpi-ce561-sub { color: var(--brand, #e63946); }
 
+/* Phase 85 : admin-insp-checkpoints grid → CSS */
+#admin-insp-checkpoints {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  font-size: .88rem;
+}
+
 /* Phase 83 : inspections filters inline → CSS */
 #filtre-insp-sal-input {
   width: 100%;

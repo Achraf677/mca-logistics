@@ -376,6 +376,12 @@
 /* Full-width centered button (params integrations etc.) */
 .btn-full-center { width: 100%; justify-content: center; }
 
+/* Phase 85 : white-space nowrap utility */
+.u-nowrap { white-space: nowrap; }
+
+/* Phase 85 : TVA non-exigible info panel — no top padding (modal-body already padded) */
+#tva-non-exigible-info { padding-top: 0; }
+
 /* Phase 84 : checkbox label inline pattern → reusable utility */
 .label-check-inline {
   display: flex;

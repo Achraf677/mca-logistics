@@ -88,6 +88,13 @@ tr[data-anomalie="1"]:hover td {
   color: var(--ds-text-muted);
 }
 
+/* ============ Phase 85 : anomalie modal section subheaders → CSS ============ */
+.anomalie-section-head {
+  font-weight: 600;
+  margin: 14px 0 8px;
+  font-size: .92rem;
+}
+
 /* ============ Phase 82 : carb-filters-hidden → CSS ============ */
 .carb-filters-hidden {
   height: 0;
