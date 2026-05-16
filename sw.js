@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v294-phase91-cols-sortable-date-vehicule-modifier-fast';
+const CACHE_VERSION = 'mca-v2026-05-16-v295-phase91-MHT-header-force-color';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

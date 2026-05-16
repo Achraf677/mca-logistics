@@ -97,6 +97,13 @@
   color: var(--ds-text, var(--text));
 }
 
+/* Phase 91.31 — Force le header MONTANT HT en pleine couleur (avant : --text-muted, invisible
+   sur certains écrans → user croyait que le label n'apparaissait pas du tout). */
+.livraisons-table thead th[data-injected="montant-ht"] {
+  color: var(--ds-text, var(--text)) !important;
+  opacity: 1 !important;
+}
+
 /* ============ Polish cellules ============ */
 
 /* Col 2 : N° LIV en mono */
