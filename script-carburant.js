@@ -115,7 +115,7 @@ function ajusterTVACarburantSelonGenre() {
 }
 
 // L3991 (script.js d'origine)
-function ajouterCarburant() {
+async function ajouterCarburant() {
   const vehId     = document.getElementById('carb-vehicule').value;
   const litres    = parseFloat(document.getElementById('carb-litres').value);
   const prixLitre = parseFloat(document.getElementById('carb-prix-litre').value);
@@ -129,6 +129,15 @@ function ajouterCarburant() {
     return;
   }
   const veh   = charger('vehicules').find(v => v.id === vehId);
+  // Phase 91.43 (Agent Carburant HIGH5+MED6) — sanity-check litres (cap réservoir) et prix/L
+  if (veh && veh.capaciteReservoir && litres > parseFloat(veh.capaciteReservoir) * 1.05) {
+    const ok = await confirmDialog(`Litres (${litres}) > capacité réservoir (${veh.capaciteReservoir}L). Continuer ?`, { titre: 'Saisie inhabituelle', icone: '⛽' });
+    if (!ok) return;
+  }
+  if (prixLitre < 0.3 || prixLitre > 5) {
+    const ok = await confirmDialog(`Prix/L (${prixLitre} €) hors fourchette habituelle (0,30 € – 5 €). Continuer ?`, { titre: 'Saisie inhabituelle', icone: '⛽' });
+    if (!ok) return;
+  }
   const total = litres * prixLitre;
   let libelle = veh ? veh.immat : 'Inconnu';
   if (veh?.salNom) libelle = `${veh.immat} — ${veh.salNom}`;
@@ -157,6 +166,9 @@ function ajouterCarburant() {
   // Phase 91.37 — refresh dashboard + rentabilité (KPI conso + coût/km dépendent du nouveau plein)
   try { if (typeof window.rafraichirDashboard === 'function') window.rafraichirDashboard(); } catch (_) {}
   try { if (typeof window.afficherRentabilite === 'function') window.afficherRentabilite(); } catch (_) {}
+  // Phase 91.43 (Agent Carburant HIGH3) — dispatch event pour table conso véhicule + dashboard finish
+  try { document.dispatchEvent(new CustomEvent('carburant:updated', { detail: { id: plein.id, action: 'create' } })); } catch (_) {}
+  try { if (typeof window.refreshCarbTable === 'function') window.refreshCarbTable(); } catch (_) {}
 }
 
 // L4028 (script.js d'origine)
@@ -209,20 +221,48 @@ function afficherCarburant() {
   document.getElementById('kpi-prix-litre').textContent  = euros(prixMoyenTTC);
   const elPrixLitreDetail = document.getElementById('kpi-prix-litre-detail');
   if (elPrixLitreDetail) elPrixLitreDetail.textContent = `HT ${euros(prixMoyenHT)} • TTC ${euros(prixMoyenTTC)}`;
+  // Phase 91.43 (Agent Carburant HIGH1) — KPI L/100 doit utiliser Δkm compteur entre pleins
+  // (pas les km livraisons : tournées saisies, parfois 0, sans corrélation avec roulage réel).
   const elConso = document.getElementById('kpi-conso-l100');
   if (elConso) {
-    if (lts > 0 && typeof charger === 'function' && typeof isDateInRange === 'function') {
-      const kmTotal = charger('livraisons').filter(l => isDateInRange(l.date || l.dateLivraison, range)).reduce((s, l) => s + (parseFloat(l.distance) || 0), 0);
-      elConso.textContent = kmTotal > 50 ? (lts / kmTotal * 100).toFixed(1) + ' L/100' : '—';
-    } else {
-      elConso.textContent = '—';
-    }
+    var consoVal = null;
+    try {
+      var pleinsTriesParVeh = {};
+      charger('carburant').forEach(function(p) {
+        if (!p || !p.vehId || !p.kmCompteur) return;
+        (pleinsTriesParVeh[p.vehId] = pleinsTriesParVeh[p.vehId] || []).push(p);
+      });
+      var litresAvecDelta = 0;
+      var kmAvecDelta = 0;
+      Object.keys(pleinsTriesParVeh).forEach(function(vehId) {
+        var sorted = pleinsTriesParVeh[vehId].slice().sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+        for (var i = 1; i < sorted.length; i++) {
+          var prev = sorted[i - 1];
+          var curr = sorted[i];
+          if (!isDateInRange(curr.date, range)) continue;
+          var deltaKm = (parseFloat(curr.kmCompteur) || 0) - (parseFloat(prev.kmCompteur) || 0);
+          if (deltaKm > 5 && deltaKm < 3000) {
+            litresAvecDelta += parseFloat(curr.litres) || 0;
+            kmAvecDelta += deltaKm;
+          }
+        }
+      });
+      if (kmAvecDelta > 50 && litresAvecDelta > 0) {
+        consoVal = (litresAvecDelta / kmAvecDelta * 100).toFixed(1) + ' L/100';
+      }
+    } catch (_) {}
+    elConso.textContent = consoVal || '—';
   }
 
   // Sweep anomalies (genere les alertes admin manquantes a chaque affichage)
   if (typeof sweepAnomaliesCarburant === 'function') {
     try { sweepAnomaliesCarburant(); } catch (e) { console.warn('[carburant] sweepAnomaliesCarburant', e); }
   }
+  // Phase 91.43 (Agent Carburant MED8) — sub-meta période + count carburant
+  var subP = document.getElementById('carb-section-sub-periode');
+  if (subP) subP.textContent = range.label || '—';
+  var subC = document.getElementById('carb-section-sub-count');
+  if (subC) subC.textContent = pleinsMois.length + ' plein' + (pleinsMois.length > 1 ? 's' : '');
   if (!pleins.length) { tb.innerHTML = emptyState('⛽','Aucun plein enregistré','Les pleins saisis par vos salariés ou vous-même apparaîtront ici.'); return; }
   // Index pleins par vehicule pour calcul anomalies (perf)
   const pleinsByVeh = {};
@@ -231,7 +271,8 @@ function afficherCarburant() {
     (pleinsByVeh[p.vehId] = pleinsByVeh[p.vehId] || []).push(p);
   });
   const allVehicules = charger('vehicules');
-  tb.innerHTML = [...pleins].sort((a,b) => new Date(b.creeLe)-new Date(a.creeLe)).map(p => {
+  // Phase 91.43 (Agent Carburant MED12) — tri par date (vs creeLe : saisie rétro = mauvais ordre)
+  tb.innerHTML = [...pleins].sort((a,b) => new Date(b.date)-new Date(a.date)).map(p => {
     const src = p.source==='salarie'
       ? '<span style="background:rgba(79,142,247,0.15);color:#4f8ef7;padding:2px 7px;border-radius:12px;font-size:0.75rem;">Salarié</span>'
       : '<span style="background:rgba(230,57,70,0.12);color:var(--accent);padding:2px 7px;border-radius:12px;font-size:0.75rem;">⚙️ Admin</span>';
@@ -290,6 +331,11 @@ async function supprimerCarburant(id) {
   removeChargeCarburant(id);
   sauvegarder('carburant', charger('carburant').filter(p => p.id !== id));
   afficherCarburant(); afficherToast('Supprimé');
+  // Phase 91.43 (Agent Carburant HIGH3) — refresh chain delete (avant : silencieux)
+  try { if (typeof window.rafraichirDashboard === 'function') window.rafraichirDashboard(); } catch (_) {}
+  try { if (typeof window.afficherRentabilite === 'function') window.afficherRentabilite(); } catch (_) {}
+  try { document.dispatchEvent(new CustomEvent('carburant:updated', { detail: { id: id, action: 'delete' } })); } catch (_) {}
+  try { if (typeof window.refreshCarbTable === 'function') window.refreshCarbTable(); } catch (_) {}
 }
 
 // L4131 (script.js d'origine)
@@ -347,7 +393,10 @@ function confirmerEditCarburantAdmin() {
   const prixLitre = parseFloat(document.getElementById('edit-carb-prix').value);
   const kmCompteur = parseFloat(document.getElementById('edit-carb-km').value);
   const date      = document.getElementById('edit-carb-date').value;
-  const tauxTVA   = parseFloat(document.getElementById('edit-carb-taux-tva')?.value) || 20;
+  // Phase 91.43 (Agent Carburant MED13) — taux 0 légitime (électrique), fallback uniquement si NaN
+  const rawTauxEdit = document.getElementById('edit-carb-taux-tva')?.value;
+  const parsedTauxEdit = parseFloat(rawTauxEdit);
+  const tauxTVA   = Number.isFinite(parsedTauxEdit) ? parsedTauxEdit : 20;
   if (!litres || !prixLitre) { afficherToast('⚠️ Litres et prix obligatoires', 'error'); return; }
   if (hasNegativeNumber(litres, prixLitre, kmCompteur, tauxTVA)) {
     afficherToast('⚠️ Les montants, litres et kilomètres doivent être positifs', 'error');
@@ -391,6 +440,11 @@ function confirmerEditCarburantAdmin() {
   closeModal('modal-edit-carburant');
   afficherCarburant();
   afficherToast('✅ Plein mis à jour');
+  // Phase 91.43 (Agent Carburant MED11) — refresh chain symétrique avec ajout
+  try { if (typeof window.rafraichirDashboard === 'function') window.rafraichirDashboard(); } catch (_) {}
+  try { if (typeof window.afficherRentabilite === 'function') window.afficherRentabilite(); } catch (_) {}
+  try { document.dispatchEvent(new CustomEvent('carburant:updated', { detail: { id: id, action: 'update' } })); } catch (_) {}
+  try { if (typeof window.refreshCarbTable === 'function') window.refreshCarbTable(); } catch (_) {}
 }
 
 // L6742 (script.js d'origine)
@@ -460,12 +514,15 @@ function exporterCarburantPDF() {
 
   var rows = pleins.map(function(p,i) {
     var veh = vehicules.find(function(v){return v.id===p.vehId;});
-    var tauxRecup = veh && veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : (p.type==='essence'?100:80);
-    var ht = (p.total||0) / 1.2;
-    var tvaFull = (p.total||0) - ht;
+    // Phase 91.43 (Agent Carburant HIGH2+HIGH4) — utiliser p.typeCarburant (champ réel) + taux TVA saisi sur plein (pas /1.2 dur)
+    var typeCarb = p.typeCarburant || p.type || 'gasoil';
+    var tauxRecup = veh && veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : (typeCarb === 'essence' ? 100 : 80);
+    var tauxTVA = parseFloat(p.tauxTVA ?? 20) || 20;
+    var ht = (p.total || 0) / (1 + tauxTVA / 100);
+    var tvaFull = (p.total || 0) - ht;
     var tvaDeduct = tvaFull * tauxRecup / 100;
     totalHT += ht; totalTVA += tvaDeduct; totalTTC += (p.total||0);
-    return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:6px 10px">'+p.date+'</td><td style="padding:6px 10px">'+(veh?veh.immat:'—')+'</td><td style="padding:6px 10px">'+(p.type||'gasoil')+'</td><td style="padding:6px 10px;text-align:right">'+(p.litres||0)+' L</td><td style="padding:6px 10px;text-align:right">'+euros(ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(tvaDeduct)+' ('+tauxRecup+'%)</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(p.total||0)+'</td></tr>';
+    return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:6px 10px">'+p.date+'</td><td style="padding:6px 10px">'+(veh?veh.immat:'—')+'</td><td style="padding:6px 10px">'+typeCarb+'</td><td style="padding:6px 10px;text-align:right">'+(p.litres||0)+' L</td><td style="padding:6px 10px;text-align:right">'+euros(ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(tvaDeduct)+' ('+tauxRecup+'%)</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(p.total||0)+'</td></tr>';
   }).join('');
 
   var metaCarb = (pleins.length || 0) + ' plein(s)';
@@ -491,7 +548,9 @@ function exporterCarburantCSV() {
   pleins.forEach(function(p){
     var veh = vehicules.find(function(v){return v.id===p.vehId;});
     var total = parseFloat(p.total)||0;
-    var ht = total / 1.2;
+    // Phase 91.43 (Agent Carburant HIGH2+HIGH4) — taux TVA saisi + p.typeCarburant
+    var tauxTVA = parseFloat(p.tauxTVA ?? 20) || 20;
+    var ht = total / (1 + tauxTVA / 100);
     var tva = total - ht;
     var litres = parseFloat(p.litres)||0;
     var puL = litres > 0 ? (total/litres) : 0;
@@ -500,7 +559,7 @@ function exporterCarburantCSV() {
       p.date,
       (veh && veh.modele) ? veh.modele.replace(/;/g,',') : '',
       (veh && veh.immat) ? veh.immat : '',
-      (p.type || 'gasoil'),
+      (p.typeCarburant || p.type || 'gasoil'),
       litres.toFixed(2),
       puL.toFixed(3),
       ht.toFixed(2),
