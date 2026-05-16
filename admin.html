@@ -3934,7 +3934,7 @@
                 </div>
                 <div class="form-group"><label for="liv-date">Date</label><input type="date" id="liv-date" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-date')" /></div>
                 <div class="form-group"><label for="liv-heure-debut">Heure début</label><input type="time" id="liv-heure-debut" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-heure-debut')" /></div>
-                <div class="form-group"><label for="liv-statut">Statut</label><select id="liv-statut"><option value="en-attente">En attente</option><option value="en-cours">En cours</option><option value="livre">Livré</option></select></div>
+                <div class="form-group"><label for="liv-statut">Statut</label><select id="liv-statut"><option value="en-attente">En attente</option><option value="en-cours">En cours</option><option value="livre">Livré</option><option value="brouillon">Brouillon</option></select></div>
                 <div class="form-group"><label for="liv-depart">Départ *</label><input type="text" id="liv-depart" placeholder="Adresse de départ" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-depart');window.mcaLivForm&&window.mcaLivForm.syncZoneFromTrajet&&window.mcaLivForm.syncZoneFromTrajet()" /></div>
                 <div class="form-group"><label for="liv-arrivee">Arrivée *</label><input type="text" id="liv-arrivee" placeholder="Adresse de livraison" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-arrivee');window.mcaLivForm&&window.mcaLivForm.syncZoneFromTrajet&&window.mcaLivForm.syncZoneFromTrajet()" /></div>
                 <!-- Zone géographique en lecture seule (auto-synthése depart → arrivée) -->
@@ -4039,7 +4039,8 @@
             </section>
 
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-livraison')">Annuler</button><button class="btn-primary" onclick="ajouterLivraison()">Enregistrer la livraison</button></div>
+      <!-- Phase 91.6 — bouton "Brouillon" : force statut=brouillon puis enregistre (livraison existante avec n°). -->
+      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-livraison')">Annuler</button><button class="btn-secondary" type="button" onclick="(function(){var s=document.getElementById('liv-statut');if(s)s.value='brouillon';if(typeof ajouterLivraison==='function')ajouterLivraison();})()" title="Enregistrer comme brouillon (livraison existante mais non finalisée)">Brouillon</button><button class="btn-primary" onclick="ajouterLivraison()">Enregistrer la livraison</button></div>
     </div>
   </div>
 

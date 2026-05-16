@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v270-revert-modal-edit-parity-bug';
+const CACHE_VERSION = 'mca-v2026-05-16-v271-phase91-brouillon-btn-bottom-radius';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

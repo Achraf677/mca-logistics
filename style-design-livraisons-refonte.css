@@ -216,6 +216,15 @@
   font-size: 12px;
   color: var(--ds-text-muted, var(--text-muted));
   background: var(--ds-bg-card, var(--bg-card));
+  /* Phase 91.6 — coins bas arrondis (sinon le pagination-bar rendait les bords carrés). */
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* Phase 91.6 — Carte container : assure overflow:hidden pour clipper les coins arrondis */
+.card.table-card.vehicules-table-card {
+  overflow: hidden;
+  border-radius: 12px;
 }
 
 .pagination-bar:empty,

@@ -4016,9 +4016,8 @@ kbd {
 .livraisons-table td {
   white-space: normal;
 }
-/* Colonnes numériques alignées à droite : Distance, HT, TVA, TTC */
-.livraisons-table th:nth-child(5),
-.livraisons-table td:nth-child(5),
+/* Colonnes numériques alignées à droite : Distance(6), HT(7), TVA(8), TTC(9).
+   Phase 91.6 — col 5 retirée : depuis Phase 27 c'est "Trajet" (texte) pas Distance. */
 .livraisons-table th:nth-child(6),
 .livraisons-table td:nth-child(6),
 .livraisons-table th:nth-child(7),
