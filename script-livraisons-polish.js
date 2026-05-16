@@ -361,38 +361,33 @@
     if (dispatch[type]) dispatch[type]();
   };
 
-  // Phase 91.12 — helper appelé depuis le drawer Documents : génère pour UNE livraison précise
-  // (bypass de la logique "row sélectionnée / 1ere ligne visible" de actionGenererLivraison).
+  // Phase 91.20 — helper drawer Documents : SAVE D'ABORD puis génère (avec try/catch sur le générateur
+   // pour que la sauvegarde reste si le PDF échoue). Refresh systématique de la liste.
   window.actionGenererLivraisonPour = function (type, livId) {
     if (!livId) return;
-    const dispatch = {
-      'facture': () => {
-        if (typeof window.genererFactureLivraison === 'function') window.genererFactureLivraison(livId);
-        if (typeof window.enregistrerDocumentLivraison === 'function') {
-          const livs = (window.charger ? window.charger('livraisons') : []) || [];
-          const l = livs.find(x => x.id === livId);
-          const numLiv = l ? (l.numLiv || l.num_liv || livId) : livId;
+    const livs = (window.charger ? window.charger('livraisons') : []) || [];
+    const l = livs.find(x => x && x.id === livId);
+    const numLiv = l ? (l.numLiv || l.num_liv || livId) : livId;
+    // 1. SAUVEGARDE en premier (toujours, indépendamment du PDF)
+    try {
+      if (typeof window.enregistrerDocumentLivraison === 'function') {
+        if (type === 'facture') {
           window.enregistrerDocumentLivraison(livId, { type: 'facture', name: 'Facture ' + String(numLiv).replace(/^L-/, 'F-') });
+        } else if (type === 'bl') {
+          window.enregistrerDocumentLivraison(livId, { type: 'bl', name: 'Bon de livraison ' + numLiv });
+        } else if (type === 'cmr') {
+          window.enregistrerDocumentLivraison(livId, { type: 'cmr', name: 'Lettre de voiture ' + numLiv });
         }
-      },
-      'bl': () => {
-        if (typeof window.genererBonsLivraison === 'function') window.genererBonsLivraison(livId);
-        else if (typeof window.genererBonLivraison === 'function') window.genererBonLivraison(livId);
-        if (typeof window.enregistrerDocumentLivraison === 'function') {
-          window.enregistrerDocumentLivraison(livId, { type: 'bl', name: 'Bon de livraison' });
-        }
-      },
-      'cmr': () => {
-        if (typeof window.genererLettreDeVoiture === 'function') window.genererLettreDeVoiture(livId);
-        else if (typeof window.genererLettreVoiture === 'function') window.genererLettreVoiture(livId);
-        if (typeof window.enregistrerDocumentLivraison === 'function') {
-          window.enregistrerDocumentLivraison(livId, { type: 'cmr', name: 'Lettre de voiture CMR' });
-        }
-      },
-    };
-    if (dispatch[type]) dispatch[type]();
-    // Phase 91.13 — refresh la liste "Documents générés" du drawer.
-    if (typeof window.refreshDrawerDocuments === 'function') window.refreshDrawerDocuments(livId);
+      }
+    } catch (e) { console.warn('[actionGenererLivraisonPour:save]', e); }
+    // 2. REFRESH de la liste tout de suite (avant l'ouverture du PDF qui peut bloquer)
+    try { if (typeof window.refreshDrawerDocuments === 'function') window.refreshDrawerDocuments(livId); } catch (e) {}
+    // 3. GÉNÉRATEUR (peut throw → noop, la sauvegarde reste)
+    try {
+      if (type === 'facture' && typeof window.genererFactureLivraison === 'function') window.genererFactureLivraison(livId);
+      else if (type === 'bl' && (typeof window.genererBonsLivraison === 'function' || typeof window.genererBonLivraison === 'function')) (window.genererBonsLivraison || window.genererBonLivraison)(livId);
+      else if (type === 'cmr' && (typeof window.genererLettreDeVoiture === 'function' || typeof window.genererLettreVoiture === 'function')) (window.genererLettreDeVoiture || window.genererLettreVoiture)(livId);
+    } catch (e) { console.warn('[actionGenererLivraisonPour:generator]', e); }
   };
 
   // ============ Bulk Modifier button (Phase 32) + Supprimer (Phase 90) ============
