@@ -486,6 +486,67 @@ function confirmerEditLivraison() {
   livraisons[idx].notes    = document.getElementById('edit-liv-notes').value.trim();
   livraisons[idx].profit   = livraisons[idx].prix - livraisons[idx].distance * config.coutKmEstime;
 
+  // Phase 91.33 — sauvegarde des champs Phase 91.11 (SIREN, LDV exp/dest, marchandise, ADR).
+  // Sans ça : data loss silencieuse — saisi en modal Modifier, jamais persisté.
+  const editGetVal = (eid) => (document.getElementById(eid)?.value || '').trim();
+  livraisons[idx].clientSiren = editGetVal('edit-liv-client-siren').replace(/\s+/g, '');
+  const expediteurEdit = {
+    nom: editGetVal('edit-liv-exp-nom'),
+    contact: editGetVal('edit-liv-exp-contact'),
+    adresse: editGetVal('edit-liv-exp-adresse'),
+    cp: editGetVal('edit-liv-exp-cp'),
+    ville: editGetVal('edit-liv-exp-ville'),
+    pays: editGetVal('edit-liv-exp-pays') || 'FR'
+  };
+  const destinataireEdit = {
+    nom: editGetVal('edit-liv-dest-nom'),
+    contact: editGetVal('edit-liv-dest-contact'),
+    adresse: editGetVal('edit-liv-dest-adresse'),
+    cp: editGetVal('edit-liv-dest-cp'),
+    ville: editGetVal('edit-liv-dest-ville'),
+    pays: editGetVal('edit-liv-dest-pays') || 'FR'
+  };
+  const marchandiseEdit = {
+    nature: editGetVal('edit-liv-marchandise-nature'),
+    poidsKg: parseFloat(editGetVal('edit-liv-marchandise-poids')) || 0,
+    volumeM3: parseFloat(editGetVal('edit-liv-marchandise-volume')) || 0,
+    nbColis: parseInt(editGetVal('edit-liv-marchandise-colis'), 10) || 0
+  };
+  const adrEdit = {
+    estADR: !!document.getElementById('edit-liv-adr-est')?.checked,
+    codeONU: editGetVal('edit-liv-adr-onu'),
+    classe: editGetVal('edit-liv-adr-classe'),
+    groupeEmballage: editGetVal('edit-liv-adr-groupe')
+  };
+  livraisons[idx].expediteur = expediteurEdit;
+  livraisons[idx].destinataire = destinataireEdit;
+  livraisons[idx].marchandise = marchandiseEdit;
+  livraisons[idx].adr = adrEdit;
+  // Dual-write mirror flat pour readers mobile (R3 unification, idem ajouterLivraison)
+  livraisons[idx].expNom = expediteurEdit.nom;
+  livraisons[idx].expContact = expediteurEdit.contact;
+  livraisons[idx].expAdresse = expediteurEdit.adresse;
+  livraisons[idx].expCp = expediteurEdit.cp;
+  livraisons[idx].expVille = expediteurEdit.ville;
+  livraisons[idx].expPays = expediteurEdit.pays;
+  livraisons[idx].destNom = destinataireEdit.nom;
+  livraisons[idx].destContact = destinataireEdit.contact;
+  livraisons[idx].destAdresse = destinataireEdit.adresse;
+  livraisons[idx].destCp = destinataireEdit.cp;
+  livraisons[idx].destVille = destinataireEdit.ville;
+  livraisons[idx].destPays = destinataireEdit.pays;
+  livraisons[idx].marchNature = marchandiseEdit.nature;
+  livraisons[idx].marchPoids = marchandiseEdit.poidsKg;
+  livraisons[idx].marchVolume = marchandiseEdit.volumeM3;
+  livraisons[idx].marchColis = marchandiseEdit.nbColis;
+  livraisons[idx].adrEst = !!adrEdit.estADR;
+  livraisons[idx].adrEstADR = !!adrEdit.estADR;
+  livraisons[idx].adrOnu = adrEdit.codeONU;
+  livraisons[idx].adrCodeONU = adrEdit.codeONU;
+  livraisons[idx].adrClasse = adrEdit.classe;
+  livraisons[idx].adrGroupe = adrEdit.groupeEmballage;
+  livraisons[idx].adrGroupeEmballage = adrEdit.groupeEmballage;
+
   // Logger les modifications
   const champs = { client:'Client', prix:'Prix', statut:'Statut', distance:'Distance', depart:'Zone géographique' };
   Object.entries(champs).forEach(([k,label]) => {
@@ -606,6 +667,37 @@ async function ouvrirEditLivraison(id) {
   if (editModePaiement) editModePaiement.value = l.modePaiement || '';
   document.getElementById('edit-liv-statut').value  = l.statut||'en-attente';
   document.getElementById('edit-liv-notes').value   = l.notes||'';
+  // Phase 91.33 — populer SIREN + LDV (exp/dest) + marchandise + ADR depuis la livraison.
+  const editSetVal = (eid, v) => { const el = document.getElementById(eid); if (el) el.value = v == null ? '' : v; };
+  editSetVal('edit-liv-client-siren', l.clientSiren || '');
+  const exp = l.expediteur || {};
+  editSetVal('edit-liv-exp-nom', exp.nom || l.expNom || '');
+  editSetVal('edit-liv-exp-contact', exp.contact || l.expContact || '');
+  editSetVal('edit-liv-exp-adresse', exp.adresse || l.expAdresse || '');
+  editSetVal('edit-liv-exp-cp', exp.cp || l.expCp || '');
+  editSetVal('edit-liv-exp-ville', exp.ville || l.expVille || '');
+  editSetVal('edit-liv-exp-pays', exp.pays || l.expPays || 'FR');
+  const dest = l.destinataire || {};
+  editSetVal('edit-liv-dest-nom', dest.nom || l.destNom || '');
+  editSetVal('edit-liv-dest-contact', dest.contact || l.destContact || '');
+  editSetVal('edit-liv-dest-adresse', dest.adresse || l.destAdresse || '');
+  editSetVal('edit-liv-dest-cp', dest.cp || l.destCp || '');
+  editSetVal('edit-liv-dest-ville', dest.ville || l.destVille || '');
+  editSetVal('edit-liv-dest-pays', dest.pays || l.destPays || 'FR');
+  const march = l.marchandise || {};
+  editSetVal('edit-liv-marchandise-nature', march.nature || l.marchNature || '');
+  editSetVal('edit-liv-marchandise-poids', march.poidsKg || l.marchPoids || '');
+  editSetVal('edit-liv-marchandise-volume', march.volumeM3 || l.marchVolume || '');
+  editSetVal('edit-liv-marchandise-colis', march.nbColis || l.marchColis || '');
+  const adr = l.adr || {};
+  const adrEst = !!(adr.estADR || l.adrEst || l.adrEstADR);
+  const adrChk = document.getElementById('edit-liv-adr-est');
+  if (adrChk) adrChk.checked = adrEst;
+  const adrDetails = document.getElementById('edit-liv-adr-details');
+  if (adrDetails) adrDetails.style.display = adrEst ? 'grid' : 'none';
+  editSetVal('edit-liv-adr-onu', adr.codeONU || l.adrOnu || l.adrCodeONU || '');
+  editSetVal('edit-liv-adr-classe', adr.classe || l.adrClasse || '');
+  editSetVal('edit-liv-adr-groupe', adr.groupeEmballage || l.adrGroupe || l.adrGroupeEmballage || '');
   // Charger histor. modifs et commentaires
   afficherHistoriqueModifs(id);
   afficherCommentairesLiv(id);
