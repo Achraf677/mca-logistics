@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v356-phaseX-A-extract-postes';
+const CACHE_VERSION = 'mca-v2026-05-16-v357-phaseX-B-extract-templates-sms';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -133,6 +133,8 @@ const CORE_ASSETS = [
   '/script-hub-subnav.js',
   // Phase X.A (91.90) — Postes extraits de script.js
   '/script-core-postes.js',
+  // Phase X.B (91.91) — Templates SMS extraits de script.js
+  '/script-core-templates-sms.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
