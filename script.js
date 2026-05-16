@@ -524,26 +524,7 @@ const TAB_AUTH_PENDING_KEY = 'delivpro_tab_auth_pending';
 
 // MOVED -> script-core-auth.js : nettoyerSessionAppCourante
 
-function consommerTicketAccesOnglet() {
-  if (window.__delivproTabUnlocked) return true;
-  let url;
-  try {
-    url = new URL(window.location.href);
-  } catch (_) {
-    return false;
-  }
-  const ticketUrl = url.searchParams.get('tab_auth') || '';
-  const ticketAttendu = sessionStorage.getItem(TAB_AUTH_PENDING_KEY) || '';
-  if (!ticketUrl || !ticketAttendu || ticketUrl !== ticketAttendu) {
-    return false;
-  }
-  sessionStorage.removeItem(TAB_AUTH_PENDING_KEY);
-  window.__delivproTabUnlocked = true;
-  url.searchParams.delete('tab_auth');
-  const suffixe = url.search ? url.search : '';
-  window.history.replaceState({}, document.title, url.pathname + suffixe + url.hash);
-  return true;
-}
+// MOVED -> script-core-ticket-acces-onglet.js : consommerTicketAccesOnglet
 
 // MOVED -> script-core-auth.js : notifierMajAutreAdmin
 
@@ -969,13 +950,7 @@ let affectVehId = null;
 
 // MOVED -> script-carburant.js : supprimerCarburant
 
-function toggleMenuCarbAdmin(id) {
-  document.querySelectorAll('.menu-actions-dropdown').forEach(m => {
-    if (m.id !== 'menu-carb-' + id) m.style.display = 'none';
-  });
-  const menu = document.getElementById('menu-carb-' + id);
-  if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-}
+// MOVED -> script-core-toggle-menu-carb.js : toggleMenuCarbAdmin
 
 // MOVED -> script-carburant.js : actionCarburant
 
@@ -1735,25 +1710,7 @@ let _editFournisseurId = null;
 // MOVED -> script-exports.js : genererRapportFournisseurs
 
 /* ===== CONGÉS / ABSENCES DANS LE PLANNING ===== */
-function toggleTypeJour(jour) {
-  const sel = document.getElementById('plan-type-'+jour);
-  const row = document.getElementById('plan-row-'+jour);
-  if (!sel || !row) return;
-  const type = sel.value;
-  row.className = type === 'travail' ? '' : type === 'conge' ? 'jour-conge' : type === 'absence' ? 'jour-absence' : 'jour-maladie';
-  // Afficher/masquer les champs horaires selon le type
-  const horaires = document.getElementById('plan-horaires-'+jour);
-  if (horaires) horaires.style.display = type === 'travail' ? 'grid' : 'none';
-  const cb = document.getElementById('plan-travaille-'+jour);
-  if (cb) cb.checked = type === 'travail';
-  mettreAJourTotalHeuresPlanning();
-}
-
-/* ===== CONNEXION TCO DANS LA PAGE VÉHICULES ===== */
-// MOVED -> script-core-tco-ui.js (Phase X.D) : ouvrirTCO
-
-/* ===== CONNEXION HISTOR. MODIFS DANS MODAL EDIT LIVRAISON ===== */
-// MOVED -> script-livraisons.js : ouvrirEditLivraison
+// MOVED -> script-core-toggle-type-jour.js : toggleTypeJour
 
 /* ===== VUE COMPACTE TABLES ===== */
 // MOVED -> script-core-ui-helpers.js (Phase X.H) : _vueCompacte + toggleVueCompacte
@@ -1991,19 +1948,7 @@ window.toggleChampsClientPro = function(isEdit) {
 
 // MOVED -> script-core-copier-semaine-planning.js : copierSemainePrecedente
 
-/* ===== DÉCONNEXION AUTO ADMIN (inactivité configurable) ===== */
-let _timerInactivite = null;
-function resetTimerInactivite() {
-  if (getRoleSessionCourant() !== 'admin') return;
-  clearTimeout(_timerInactivite);
-  _timerInactivite = setTimeout(() => {
-    sessionStorage.setItem('delivpro_session_expired', '1');
-    sessionStorage.setItem('delivpro_pending_signout', '1');
-    purgerSessionAdminLocale();
-    redirigerVersLoginAdmin();
-  }, getSessionTimeoutMinutesAdmin() * 60 * 1000);
-}
-['click','keydown','mousemove','scroll'].forEach(ev => document.addEventListener(ev, resetTimerInactivite, { passive:true }));
+// MOVED -> script-core-timer-inactivite.js : resetTimerInactivite
 
 /* ===== PARAMÈTRES ADMIN ===== */
 // MOVED -> script-core-auth.js : toggleParamMdp
@@ -2067,9 +2012,7 @@ const MCA_DEFAULTS_ENTREPRISE = {
 // MOVED -> script-core-auth.js : importerSauvegardeAdmin
 
 /* ===== HT / TVA ===== */
-function prixHT(prixTTC, tauxTVA) {
-  return prixTTC / (1 + tauxTVA / 100);
-}
+// MOVED -> script-core-prix-ht.js : prixHT
 // MOVED -> script-tva.js : getTauxTVA
 /* ===== SOLDE TRÉSORERIE ===== */
 // MOVED -> script-core-utils.js : calculerSoldeTresorerie
