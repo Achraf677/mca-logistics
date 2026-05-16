@@ -417,14 +417,15 @@
     const btnDup = document.getElementById('dr-liv-btn-duplicate');
     const btnPrint = document.getElementById('dr-liv-btn-print');
     if (btnEdit) btnEdit.addEventListener('click', function () {
-      if (!currentLivId) return;
+      // Phase 91.29 — capture livId AVANT fermerDrawerLivraison (qui reset currentLivId=null)
+      const livIdSnapshot = currentLivId;
+      if (!livIdSnapshot) return;
       window.fermerDrawerLivraison();
-      // Open existing edit modal
       setTimeout(() => {
         if (typeof window.ouvrirEditLivraison === 'function') {
-          window.ouvrirEditLivraison(currentLivId);
+          window.ouvrirEditLivraison(livIdSnapshot);
         } else if (typeof window.ouvrirEditLivraisonAdmin === 'function') {
-          window.ouvrirEditLivraisonAdmin(currentLivId);
+          window.ouvrirEditLivraisonAdmin(livIdSnapshot);
         }
       }, 300);
     });

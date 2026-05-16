@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v292-phase91-brouillon-rename-svg-align';
+const CACHE_VERSION = 'mca-v2026-05-16-v293-phase91-fix-modifier-btn-drawer-closure';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
