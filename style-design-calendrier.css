@@ -72,28 +72,61 @@
   font-family: var(--ds-font-body);
 }
 
+/* Phase 91.47 — palette moderne unifiée Cal Livraisons */
 .cal-liv-item {
-  font-family: var(--ds-font-body);
+  font-family: var(--ds-font-body, 'Inter', 'Segoe UI', sans-serif);
   font-size: var(--ds-fs-xs);
-  font-weight: var(--ds-fw-semibold);
-  background: var(--ds-info-soft);
-  color: var(--ds-info);
+  font-weight: 600;
+  background: rgba(96,165,250,0.14);
+  color: #60a5fa;
   border-radius: var(--ds-r-sm);
+  padding: 2px 6px;
+  border-left: 2px solid #60a5fa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.005em;
 }
-
 .cal-liv-item.livre {
-  background: var(--ds-success-soft);
-  color: var(--ds-success);
+  background: rgba(52,211,153,0.14);
+  color: #34d399;
+  border-left-color: #34d399;
 }
-
 .cal-liv-item.cours {
-  background: var(--ds-brand-soft);
-  color: var(--ds-brand);
+  background: rgba(230,57,70,0.14);
+  color: var(--ds-brand, #e63946);
+  border-left-color: var(--ds-brand, #e63946);
+}
+.cal-liv-item.attente,
+.cal-liv-item.brouillon {
+  background: rgba(251,191,36,0.12);
+  color: #fbbf24;
+  border-left-color: #fbbf24;
+}
+.cal-liv-item.more {
+  background: transparent;
+  color: var(--ds-text-muted, #adb5bd);
+  font-style: italic;
+  border-left: none;
 }
 
-.cal-liv-item.attente {
-  background: var(--ds-warning-soft);
-  color: var(--ds-warning);
+/* Phase 91.47 — Jour férié sur Cal Livraisons (parité Cal Op) */
+.cal-day.has-ferie {
+  background: linear-gradient(180deg, rgba(167,139,250,0.10), transparent 70%) !important;
+}
+.cal-day-ferie-tag {
+  display: block;
+  font-size: 0.62rem;
+  color: #a78bfa;
+  background: rgba(167,139,250,0.14);
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-weight: 600;
+  margin-top: 2px;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ============ NAV CALENDRIER (mois prev/next) ============ */
@@ -258,19 +291,43 @@
   flex-direction: column;
 }
 
-/* Légende footer horizontale compacte */
-.cal16-legend-footer {
+/* Phase 91.47 — Légende inline en haut à droite (parité Cal Livraisons, supprime footer) */
+.cal16-legend-inline {
   flex-direction: row !important;
   flex-wrap: wrap;
-  gap: 16px !important;
-  margin-top: 10px;
-  padding: 8px 12px;
+  gap: 14px !important;
+  margin: 0 0 12px;
+  padding: 0;
   font-size: 11px !important;
-  justify-content: flex-start;
+  justify-content: flex-end;
   background: transparent;
+  color: var(--ds-text-muted, #adb5bd);
+  font-family: var(--ds-font-body, 'Inter', 'Segoe UI', sans-serif);
 }
-.cal16-legend-footer .cal16-legend-item {
-  gap: 6px;
+.cal16-legend-inline .cal16-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.cal16-legend-inline .cal16-legend-dot {
+  width: 8px;
+  height: 8px;
+}
+
+/* Phase 91.47 — Police period-nav (Mai 2026 plus lisible, Inter au lieu de Syne) */
+.cal16-period-nav .period-label {
+  font-family: var(--ds-font-body, 'Inter', 'Segoe UI', sans-serif) !important;
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--ds-text, #f1f3f5);
+  text-transform: capitalize;
+}
+.cal16-period-nav .period-dates {
+  font-family: var(--ds-font-body, 'Inter', 'Segoe UI', sans-serif) !important;
+  font-size: 0.78rem !important;
+  color: var(--ds-text-muted, #adb5bd);
+  font-weight: 500;
 }
 
 /* Mobile breakpoint */
@@ -356,13 +413,13 @@
   flex-shrink: 0;
 }
 
-/* Phase 91.45 : 6 pastilles légende (toutes les couleurs du grid) */
-.cal16-legend-dot.today    { background: var(--ds-brand, #e63946); box-shadow: 0 0 0 2px rgba(230,57,70,0.3); }
-.cal16-legend-dot.ferie    { background: var(--ds-success, #06d6a0); }
-.cal16-legend-dot.livraison { background: #22c55e; }
-.cal16-legend-dot.echeance { background: var(--ds-warning, #ffd60a); }
-.cal16-legend-dot.paiement { background: #eab308; }
-.cal16-legend-dot.relance  { background: #f97316; }
+/* Phase 91.47 — Palette moderne unifiée (Linear/Notion inspired, dark-mode optimized) */
+.cal16-legend-dot.today    { background: var(--ds-brand, #e63946); box-shadow: 0 0 0 2px rgba(230,57,70,0.25); }
+.cal16-legend-dot.ferie    { background: #a78bfa; }  /* lavande — distingue des verts */
+.cal16-legend-dot.livraison { background: #60a5fa; }  /* sky blue */
+.cal16-legend-dot.echeance { background: #fbbf24; }  /* amber */
+.cal16-legend-dot.paiement { background: #34d399; }  /* emerald soft */
+.cal16-legend-dot.relance  { background: #fb7185; }  /* rose framboise */
 
 /* ============ Phase 51 : Calendrier sidebar mockup alignment ============ */
 /* Sidebar KPI grid: 1 column (mockup vertical stacked layout) */
@@ -428,7 +485,8 @@
   flex-shrink: 0;
 }
 
-.cal-legend-dot.today     { background: var(--brand, #e63946); }
-.cal-legend-dot.ferie     { background: #2ecc71; }
-.cal-legend-dot.livraison { background: rgba(52,152,219,0.7); }
-.cal-legend-dot.echeance  { background: var(--ds-warning, #ffd60a); }
+/* Phase 91.47 — Palette moderne unifiée Cal Op + Cal Livraisons */
+.cal-legend-dot.today     { background: var(--brand, #e63946); box-shadow: 0 0 0 2px rgba(230,57,70,0.25); }
+.cal-legend-dot.ferie     { background: #a78bfa; }  /* lavande */
+.cal-legend-dot.livraison { background: #60a5fa; }  /* sky blue */
+.cal-legend-dot.echeance  { background: #fbbf24; }  /* amber */

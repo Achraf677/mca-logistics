@@ -6968,13 +6968,13 @@ body.light-mode .s15-palette-item:hover { background: #eef2ff; }
   border-radius: 50%;
   flex-shrink: 0;
 }
-.cal16-dot-liv { background: #22c55e; }
-.cal16-dot-fac { background: #6366f1; }
-.cal16-dot-ech { background: #ef4444; }
-.cal16-dot-rel { background: #f97316; }
-.cal16-dot-pai { background: #eab308; }
-/* Phase 91.45 : fériés = vert (cohérent avec légende), plus de rouge qui confond avec Aujourd'hui */
-.cal16-dot-fer { background: var(--ds-success, #06d6a0); }
+/* Phase 91.47 — palette moderne unifiée (Linear/Notion inspired) */
+.cal16-dot-liv { background: #60a5fa; }  /* sky blue */
+.cal16-dot-fac { background: #a78bfa; }  /* lavande */
+.cal16-dot-ech { background: #fbbf24; }  /* amber */
+.cal16-dot-rel { background: #fb7185; }  /* rose framboise */
+.cal16-dot-pai { background: #34d399; }  /* emerald soft */
+.cal16-dot-fer { background: #a78bfa; }  /* lavande (férié) */
 
 /* KPI grid sidebar */
 .cal16-kpi-grid {
@@ -7058,8 +7058,8 @@ body.light-mode .s15-palette-item:hover { background: #eef2ff; }
   border-width: 1.5px;
 }
 .cal16-day-weekend { background: rgba(107,114,128,0.05); }
-/* Phase 91.45 : fériés = vert doux (cohérent avec légende), NE PAS utiliser rouge */
-.cal16-day-ferie { background: linear-gradient(180deg, rgba(6,214,160,0.10), transparent 70%); }
+/* Phase 91.47 : fériés = lavande (palette moderne unifiée, plus distinct du vert paiement) */
+.cal16-day-ferie { background: linear-gradient(180deg, rgba(167,139,250,0.10), transparent 70%); }
 .cal16-day-head {
   display: flex;
   justify-content: space-between;
@@ -7108,12 +7108,12 @@ body.light-mode .s15-palette-item:hover { background: #eef2ff; }
   color: var(--primary, #6366f1);
   background: rgba(99, 102, 241, 0.12);
 }
-/* Phase 91.45 : fériés tags = vert doux, NE PAS utiliser rouge */
+/* Phase 91.47 : fériés tags = lavande (palette moderne unifiée) */
 .cal16-day-ferie-tag {
   display: inline-block;
   font-size: 0.62rem;
-  color: var(--ds-success, #06d6a0);
-  background: rgba(6,214,160,0.14);
+  color: #a78bfa;
+  background: rgba(167,139,250,0.14);
   padding: 1px 5px;
   border-radius: 8px;
   font-weight: 600;
@@ -7126,8 +7126,8 @@ body.light-mode .s15-palette-item:hover { background: #eef2ff; }
   display: block;
   width: 100%;
   font-size: 0.62rem;
-  color: var(--ds-success, #06d6a0);
-  background: rgba(6,214,160,0.10);
+  color: #a78bfa;
+  background: rgba(167,139,250,0.10);
   padding: 2px 5px;
   border-radius: 4px;
   font-weight: 600;
@@ -7195,16 +7195,17 @@ body.light-mode .s15-palette-item:hover { background: #eef2ff; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.cal16-event-livraisons { background: rgba(34,197,94,0.14); border-left-color: #22c55e; }
-.cal16-event-livraisons:hover { background: rgba(34,197,94,0.28); }
-.cal16-event-factures { background: rgba(99,102,241,0.14); border-left-color: #6366f1; }
-.cal16-event-factures:hover { background: rgba(99,102,241,0.28); }
-.cal16-event-echeances { background: rgba(239,68,68,0.14); border-left-color: #ef4444; font-weight: 600; }
-.cal16-event-echeances:hover { background: rgba(239,68,68,0.28); }
-.cal16-event-relances { background: rgba(249,115,22,0.14); border-left-color: #f97316; }
-.cal16-event-relances:hover { background: rgba(249,115,22,0.28); }
-.cal16-event-paiements { background: rgba(234,179,8,0.14); border-left-color: #eab308; }
-.cal16-event-paiements:hover { background: rgba(234,179,8,0.28); }
+/* Phase 91.47 — Palette unifiée Cal Op + Cal Livraisons (moderne, dark-mode tuned) */
+.cal16-event-livraisons { background: rgba(96,165,250,0.14); border-left-color: #60a5fa; }
+.cal16-event-livraisons:hover { background: rgba(96,165,250,0.26); }
+.cal16-event-factures { background: rgba(167,139,250,0.14); border-left-color: #a78bfa; }
+.cal16-event-factures:hover { background: rgba(167,139,250,0.26); }
+.cal16-event-echeances { background: rgba(251,191,36,0.14); border-left-color: #fbbf24; font-weight: 600; }
+.cal16-event-echeances:hover { background: rgba(251,191,36,0.26); }
+.cal16-event-relances { background: rgba(251,113,133,0.14); border-left-color: #fb7185; }
+.cal16-event-relances:hover { background: rgba(251,113,133,0.26); }
+.cal16-event-paiements { background: rgba(52,211,153,0.14); border-left-color: #34d399; }
+.cal16-event-paiements:hover { background: rgba(52,211,153,0.26); }
 
 .cal16-event-more {
   font-size: 0.68rem;

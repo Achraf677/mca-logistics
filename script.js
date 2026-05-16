@@ -2283,12 +2283,48 @@ function afficherCalendrier() {
   const nbJours = new Date(annee, mois+1, 0).getDate();
   const auj     = aujourdhui();
 
-  // Grouper livraisons par date
+  // Grouper livraisons par date (exclut brouillon/annulee)
   const parDate = {};
   livraisons.forEach(l => {
+    const st = String(l.statut || '').toLowerCase();
+    if (st === 'brouillon' || st === 'draft' || st === 'annule' || st === 'annulee' || st === 'annulée') return;
     if (!parDate[l.date]) parDate[l.date] = [];
     parDate[l.date].push(l);
   });
+
+  // Phase 91.47 — branche jours fériés depuis window.cal16.feriesDeLAnnee (sync avec Calendrier opérationnel)
+  const feriesMap = {};
+  try {
+    if (window.cal16 && typeof window.cal16.feriesDeLAnnee === 'function') {
+      window.cal16.feriesDeLAnnee(annee).forEach(f => {
+        const k = f.date.getFullYear() + '-' + String(f.date.getMonth()+1).padStart(2,'0') + '-' + String(f.date.getDate()).padStart(2,'0');
+        feriesMap[k] = f.nom;
+      });
+    }
+  } catch (_) {}
+
+  function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function renderCell(d, ds, livs, isAutreMois) {
+    const isAuj = ds === auj;
+    const ferieNom = feriesMap[ds];
+    const cls = ['cal-day'];
+    if (isAutreMois) cls.push('autre-mois');
+    if (isAuj) cls.push('today');
+    if (livs.length) cls.push('has-livraisons');
+    if (ferieNom) cls.push('has-ferie');
+    const items = livs.slice(0, 3).map(l => {
+      const statutCls = l.statut === 'livre' ? 'livre' : l.statut === 'en-cours' ? 'cours' : '';
+      return `<div class="cal-liv-item ${statutCls}" title="${escHtml(l.client||'')}">${escHtml((l.client||'').substring(0,12))}</div>`;
+    }).join('');
+    const extra = livs.length > 3 ? `<div class="cal-liv-item more">+${livs.length-3}</div>` : '';
+    const ferieTag = ferieNom ? `<div class="cal-day-ferie-tag" title="${escHtml(ferieNom)}">☆ ${escHtml(ferieNom)}</div>` : '';
+    return `<div class="${cls.join(' ')}" onclick="filtrerCalJour('${ds}')">
+      <div class="cal-day-num">${d}</div>
+      ${ferieTag}
+      <div class="cal-liv-dot">${items}${extra}</div>
+    </div>`;
+  }
 
   const joursEnTete = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
   let html = joursEnTete.map(j => `<div class="cal-header-day">${j}</div>`).join('');
@@ -2297,25 +2333,13 @@ function afficherCalendrier() {
   for (let i = 0; i < offset; i++) {
     const d = new Date(annee, mois, -offset+i+1);
     const ds = d.toLocalISODate();
-    const livs = parDate[ds]||[];
-    html += `<div class="cal-day autre-mois" onclick="filtrerCalJour('${ds}')">
-      <div class="cal-day-num">${d.getDate()}</div>
-      <div class="cal-liv-dot">${livs.slice(0,2).map(l=>`<div class="cal-liv-item ${l.statut}">${l.client.substring(0,10)}</div>`).join('')}</div>
-    </div>`;
+    html += renderCell(d.getDate(), ds, parDate[ds]||[], true);
   }
 
   // Jours du mois
   for (let d = 1; d <= nbJours; d++) {
-    const ds   = `${annee}-${String(mois+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const livs = parDate[ds] || [];
-    const isAuj = ds === auj;
-    html += `<div class="cal-day${isAuj?' today':''}${livs.length?' has-livraisons':''}" onclick="filtrerCalJour('${ds}')">
-      <div class="cal-day-num">${d}</div>
-      <div class="cal-liv-dot">
-        ${livs.slice(0,3).map(l=>`<div class="cal-liv-item ${l.statut==='livre'?'livre':l.statut==='en-cours'?'cours':''}">${l.client.substring(0,10)}</div>`).join('')}
-        ${livs.length>3?`<div class="cal-liv-item">+${livs.length-3}</div>`:''}
-      </div>
-    </div>`;
+    const ds = `${annee}-${String(mois+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    html += renderCell(d, ds, parDate[ds]||[], false);
   }
 
   // Cases vides après le dernier
@@ -2323,9 +2347,8 @@ function afficherCalendrier() {
   const reste = total % 7 === 0 ? 0 : 7 - (total % 7);
   for (let i = 1; i <= reste; i++) {
     const d = new Date(annee, mois+1, i);
-    html += `<div class="cal-day autre-mois" onclick="filtrerCalJour('${d.toLocalISODate()}')">
-      <div class="cal-day-num">${i}</div>
-    </div>`;
+    const ds = d.toLocalISODate();
+    html += renderCell(i, ds, [], true);
   }
 
   cal.innerHTML = html;
@@ -9996,7 +10019,8 @@ genererRentabilitePDF = function() {
     save(LS.livraisons, livs);
     if (typeof window.logChange === 'function') window.logChange('livraison', livId, 'date', old, newDateISO, l.numero || 'Livraison');
     if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Déplacement livraison', (l.numero||'')+' : '+(old||'')+' → '+newDateISO);
-    toast('<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> ' +(l.numero||'Livraison')+' déplacée au '+new Date(newDateISO).toLocaleDateString('fr-FR'), 'success');
+    // Phase 91.47 : afficherToast() utilise textContent (anti-XSS) — pas de SVG inline. Emoji simple.
+    toast('📦 ' + (l.numero || 'Livraison') + ' déplacée au ' + new Date(newDateISO + 'T00:00:00').toLocaleDateString('fr-FR'), 'success');
     render();
     if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
     if (typeof window.__s14RefreshBanner === 'function') window.__s14RefreshBanner();
@@ -10119,7 +10143,7 @@ genererRentabilitePDF = function() {
     if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Export CSV calendrier', titre);
   }
 
-  window.cal16 = { render, naviguer, aujourdhui, changerVue, allerA, retourMois, imprimer };
+  window.cal16 = { render, naviguer, aujourdhui, changerVue, allerA, retourMois, imprimer, feriesDeLAnnee, feriePourDate };
   window.cal16ExportCSV = exporterCSV;
 
   /* WRAPPER S16 — Hook naviguerVers : déclencher render() du calendrier
