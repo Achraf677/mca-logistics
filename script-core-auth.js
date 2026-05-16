@@ -499,10 +499,17 @@ async function changerPhotoAdmin(idx) {
   if (src && img.isConnected) img.src = src;
 }
 
-// L3888 (script.js d'origine)
+// L3888 (script.js d'origine) — Phase 91.75 : toggle aria-pressed pour a11y
 function toggleParamMdp(inputId) {
   const input = document.getElementById(inputId);
-  if (input) input.type = input.type === 'password' ? 'text' : 'password';
+  if (!input) return;
+  const willShow = input.type === 'password';
+  input.type = willShow ? 'text' : 'password';
+  // Met à jour le bouton trigger (sibling) pour annonce screen reader
+  const btn = input.parentElement && input.parentElement.querySelector('.pw-toggle-btn');
+  if (btn) {
+    btn.setAttribute('aria-pressed', willShow ? 'true' : 'false');
+  }
 }
 
 // L3893 (script.js d'origine)

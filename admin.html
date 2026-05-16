@@ -1887,7 +1887,7 @@
               <div class="u-flex-row-tight">
                 <div class="pw-wrap-flex">
                   <input type="password" id="nsal-mdp" placeholder="8 caracteres min, avec majuscule et chiffre" style="padding-right:58px" autocomplete="new-password" oninput="mettreAJourQualiteMdpSalarie('new')" />
-                  <button onclick="toggleParamMdp('nsal-mdp')" type="button" class="pw-toggle-btn" aria-label="Afficher/masquer le mot de passe">Voir</button>
+                  <button onclick="toggleParamMdp('nsal-mdp')" type="button" class="pw-toggle-btn" aria-pressed="false" aria-label="Afficher/masquer le mot de passe">Voir</button>
                 </div>
                 <button type="button" class="btn-secondary" onclick="genererMotDePasseSalarie('new')">Générer</button>
               </div>
@@ -2552,13 +2552,13 @@
           <div class="params-card-body">
             <div id="param-admin-compte" style="margin-bottom:12px;font-size:12px;color:var(--text-muted)">Compte connecté : —</div>
             <div class="field"><label>Mot de passe actuel</label>
-              <div class="pw-wrap"><input type="password" id="param-mdp-actuel" placeholder="Actuel" aria-label="Actuel" /><button onclick="toggleParamMdp('param-mdp-actuel')" type="button" class="pw-toggle-btn" aria-label="Afficher/masquer le mot de passe actuel"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+              <div class="pw-wrap"><input type="password" id="param-mdp-actuel" placeholder="Actuel" aria-label="Actuel" /><button onclick="toggleParamMdp('param-mdp-actuel')" type="button" class="pw-toggle-btn" aria-pressed="false" aria-label="Afficher/masquer le mot de passe actuel"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
             </div>
             <div class="field"><label>Nouveau mot de passe</label>
-              <div class="pw-wrap"><input type="password" id="param-mdp-nouveau" placeholder="8 caractères min, avec majuscule et chiffre" aria-label="8 caractères min, avec majuscule et chiffre" /><button onclick="toggleParamMdp('param-mdp-nouveau')" type="button" class="pw-toggle-btn" aria-label="Afficher/masquer le nouveau mot de passe"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+              <div class="pw-wrap"><input type="password" id="param-mdp-nouveau" placeholder="8 caractères min, avec majuscule et chiffre" aria-label="8 caractères min, avec majuscule et chiffre" /><button onclick="toggleParamMdp('param-mdp-nouveau')" type="button" class="pw-toggle-btn" aria-pressed="false" aria-label="Afficher/masquer le nouveau mot de passe"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
             </div>
             <div class="field"><label>Confirmer</label>
-              <div class="pw-wrap"><input type="password" id="param-mdp-confirmer" placeholder="Confirmer" aria-label="Confirmer" /><button onclick="toggleParamMdp('param-mdp-confirmer')" type="button" class="pw-toggle-btn" aria-label="Afficher/masquer la confirmation du mot de passe"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+              <div class="pw-wrap"><input type="password" id="param-mdp-confirmer" placeholder="Confirmer" aria-label="Confirmer" /><button onclick="toggleParamMdp('param-mdp-confirmer')" type="button" class="pw-toggle-btn" aria-pressed="false" aria-label="Afficher/masquer la confirmation du mot de passe"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
             </div>
             <button class="btn btn-primary btn-full-center" style="margin-top:4px" onclick="changerMdpAdmin()">Modifier le mot de passe</button>
           </div>
@@ -4772,7 +4772,7 @@
           <div class="u-flex-row-tight">
             <div class="pw-wrap-flex">
               <input type="password" id="reset-mdp-val" oninput="mettreAJourQualiteMdpSalarie('access')" style="padding-right:58px" />
-              <button onclick="toggleParamMdp('reset-mdp-val')" type="button" class="pw-toggle-btn" aria-label="Afficher/masquer le mot de passe">Voir</button>
+              <button onclick="toggleParamMdp('reset-mdp-val')" type="button" class="pw-toggle-btn" aria-pressed="false" aria-label="Afficher/masquer le mot de passe">Voir</button>
             </div>
             <button type="button" class="btn-secondary" onclick="genererMotDePasseSalarie('access')">Générer</button>
           </div>

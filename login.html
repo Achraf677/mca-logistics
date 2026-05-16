@@ -499,7 +499,7 @@
         <label for="login-password">Mot de passe</label>
         <div class="password-wrap">
           <input type="password" id="login-password" autocomplete="current-password" placeholder="Votre mot de passe" />
-          <button type="button" class="toggle-password" onclick="toggleMdpVisible('login-password', this)" title="Afficher le mot de passe">Voir</button>
+          <button type="button" class="toggle-password" onclick="toggleMdpVisible('login-password', this)" title="Afficher le mot de passe" aria-pressed="false" aria-label="Afficher le mot de passe">Voir</button>
         </div>
       </div>
 
@@ -524,7 +524,7 @@
         <label for="setup-password">Nouveau mot de passe</label>
         <div class="password-wrap">
           <input type="password" id="setup-password" autocomplete="new-password" placeholder="Au moins 8 caractères" />
-          <button type="button" class="toggle-password" onclick="toggleMdpVisible('setup-password', this)" title="Afficher le mot de passe">Voir</button>
+          <button type="button" class="toggle-password" onclick="toggleMdpVisible('setup-password', this)" title="Afficher le mot de passe" aria-pressed="false" aria-label="Afficher le mot de passe">Voir</button>
         </div>
         <div id="setup-strength" style="font-size:.78rem;margin-top:6px;color:var(--muted)"></div>
       </div>
@@ -533,7 +533,7 @@
         <label for="setup-password-confirm">Confirmer le mot de passe</label>
         <div class="password-wrap">
           <input type="password" id="setup-password-confirm" autocomplete="new-password" placeholder="Retapez votre mot de passe" />
-          <button type="button" class="toggle-password" onclick="toggleMdpVisible('setup-password-confirm', this)" title="Afficher le mot de passe">Voir</button>
+          <button type="button" class="toggle-password" onclick="toggleMdpVisible('setup-password-confirm', this)" title="Afficher le mot de passe" aria-pressed="false" aria-label="Afficher le mot de passe">Voir</button>
         </div>
       </div>
 
@@ -688,9 +688,14 @@
     function toggleMdpVisible(inputId, btn) {
       const input = document.getElementById(inputId);
       if (!input) return;
-      const visible = input.type === 'password';
-      input.type = visible ? 'text' : 'password';
-      btn.style.opacity = visible ? '1' : '0.68';
+      const willShow = input.type === 'password';
+      input.type = willShow ? 'text' : 'password';
+      btn.style.opacity = willShow ? '1' : '0.68';
+      // Phase 91.75 a11y : toggle aria-pressed + label dynamique pour lecteurs d'écran
+      btn.setAttribute('aria-pressed', willShow ? 'true' : 'false');
+      btn.setAttribute('aria-label', willShow ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+      btn.title = willShow ? 'Masquer le mot de passe' : 'Afficher le mot de passe';
+      btn.textContent = willShow ? 'Cacher' : 'Voir';
     }
 
     function masquerMessagesConnexion() {
