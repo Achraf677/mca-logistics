@@ -124,16 +124,19 @@ test('H2.1 collisions — fermerFiche360 : 1 def canonique + 1 fallback guarded 
 //    utilise addToastListener)
 // ============================================================
 test('H2.1 collisions — afficherToast : 1 declaration canonique + addToastListener registry', () => {
-  const src = stripComments(read('script.js'));
+  // Phase X.AV (2026-05-17) : afficherToast extrait vers script-core-toast.js.
+  // Le test vérifie maintenant ce module (canonical) au lieu de script.js.
+  const src = stripComments(read('script-core-toast.js'));
   const decls = src.match(/^function afficherToast\s*\(/gm) || [];
   assert.equal(decls.length, 1,
-    `script.js doit contenir exactement 1 'function afficherToast'. Trouvé: ${decls.length}`);
-  // L'expose window.afficherToast = afficherToast; est OK (re-bind a la meme fn)
-  const reExpose = src.match(/^window\.afficherToast\s*=\s*afficherToast\s*;\s*$/gm) || [];
-  assert.equal(reExpose.length, 1, 'window.afficherToast = afficherToast; doit exister (1 fois) pour exposition globale.');
+    `script-core-toast.js doit contenir exactement 1 'function afficherToast'. Trouvé: ${decls.length}`);
   // Le registre doit etre present
   assert.ok(src.includes('window.addToastListener'), 'Le registre `addToastListener` doit etre present (pattern fan-out).');
   assert.ok(src.includes('__toastListeners'), '__toastListeners array doit exister pour le fan-out.');
+  // window.afficherToast = afficherToast est OK : soit la ligne legacy de script-core-toast.js soit
+  // la ré-exposition automatique par extract-module.cjs
+  assert.ok(/window\.afficherToast\s*=\s*afficherToast/.test(src),
+    'window.afficherToast = afficherToast; doit exister pour exposition globale.');
 });
 
 // ============================================================
