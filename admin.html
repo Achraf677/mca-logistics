@@ -1667,12 +1667,8 @@
           </div>
         </div>
         <div class="ds-section-head__actions u-flex-row">
-          <!-- Phase 57 : Mois/Trimestre/Année chips in section-head (mockup) -->
-          <div role="tablist" aria-label="Granularité des statistiques" style="display:contents">
-            <button class="btn-chip stats-granularity active" role="tab" aria-selected="true" data-granularity="mois" onclick="setStatsGranularity(this,'mois')">Mois</button>
-            <button class="btn-chip stats-granularity" role="tab" aria-selected="false" data-granularity="trimestre" onclick="setStatsGranularity(this,'trimestre')">Trimestre</button>
-            <button class="btn-chip stats-granularity" role="tab" aria-selected="false" data-granularity="annee" onclick="setStatsGranularity(this,'annee')">Année</button>
-          </div>
+          <!-- Phase 91.61 : chips section-head retirés (doublon avec .period-chips de la period-nav en-dessous,
+               qui couvre déjà Jour/Semaine/Mois/Trimestre/Année — une seule source de vérité période). -->
           <div class="liv-dropdown-wrap">
             <button class="btn-secondary liv-dropdown-btn" onclick="this.parentElement.classList.toggle('open')" aria-haspopup="true">
               <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1713,14 +1709,16 @@
           <button class="chip-period" data-period="jour">Jour</button>
           <button class="chip-period" data-period="semaine">Semaine</button>
           <button class="chip-period active" data-period="mois">Mois</button>
+          <button class="chip-period" data-period="trimestre">Trimestre</button>
           <button class="chip-period" data-period="annee">Année</button>
         </div>
       </div>
-      <!-- Hidden select kept for JS compat (changerVueStats reads vue-stats-select) -->
+      <!-- Hidden select kept for JS compat (changerVueStats reads vue-stats-select) — Phase 91.61 : ajout trimestre -->
       <select id="vue-stats-select" onchange="changerVueStats(this.value)" style="display:none" aria-hidden="true">
         <option value="jour">Par jour</option>
         <option value="semaine">Par semaine</option>
         <option value="mois" selected>Par mois</option>
+        <option value="trimestre">Par trimestre</option>
         <option value="annee">Par année</option>
       </select>
       <!-- Phase 36 refonte HTML : KPIs mockup-aligned + charts dans chart-card -->

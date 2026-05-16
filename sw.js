@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v325-phase91-60-rentabilite-simu-drawer';
+const CACHE_VERSION = 'mca-v2026-05-16-v326-phase91-61-stats-chips-unifies';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

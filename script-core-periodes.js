@@ -74,7 +74,8 @@ function isDateInRange(dateStr, range) {
 
 // L3802 (script.js d'origine)
 function changeSimplePeriode(state, mode, refreshFn, labelId, datesId, selectId) {
-  state.mode = ['jour', 'semaine', 'mois', 'annee'].includes(mode) ? mode : state.mode;
+  // Phase 91.59 : ajout 'trimestre' à la whitelist (cohérent avec getPeriodeRange)
+  state.mode = ['jour', 'semaine', 'mois', 'trimestre', 'annee'].includes(mode) ? mode : state.mode;
   state.offset = 0;
   var select = selectId ? document.getElementById(selectId) : null;
   if (select) select.value = state.mode;
