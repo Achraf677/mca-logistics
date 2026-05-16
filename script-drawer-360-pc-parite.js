@@ -114,7 +114,14 @@
   function kpiConformiteSalarie(sal, now) {
     if (!sal) return 0;
     const t = (now && now.getTime ? now.getTime() : (now || Date.now()));
-    const visiteDate = sal.visiteMedicale && (sal.visiteMedicale.dateExpiration || sal.visiteMedicale.date);
+    // Phase 91.89 : support 3 formats visiteMedicale — string ISO (legacy),
+    // {date, aptitude, dateExpiration} (Phase 91.44), null/undefined.
+    let visiteDate = null;
+    if (typeof sal.visiteMedicale === 'string') {
+      visiteDate = sal.visiteMedicale;
+    } else if (sal.visiteMedicale && typeof sal.visiteMedicale === 'object') {
+      visiteDate = sal.visiteMedicale.dateExpiration || sal.visiteMedicale.date;
+    }
     const items = [sal.datePermis, sal.dateAssurance, visiteDate].filter(Boolean);
     if (!items.length) return 0;
     const okCount = items.reduce(function (acc, d) {

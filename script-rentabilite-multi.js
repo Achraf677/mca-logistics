@@ -212,11 +212,14 @@
       document.body.style.overflow = '';
     }, 220);
   }
-  document.addEventListener('keydown', function(e){
-    if (e.key !== 'Escape') return;
-    var dr = document.getElementById('rent-simu-drawer');
-    if (dr && !dr.hidden) closeSimulateurRentabilite();
-  });
+  // Phase 91.60 / 91.89 : guard typeof document (Node test runner charge ce fichier sans DOM)
+  if (typeof document !== 'undefined') {
+    document.addEventListener('keydown', function(e){
+      if (e.key !== 'Escape') return;
+      var dr = document.getElementById('rent-simu-drawer');
+      if (dr && !dr.hidden) closeSimulateurRentabilite();
+    });
+  }
 
   function getRangeAnalyse() {
     // Reutilise le mois selectionne par le simulateur si dispo, sinon mois courant.
