@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v381-phaseX-BV-form-livraison';
+const CACHE_VERSION = 'mca-v2026-05-17-v382-phaseX-BW-BX-final-admin-blocks';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -230,6 +230,9 @@ const CORE_ASSETS = [
   '/script-core-sprint29-parametres-pro.js',
   // Phase X.BV : Form livraison enhancements
   '/script-core-form-livraison-enhancements.js',
+  // Phase X.BW-BX : FINAL ADMIN LOCK + ADMIN FINAL UX/EXPORTS
+  '/script-core-admin-final-lock.js',
+  '/script-core-admin-final-ux-exports.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
