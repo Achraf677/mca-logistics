@@ -751,3 +751,24 @@ label[for="carb-photo"]:hover {
   font-size: .95rem;
   font-family: inherit;
 }
+
+/* ============ PREFERS-REDUCED-MOTION (RGAA) ============ */
+@media (prefers-reduced-motion: reduce) {
+  .m-header-action,
+  .m-tab,
+  .m-bottom-nav a,
+  .m-bottom-nav button,
+  .m-drawer,
+  .m-sheet,
+  .m-drawer-overlay,
+  .m-sheet-overlay,
+  .m-loading,
+  .m-spinner,
+  .m-tab-icon svg,
+  .m-drawer-link,
+  .m-fab,
+  .m-toast {
+    transition: none !important;
+    animation: none !important;
+  }
+}

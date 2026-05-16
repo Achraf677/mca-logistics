@@ -104,7 +104,7 @@ html, body {
   font-family: inherit;
   transition: border-color .2s;
 }
-.login-field input:focus { outline: none; border-color: var(--accent); }
+.login-field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
 .btn-login {
   width: 100%;
   padding: 17px;
@@ -363,7 +363,7 @@ html, body {
   font-size: .95rem; font-family: inherit;
   transition: border-color .2s; min-height: 52px;
 }
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+.form-group input:focus-visible, .form-group select:focus-visible, .form-group textarea:focus-visible {
   outline: none; border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(230,57,70,0.12);
 }
@@ -764,6 +764,16 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
   display:flex;align-items:center;justify-content:center;
   z-index:10;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+  .btn-login { transition: none !important; }
+  .action-btn, .check-circle, .progress-fill, .progress-wrap { transition: none !important; }
+  .sheet, .sheet-overlay, .modal-overlay { transition: none !important; }
+  .toast { transition: none !important; }
+  #offline-banner { transition: none !important; }
+  .livraison-statut select { transition: none !important; }
+}
 </style>
   <!-- Phase 16 refonte HTML : mobile refinement (header + nav + cards + lists + fab + sheet + drawer) -->
   <link rel="stylesheet" href="/style-design-mobile-refine.css?v=1" />
@@ -860,7 +870,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
       <!-- ============================================================
            ACCUEIL          : hub livraisons du jour + actions rapides
            ============================================================ -->
-      <div class="panneau active" id="panneau-accueil">
+      <div class="panneau active" id="panneau-accueil" role="tabpanel" aria-labelledby="tab-accueil" tabindex="0">
         <div id="resume-journee-container"></div>
 
         <div style="margin-bottom:16px">
@@ -917,7 +927,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
       <!-- ============================================================
            LIVRAISONS       : liste assignées + filtres jour/semaine
            ============================================================ -->
-      <div class="panneau" id="panneau-livraisons">
+      <div class="panneau" id="panneau-livraisons" role="tabpanel" aria-labelledby="tab-livraisons" tabindex="-1">
         <div class="card">
           <div class="card-header">Mes livraisons du jour
             <span style="font-size:.78rem;color:var(--muted);font-weight:400" id="badge-nb-livraisons"></span>
@@ -931,7 +941,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
       <!-- ============================================================
            PLANNING         : horaires de la semaine (lecture seule)
            ============================================================ -->
-      <div class="panneau" id="panneau-planning">
+      <div class="panneau" id="panneau-planning" role="tabpanel" aria-labelledby="tab-planning" tabindex="-1">
         <div class="card">
           <div class="card-header">Mon planning de la semaine</div>
           <div class="card-body" id="planning-sal-content">
@@ -943,7 +953,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
       <!-- ============================================================
            CARBURANT        : enregistrer un plein + OCR ticket
            ============================================================ -->
-      <div class="panneau" id="panneau-carburant">
+      <div class="panneau" id="panneau-carburant" role="tabpanel" aria-labelledby="tab-carburant" tabindex="-1">
         <div id="notifs-carburant-container"></div>
         <div class="card">
           <div class="card-header">Enregistrer un plein</div>
@@ -1002,7 +1012,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
                   }
                 " />
             </div>
-            <button class="btn-primary" style="margin-top:16px" onclick="enregistrerPlein()">Enregistrer le plein</button>
+            <button class="btn-primary" style="margin-top:16px" onclick="enregistrerPlein()" type="button">Enregistrer le plein</button>
           </div>
         </div>
         <div class="card">
@@ -1012,7 +1022,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
       </div>
 
       <!-- INSPECTION + KM -->
-      <div class="panneau" id="panneau-inspection">
+      <div class="panneau" id="panneau-inspection" role="tabpanel" aria-labelledby="tab-inspection" tabindex="-1">
         <div class="card" style="margin-bottom:14px">
           <div class="card-header">Relevé kilométrique</div>
           <div class="card-body">
@@ -1060,7 +1070,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
               Distance : <strong id="km-distance">0 km</strong>
             </div>
             <div style="display:flex;gap:10px">
-              <button id="btn-km-depart" onclick="enregistrerKmDepart()" style="
+              <button id="btn-km-depart" onclick="enregistrerKmDepart()" type="button" style="
                 flex:1;
                 background:linear-gradient(135deg,#e63946,#ff4d5c);
                 color:#000;border:none;border-radius:14px;
@@ -1068,7 +1078,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
                 cursor:pointer;font-family:inherit;
                 transition:all .3s;
               ">Km départ</button>
-              <button id="btn-km-retour" onclick="enregistrerKmFin()" style="
+              <button id="btn-km-retour" onclick="enregistrerKmFin()" type="button" style="
                 flex:1;
                 background:#1a2234;color:#e8f0ff;
                 border:1px solid #1e2a3d;border-radius:14px;
@@ -1114,7 +1124,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
               <input type="file" id="insp-photos" accept="image/*" multiple capture="environment" style="display:none" onchange="gererPhotosInspection(this)" />
               <div id="insp-photos-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
             </div>
-            <button class="btn-primary" onclick="soumettreInspection()">Envoyer l'inspection</button>
+            <button class="btn-primary" onclick="soumettreInspection()" type="button">Envoyer l'inspection</button>
           </div>
         </div>
         <div class="card">
@@ -1126,7 +1136,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
       <!-- ============================================================
            MESSAGES         : messagerie admin ↔ chauffeur
            ============================================================ -->
-      <div class="panneau" id="panneau-messages">
+      <div class="panneau" id="panneau-messages" role="tabpanel" aria-labelledby="tab-messages" tabindex="-1">
         <div class="card" style="
           display:flex;flex-direction:column;
           min-height:calc(100dvh - 180px);
@@ -1173,7 +1183,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){
                 event.preventDefault();envoyerMessageSal();}"
              aria-label="Saisir un message à l'administrateur"></textarea>
-            <button class="btn-send" onclick="envoyerMessageSal()" aria-label="Envoyer le message">➤</button>
+            <button class="btn-send" onclick="envoyerMessageSal()" aria-label="Envoyer le message" type="button"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
           </div>
         </div>
       </div>
@@ -1181,14 +1191,14 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
       <!-- ============================================================
            PROFIL           : mot de passe + PWA install + bug report
            ============================================================ -->
-      <div class="panneau" id="panneau-profil">
+      <div class="panneau" id="panneau-profil" role="tabpanel" aria-labelledby="tab-profil" tabindex="-1">
         <div id="mes-incidents-container" style="margin-bottom:14px"></div>
         <div id="notifs-profil-container"></div>
         <div class="card">
           <div class="card-header">Mon profil</div>
           <div class="card-body">
             <div class="profil-header">
-              <div class="profil-avatar" id="profil-avatar">👤</div>
+              <div class="profil-avatar" id="profil-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div>
               <div>
                 <div class="profil-name" id="profil-nom-display">—</div>
                 <div class="profil-sub" id="profil-poste-display">—</div>
@@ -1214,13 +1224,13 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
               <div class="form-group"><label for="chg-ancien">Mot de passe actuel</label><input type="password" id="chg-ancien" autocomplete="current-password" /></div>
               <div class="form-group"><label for="chg-nouveau">Nouveau mot de passe</label><input type="password" id="chg-nouveau" autocomplete="new-password" /></div>
               <div class="form-group"><label for="chg-confirmer">Confirmer</label><input type="password" id="chg-confirmer" autocomplete="new-password" /></div>
-              <button class="btn-primary" onclick="changerMonMdp()">Mettre à jour</button>
+              <button class="btn-primary" onclick="changerMonMdp()" type="button">Mettre à jour</button>
             </div>
             <div style="margin-top:12px">
               <button class="btn-secondary" style="width:100%" id="salarie-bug-report-btn" type="button" title="Capture URL, version, viewport, console et copie un rapport markdown a transmettre.">Signaler un bug</button>
             </div>
             <div style="margin-top:20px">
-              <button class="btn-danger" style="width:100%" id="btn-salarie-logout" onclick="seDeconnecter()">⏏ Se déconnecter</button>
+              <button class="btn-danger" style="width:100%" id="btn-salarie-logout" onclick="seDeconnecter()" type="button">Se déconnecter</button>
             </div>
           </div>
         </div>
@@ -1239,8 +1249,8 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
   </div><!-- fin main -->
 
   <!-- BOTTOM NAV -->
-  <nav id="bottom-nav">
-    <div class="bn-wrap" style="
+  <nav id="bottom-nav" role="tablist" aria-label="Navigation mobile">
+    <div class="bn-wrap" role="presentation" style="
       overflow-x: auto;
       overflow-y: hidden;
       scrollbar-width: none;
@@ -1249,40 +1259,40 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
       height: var(--bottom-nav-h);
       padding: 0 4px;
     ">
-      <button class="bn-item active" id="bn-accueil" aria-label="Accueil" aria-current="page"
+      <button class="bn-item active" id="bn-accueil" role="tab" aria-selected="true" aria-controls="panneau-accueil" aria-label="Accueil"
         onclick="changerOngletMobile('accueil',this)">
         <span class="bn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
         <span class="bn-label">Accueil</span>
         <span class="bn-badge" id="bn-badge-accueil"></span>
       </button>
-      <button class="bn-item" id="bn-livraisons" aria-label="Livraisons"
+      <button class="bn-item" id="bn-livraisons" role="tab" aria-selected="false" aria-controls="panneau-livraisons" aria-label="Livraisons"
         onclick="changerOngletMobile('livraisons',this)">
         <span class="bn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span>
         <span class="bn-label">Livraisons</span>
         <span class="bn-badge" id="bn-badge-livraisons"></span>
       </button>
-      <button class="bn-item" id="bn-inspection" aria-label="Kilométrage et inspection"
+      <button class="bn-item" id="bn-inspection" role="tab" aria-selected="false" aria-controls="panneau-inspection" aria-label="Kilométrage et inspection"
         onclick="changerOngletMobile('inspection',this)">
         <span class="bn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></span>
         <span class="bn-label">Km & Insp.</span>
       </button>
-      <button class="bn-item" id="bn-carburant" aria-label="Carburant"
+      <button class="bn-item" id="bn-carburant" role="tab" aria-selected="false" aria-controls="panneau-carburant" aria-label="Carburant"
         onclick="changerOngletMobile('carburant',this)">
         <span class="bn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg></span>
         <span class="bn-label">Carburant</span>
       </button>
-      <button class="bn-item" id="bn-messages" aria-label="Messages"
+      <button class="bn-item" id="bn-messages" role="tab" aria-selected="false" aria-controls="panneau-messages" aria-label="Messages"
         onclick="changerOngletMobile('messages',this)">
         <span class="bn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
         <span class="bn-label">Messages</span>
         <span class="bn-badge" id="bn-badge-messages"></span>
       </button>
-      <button class="bn-item" id="bn-planning" aria-label="Planning"
+      <button class="bn-item" id="bn-planning" role="tab" aria-selected="false" aria-controls="panneau-planning" aria-label="Planning"
         onclick="changerOngletMobile('planning',this)">
         <span class="bn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></span>
         <span class="bn-label">Planning</span>
       </button>
-      <button class="bn-item" id="bn-profil" aria-label="Mon profil"
+      <button class="bn-item" id="bn-profil" role="tab" aria-selected="false" aria-controls="panneau-profil" aria-label="Mon profil"
         onclick="changerOngletMobile('profil',this)">
         <span class="bn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
         <span class="bn-label">Profil</span>
@@ -1293,9 +1303,9 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
 </div><!-- fin ecran-salarie -->
 
 <!-- Modales -->
-<div class="modal-overlay" id="modal-modif-plein">
+<div class="modal-overlay" id="modal-modif-plein" role="dialog" aria-modal="true" aria-labelledby="modal-modif-plein-title">
   <div class="modal">
-    <div class="modal-header">✏️ Modifier le plein <button class="btn-close" onclick="fermerModal('modal-modif-plein')" aria-label="Fermer">✕</button></div>
+    <div class="modal-header"><span id="modal-modif-plein-title">Modifier le plein</span> <button class="btn-close" onclick="fermerModal('modal-modif-plein')" aria-label="Fermer" type="button">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="modif-plein-id" />
       <div class="form-group"><label for="modif-litres">Litres *</label><input type="number" id="modif-litres" min="0" step="0.1" /></div>
@@ -1304,14 +1314,14 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
     </div>
     <div class="modal-footer">
       <button class="btn-sm" onclick="fermerModal('modal-modif-plein')">Annuler</button>
-      <button class="btn-primary" onclick="confirmerModifPlein()">Enregistrer</button>
+      <button class="btn-primary" onclick="confirmerModifPlein()" type="button">Enregistrer</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-edit-km-sal">
+<div class="modal-overlay" id="modal-edit-km-sal" role="dialog" aria-modal="true" aria-labelledby="modal-edit-km-sal-title">
   <div class="modal">
-    <div class="modal-header">✏️ Modifier le relevé <button class="btn-close" onclick="fermerModal('modal-edit-km-sal')" aria-label="Fermer">✕</button></div>
+    <div class="modal-header"><span id="modal-edit-km-sal-title">Modifier le relevé</span> <button class="btn-close" onclick="fermerModal('modal-edit-km-sal')" aria-label="Fermer" type="button">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="edit-km-id" />
       <div class="form-group"><label for="edit-km-dep">Km début *</label><input type="number" id="edit-km-dep" min="0" inputmode="numeric" /></div>
@@ -1320,7 +1330,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
     </div>
     <div class="modal-footer">
       <button class="btn-sm" onclick="fermerModal('modal-edit-km-sal')">Annuler</button>
-      <button class="btn-primary" onclick="confirmerEditKmSal()">Enregistrer</button>
+      <button class="btn-primary" onclick="confirmerEditKmSal()" type="button">Enregistrer</button>
     </div>
   </div>
 </div>
