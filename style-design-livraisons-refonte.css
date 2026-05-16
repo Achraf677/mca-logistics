@@ -202,8 +202,10 @@
 .livraisons-table td:nth-child(3) { width: 80px; }
 .livraisons-table th[data-sort-key="client"],
 .livraisons-table td:nth-child(4) { width: 150px; }
+/* Phase 91.32 — Trajet en width:auto absorbe TOUT l'excédent de largeur (1920×1080 etc.)
+   au lieu de laisser des trous proportionnels entre toutes les colonnes. */
 .livraisons-table th[data-sort-key="zone"],
-.livraisons-table td:nth-child(5) { width: 230px; }
+.livraisons-table td:nth-child(5) { width: auto; }
 .livraisons-table th[data-sort-key="chauffeur"],
 .livraisons-table td:nth-child(10) { width: 170px; }
 .livraisons-table th[data-injected="vehicule"],
@@ -651,9 +653,11 @@
    Paiement / Date paiement / Actions inline
    ============================================================ */
 
-/* TH : ciblage par data-sort-key */
+/* TH : ciblage par data-sort-key.
+   Phase 91.32 — :not([data-injected="montant-ht"]) sur "ht" pour épargner le TH col 16
+   qui partage data-sort-key="ht" (sortable). Sans ça, le header MONTANT HT était caché. */
 .livraisons-table th[data-sort-key="distance"],
-.livraisons-table th[data-sort-key="ht"],
+.livraisons-table th[data-sort-key="ht"]:not([data-injected="montant-ht"]),
 .livraisons-table th[data-sort-key="tva"],
 .livraisons-table th[data-sort-key="ttc"],
 .livraisons-table th[data-sort-key="paiement"],
