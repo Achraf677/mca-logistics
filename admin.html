@@ -4181,9 +4181,9 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="modal-client-history">
+  <div class="modal-overlay" id="modal-client-history" role="dialog" aria-modal="true" aria-labelledby="modal-client-history-title">
     <div class="modal" style="max-width:920px">
-      <div class="modal-header"><h3>Historique client — <span id="client-history-title"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client-history')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-client-history-title">Historique client — <span id="client-history-title"></span></h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client-history')">✕</button></div>
       <div class="modal-body modal-body-scroll">
         <div id="client-history-content"></div>
       </div>
@@ -4515,9 +4515,9 @@
   </div>
 
   <!-- Modal : Detail tournee (drill-down) -->
-  <div class="modal-overlay" id="modal-detail-tournee">
+  <div class="modal-overlay" id="modal-detail-tournee" role="dialog" aria-modal="true" aria-labelledby="detail-tournee-title">
     <div class="modal" style="max-width:720px">
-      <div class="modal-header"><h3 id="detail-tournee-title">Détail tournée</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-detail-tournee')">✕</button></div>
+      <div class="modal-header"><h3 id="detail-tournee-title">Détail tournée</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-detail-tournee')">✕</button></div>
       <div class="modal-body" id="detail-tournee-body"></div>
       <div class="modal-footer"><button class="btn-primary" onclick="closeModal('modal-detail-tournee')">Fermer</button></div>
     </div>
@@ -4711,11 +4711,11 @@
   </div>
 
   <!-- Affichage credentials chauffeur (creation OU reset mdp) -->
-  <div class="modal-overlay" id="modal-credentials-chauffeur">
+  <div class="modal-overlay" id="modal-credentials-chauffeur" role="dialog" aria-modal="true" aria-labelledby="modal-credentials-chauffeur-title">
     <div class="modal" style="max-width:480px">
       <div class="modal-header">
-        <h3>Identifiants de connexion</h3>
-        <button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-credentials-chauffeur')">✕</button>
+        <h3 id="modal-credentials-chauffeur-title">Identifiants de connexion</h3>
+        <button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-credentials-chauffeur')">✕</button>
       </div>
       <div class="modal-body">
         <p style="color:var(--text-muted);margin-bottom:14px;font-size:.88rem">
@@ -5076,9 +5076,9 @@
   </datalist>
 
   <!-- Modal Historique conducteurs -->
-  <div class="modal-overlay" id="modal-hist-conducteurs">
+  <div class="modal-overlay" id="modal-hist-conducteurs" role="dialog" aria-modal="true" aria-labelledby="modal-hist-conducteurs-title">
     <div class="modal" style="max-width:560px">
-      <div class="modal-header"><h3>Historique conducteurs — <span id="hist-cond-titre"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-hist-conducteurs')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-hist-conducteurs-title">Historique conducteurs — <span id="hist-cond-titre"></span></h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-hist-conducteurs')">✕</button></div>
       <div class="modal-body" style="padding:0">
         <div id="hist-conducteurs-modal" style="max-height:400px;overflow-y:auto;padding:16px"></div>
       </div>
@@ -5086,9 +5086,9 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="modal-inspection-admin">
+  <div class="modal-overlay" id="modal-inspection-admin" role="dialog" aria-modal="true" aria-labelledby="modal-inspection-admin-title">
     <div class="modal" style="max-width:620px">
-      <div class="modal-header"><h3>Nouvelle inspection</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-inspection-admin')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-inspection-admin-title">Nouvelle inspection</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-inspection-admin')">✕</button></div>
       <div class="modal-body form-grid">
         <div class="form-group"><label for="admin-insp-salarie">Salarié</label><select id="admin-insp-salarie"><option value="">— Choisir —</option></select></div>
         <div class="form-group"><label for="admin-insp-vehicule">Véhicule</label><select id="admin-insp-vehicule"><option value="">— Aucun véhicule —</option></select></div>
@@ -5117,9 +5117,9 @@
   </div>
 
   <!-- Phase 60 V7 polish — Modal Enregistrer paiement (Encaissement). Btn admin.html:2743 référençait modal inexistante. -->
-  <div class="modal-overlay" id="modal-paiement">
+  <div class="modal-overlay" id="modal-paiement" role="dialog" aria-modal="true" aria-labelledby="modal-paiement-title">
     <div class="modal" style="max-width:520px">
-      <div class="modal-header"><h3>Enregistrer un paiement</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-paiement')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-paiement-title">Enregistrer un paiement</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-paiement')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group full-width">
@@ -5159,9 +5159,9 @@
   </div>
 
   <!-- Modal TCO véhicule -->
-  <div class="modal-overlay" id="modal-tco">
+  <div class="modal-overlay" id="modal-tco" role="dialog" aria-modal="true" aria-labelledby="modal-tco-title">
     <div class="modal" style="max-width:520px">
-      <div class="modal-header"><h3>Coût Total Possession — <span id="tco-veh-nom"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-tco')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-tco-title">Coût Total Possession — <span id="tco-veh-nom"></span></h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-tco')">✕</button></div>
       <div class="modal-body">
         <div id="tco-detail"></div>
         <p style="font-size:.75rem;color:var(--text-muted);margin-top:12px">Cumul depuis la création du véhicule dans MCA Logistics.</p>
@@ -5171,9 +5171,9 @@
   </div>
 
   <!-- Modal Note interne salarié -->
-  <div class="modal-overlay" id="modal-note-interne">
+  <div class="modal-overlay" id="modal-note-interne" role="dialog" aria-modal="true" aria-labelledby="modal-note-interne-title">
     <div class="modal" style="max-width:460px">
-      <div class="modal-header"><h3>Note interne — <span id="note-interne-sal-nom"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-note-interne')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-note-interne-title">Note interne — <span id="note-interne-sal-nom"></span></h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-note-interne')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="note-interne-sal-id" />
         <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:12px">Visible uniquement par l'administrateur. Jamais par le salarié.</p>
@@ -5187,9 +5187,9 @@
   </div>
 
   <!-- Modal Récurrence -->
-  <div class="modal-overlay" id="modal-recurrence">
+  <div class="modal-overlay" id="modal-recurrence" role="dialog" aria-modal="true" aria-labelledby="modal-recurrence-title">
     <div class="modal" style="max-width:420px">
-      <div class="modal-header"><h3>Livraison récurrente</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-recurrence')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-recurrence-title">Livraison récurrente</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-recurrence')">✕</button></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px">Créer des copies hebdomadaires de :</p>
         <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:.88rem;font-weight:600" id="rec-liv-info"></div>
@@ -5208,16 +5208,16 @@
   </div>
 
   <!-- Modal Confirmation stylée -->
-  <div class="modal-overlay" id="modal-confirm">
+  <div class="modal-overlay" id="modal-confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-msg">
     <div class="modal" style="max-width:400px">
       <div class="modal-body" style="padding:28px 24px 8px;text-align:center">
-        <div class="confirm-icon" id="confirm-icon">⚠️</div>
+        <div class="confirm-icon" id="confirm-icon" aria-hidden="true">⚠️</div>
         <div class="confirm-title" id="confirm-title">Confirmation</div>
         <p class="confirm-msg" id="confirm-msg" style="font-size:.88rem;color:var(--text-muted);margin-top:8px;line-height:1.5"></p>
       </div>
       <div class="modal-footer" style="justify-content:center;gap:12px">
-        <button class="btn-secondary" style="min-width:100px" onclick="confirmReject()">Annuler</button>
-        <button id="confirm-ok-btn" class="btn-primary" style="min-width:100px" onclick="confirmResolve()">Confirmer</button>
+        <button type="button" class="btn-secondary" style="min-width:100px" onclick="confirmReject()">Annuler</button>
+        <button type="button" id="confirm-ok-btn" class="btn-primary" style="min-width:100px" onclick="confirmResolve()">Confirmer</button>
       </div>
     </div>
   </div>
@@ -5264,9 +5264,9 @@
   <!-- Sprint 14 : Confirmations de réception à envoyer -->
 
   <!-- Réinitialisation compteur livraisons (test uniquement) -->
-  <div class="modal-overlay" id="modal-reset-compteur">
+  <div class="modal-overlay" id="modal-reset-compteur" role="dialog" aria-modal="true" aria-labelledby="modal-reset-compteur-title">
     <div class="modal">
-      <div class="modal-header"><h3>Réinitialiser le compteur de livraisons</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-reset-compteur')">✕</button></div>
+      <div class="modal-header"><h3 id="modal-reset-compteur-title">Réinitialiser le compteur de livraisons</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-reset-compteur')">✕</button></div>
       <div class="modal-body">
         <div style="padding:14px;background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:14px">
           <div style="font-weight:700;color:#ef4444;margin-bottom:6px">⚠️ Opération irréversible</div>
@@ -5289,10 +5289,10 @@
 
   <!-- Sprint 12 : Suppression forcée (taper numéro) -->
 
-  <div class="modal-overlay" id="modal-recherche-globale">
+  <div class="modal-overlay" id="modal-recherche-globale" role="dialog" aria-modal="true" aria-labelledby="modal-recherche-globale-title">
     <div class="modal modal-search-global">
       <div class="modal-header">
-        <h3>Recherche globale</h3>
+        <h3 id="modal-recherche-globale-title">Recherche globale</h3>
         <button class="modal-close" aria-label="Fermer" type="button" onclick="fermerRechercheGlobale()">✕</button>
       </div>
       <div class="modal-body">
