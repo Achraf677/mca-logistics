@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v363-phaseX-I-extract-modeles-messages';
+const CACHE_VERSION = 'mca-v2026-05-16-v364-phaseX-J-extract-fiche-tournee';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -149,6 +149,8 @@ const CORE_ASSETS = [
   '/script-core-ui-helpers.js',
   // Phase X.I (91.98) — Modèles messages prédéfinis chauffeur
   '/script-core-modeles-messages.js',
+  // Phase X.J (91.99) — Fiche tournée PDF extrait de script.js
+  '/script-core-fiche-tournee.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
