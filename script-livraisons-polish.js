@@ -359,18 +359,22 @@
     if (dispatch[type]) dispatch[type]();
   };
 
-  // ============ Bulk Modifier button (Phase 32) ============
+  // ============ Bulk Modifier button (Phase 32) + Supprimer (Phase 90) ============
   // Apparait quand >= 1 row checkbox cochee, avec compteur "(N)"
   function updateBulkModifyButton() {
     const btn = document.getElementById('liv-modify-btn');
     const countEl = document.getElementById('liv-modify-count');
-    if (!btn || !countEl) return;
     const checked = document.querySelectorAll('#tb-livraisons .bulk-liv-check:checked').length;
-    if (checked > 0) {
-      btn.style.display = '';
-      countEl.textContent = '(' + checked + ')';
-    } else {
-      btn.style.display = 'none';
+    if (btn && countEl) {
+      if (checked > 0) { btn.style.display = ''; countEl.textContent = '(' + checked + ')'; }
+      else { btn.style.display = 'none'; }
+    }
+    // Phase 90 — sibling trash button gauche du chip "Mai 2026"
+    const delBtn = document.getElementById('liv-bulk-delete-btn');
+    const delCount = document.getElementById('liv-bulk-delete-count');
+    if (delBtn && delCount) {
+      if (checked > 0) { delBtn.style.display = ''; delCount.textContent = '(' + checked + ')'; }
+      else { delBtn.style.display = 'none'; }
     }
   }
 

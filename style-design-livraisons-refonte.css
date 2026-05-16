@@ -159,12 +159,14 @@
   text-transform: uppercase;
   letter-spacing: 0.07em;
   font-weight: 700;
-  padding: 14px 16px;
+  padding: 14px 10px;
 }
 
-/* Rows : padding réduit pour cibler hauteur mockup ~53px (select natif ~32px + 2×10 + 1 border) */
+/* Rows : padding réduit pour cibler hauteur mockup ~53px (select natif ~32px + 2×10 + 1 border).
+   Phase 90 — padding-horizontal aligné header (10px) pour décaler colonnes à gauche
+   (user feedback : ressentait que les titres + cellules étaient "right-aligned"). */
 .livraisons-table tbody td {
-  padding: 10px 12px;
+  padding: 10px 10px;
 }
 
 /* ============ Pagination footer polish ============ */
@@ -367,6 +369,30 @@
   border-color: rgba(230, 57, 70, 0.4);
 }
 
+/* Phase 90 — bouton Supprimer bulk (gauche du chip "Mai 2026"), même chip-style que .liv-filters-toggle mais accent rouge brand */
+.liv-bulk-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 57, 70, 0.32);
+  background: rgba(230, 57, 70, 0.10);
+  color: var(--ds-brand, var(--accent, #e63946));
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease-out;
+}
+.liv-bulk-delete-btn:hover {
+  background: rgba(230, 57, 70, 0.16);
+  border-color: rgba(230, 57, 70, 0.5);
+}
+.liv-bulk-delete-btn svg {
+  opacity: 0.85;
+}
+
 .liv-filters-toggle svg {
   width: 12px;
   height: 12px;
@@ -448,43 +474,48 @@
   filter: brightness(1.1);
 }
 
-/* Variants couleurs : legacy uses is-success/is-info/is-warn/is-danger.
-   Mes alias is-ok/is-err/is-muted/is-draft pour cas custom. */
+/* Variants couleurs (Phase 90 — palette muted mockup previews/livraisons.html) :
+   - ok (livre)      = sage muted   #9bb1a4
+   - pending (attente) = wheat tan  #d4b67a
+   - info (cours)    = sky muted    #7aa4c8  (cohérent flotte / progression)
+   - late (retard)   = brand red    #e63946
+   - draft (brouillon) = stone     #a8a29e
+   Backgrounds 0.10 (au lieu de 0.15) pour ovales moins flashy, plus mockup-like. */
 .livraisons-table .livraison-inline-select.is-success,
 .livraisons-table .livraison-inline-select.is-ok,
 .livraisons-table .livraison-inline-select[data-statut="livre"] {
-  background-color: rgba(6, 214, 160, 0.15) !important;
-  color: #06d6a0 !important;
-  border-color: rgba(6, 214, 160, 0.3) !important;
+  background-color: rgba(155, 177, 164, 0.12) !important;
+  color: #9bb1a4 !important;
+  border-color: rgba(155, 177, 164, 0.3) !important;
 }
 
 .livraisons-table .livraison-inline-select.is-warn,
 .livraisons-table .livraison-inline-select.is-pending,
 .livraisons-table .livraison-inline-select[data-statut="en-attente"] {
-  background-color: rgba(255, 214, 10, 0.15) !important;
-  color: #ffd60a !important;
-  border-color: rgba(255, 214, 10, 0.3) !important;
+  background-color: rgba(212, 182, 122, 0.12) !important;
+  color: #d4b67a !important;
+  border-color: rgba(212, 182, 122, 0.32) !important;
 }
 
 .livraisons-table .livraison-inline-select.is-info,
 .livraisons-table .livraison-inline-select[data-statut="en-cours"] {
-  background-color: rgba(76, 201, 240, 0.15) !important;
-  color: #4cc9f0 !important;
-  border-color: rgba(76, 201, 240, 0.3) !important;
+  background-color: rgba(122, 164, 200, 0.12) !important;
+  color: #7aa4c8 !important;
+  border-color: rgba(122, 164, 200, 0.3) !important;
 }
 
 .livraisons-table .livraison-inline-select.is-danger,
 .livraisons-table .livraison-inline-select.is-err,
 .livraisons-table .livraison-inline-select[data-statut="retard"] {
-  background-color: rgba(230, 57, 70, 0.15) !important;
+  background-color: rgba(230, 57, 70, 0.10) !important;
   color: #e63946 !important;
-  border-color: rgba(230, 57, 70, 0.3) !important;
+  border-color: rgba(230, 57, 70, 0.32) !important;
 }
 
 .livraisons-table .livraison-inline-select.is-muted,
 .livraisons-table .livraison-inline-select.is-draft,
 .livraisons-table .livraison-inline-select[data-statut="brouillon"] {
-  background-color: rgba(168, 162, 158, 0.15) !important;
+  background-color: rgba(168, 162, 158, 0.10) !important;
   color: #a8a29e !important;
   border-color: rgba(168, 162, 158, 0.3) !important;
 }
