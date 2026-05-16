@@ -159,3 +159,22 @@ td.montant-positif,
 #charges-kpi-impaye,
 #charges-kpi-retard { color: var(--brand, #e63946); }
 #charges-kpi-paye   { color: var(--success, #06d6a0); }
+
+/* Phase 76 : period-nav buttons — inline styles → CSS */
+.carb-period-nav .period-left .btn-secondary {
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* Branded "Aujourd'hui" reset (stats / encaissement / calendrier) */
+.carb-period-nav .period-left .btn-today-brand {
+  background: var(--brand-soft, rgba(230,57,70,0.08));
+  color: var(--brand, #e63946);
+  border-color: rgba(230,57,70,0.4);
+}
+
+/* ⋯ more actions button (planning only) */
+.carb-period-nav .period-left .btn-period-more {
+  margin-left: 4px;
+}

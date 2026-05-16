@@ -354,3 +354,45 @@
    manipulation z-index sur body::before / body > * trop risquee, pourrait
    interferer avec stacking contexts modaux. Reportee en PR ulterieure
    apres restyle des contenus. */
+
+/* Phase 76 : AI status bar — inline styles → CSS */
+#ai-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(230,57,70,0.08);
+  border: 1px solid rgba(230,57,70,0.25);
+  border-radius: 20px;
+  cursor: pointer;
+  margin-left: auto;
+  margin-right: 12px;
+}
+
+#ai-status-bar .ai-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #06d6a0;
+  box-shadow: 0 0 6px #06d6a0;
+  animation: pulse-green 2s infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+#ai-status-bar .ai-status-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--brand, #e63946);
+}
+
+#ai-decisions-badge {
+  background: var(--brand, #e63946);
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}

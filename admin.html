@@ -360,10 +360,10 @@
       </button>
       <button class="btn-secondary" id="btn-install-pwa" type="button" onclick="declencherInstallPWA()" style="display:none" title="Installer l'application sur votre appareil"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Installer</button>
       <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre" aria-label="Basculer entre mode clair et sombre"><svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
-      <div id="ai-status-bar" onclick="togglePanneauAgent()" style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(230,57,70,0.08);border:1px solid rgba(230,57,70,0.25);border-radius:20px;cursor:pointer;margin-left:auto;margin-right:12px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:#06d6a0;box-shadow:0 0 6px #06d6a0;animation:pulse-green 2s infinite;display:inline-block"></span>
-        <span style="font-size:.78rem;font-weight:600;color:var(--brand, #e63946)">Agent IA</span>
-        <span id="ai-decisions-badge" style="display:none;background:var(--brand, #e63946);color:#fff;font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center">0</span>
+      <div id="ai-status-bar" onclick="togglePanneauAgent()">
+        <span class="ai-pulse-dot"></span>
+        <span class="ai-status-label">Agent IA</span>
+        <span id="ai-decisions-badge" style="display:none">0</span>
       </div>
       <div class="topbar-user-menu" id="topbar-user-menu">
         <button class="topbar-user" id="topbar-user-trigger" type="button" onclick="toggleAdminMenu(event)">
@@ -1224,9 +1224,9 @@
       <!-- Phase 49 : période nav mockup-aligned (combined row) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" onclick="navCarburantPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
-          <button class="btn-secondary" onclick="reinitialiserCarburantPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
-          <button class="btn-secondary" onclick="navCarburantPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
+          <button class="btn-secondary" onclick="navCarburantPeriode(-1)">←</button>
+          <button class="btn-secondary" onclick="reinitialiserCarburantPeriode()">Aujourd'hui</button>
+          <button class="btn-secondary" onclick="navCarburantPeriode(1)">→</button>
           <div class="period-label" id="carb-mois-label"></div>
           <div class="period-dates" id="carb-mois-dates"></div>
         </div>
@@ -1696,11 +1696,11 @@
       <!-- Phase 45 : period nav bar mockup-aligned (prev/today/next + period-chips Jour/Semaine/Mois/Année) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" onclick="navStatsPeriode(-1)" aria-label="Précédent">
+          <button class="btn-secondary" onclick="navStatsPeriode(-1)" aria-label="Précédent">
             <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
-          <button class="btn-secondary" style="min-height:34px;padding:6px 12px;font-size:12px;background:var(--brand-soft);color:var(--brand);border-color:rgba(230,57,70,0.4)" onclick="reinitialiserStatsPeriode()">Aujourd'hui</button>
-          <button class="btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" onclick="navStatsPeriode(1)" aria-label="Suivant">
+          <button class="btn-secondary btn-today-brand" onclick="reinitialiserStatsPeriode()">Aujourd'hui</button>
+          <button class="btn-secondary" onclick="navStatsPeriode(1)" aria-label="Suivant">
             <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
           <div id="stats-mois-label" class="period-label"></div>
@@ -2131,9 +2131,9 @@
       <!-- Phase 50 : période nav combined row (mockup-aligned) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" onclick="navTvaPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
-          <button class="btn-secondary" onclick="reinitialiserTVAPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
-          <button class="btn-secondary" onclick="navTvaPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
+          <button class="btn-secondary" onclick="navTvaPeriode(-1)">←</button>
+          <button class="btn-secondary" onclick="reinitialiserTVAPeriode()">Aujourd'hui</button>
+          <button class="btn-secondary" onclick="navTvaPeriode(1)">→</button>
           <div class="period-label" id="tva-mois-label"></div>
           <div class="period-dates" id="tva-mois-dates"></div>
         </div>
@@ -2776,11 +2776,11 @@
       <!-- Phase 57 : period nav bar Encaissement (mockup-aligned, même pattern que Statistiques) -->
       <div id="enc-period-nav">
         <div class="enc-period-left">
-          <button class="btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" onclick="typeof navEncPeriode==='function'&&navEncPeriode(-1)" aria-label="Précédent">
+          <button class="btn-secondary" onclick="typeof navEncPeriode==='function'&&navEncPeriode(-1)" aria-label="Précédent">
             <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
-          <button class="btn-secondary" style="min-height:34px;padding:6px 12px;font-size:12px;background:var(--brand-soft);color:var(--brand);border-color:rgba(230,57,70,0.4)" onclick="typeof reinitialiserEncPeriode==='function'&&reinitialiserEncPeriode()">Aujourd'hui</button>
-          <button class="btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" onclick="typeof navEncPeriode==='function'&&navEncPeriode(1)" aria-label="Suivant">
+          <button class="btn-secondary btn-today-brand" onclick="typeof reinitialiserEncPeriode==='function'&&reinitialiserEncPeriode()">Aujourd'hui</button>
+          <button class="btn-secondary" onclick="typeof navEncPeriode==='function'&&navEncPeriode(1)" aria-label="Suivant">
             <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
           <div class="enc-period-label" id="enc-mois-label"></div>
@@ -3126,9 +3126,9 @@
       <!-- Phase 65 : période nav incidents (mockup-aligned) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" onclick="navIncidentsPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
-          <button class="btn-secondary" onclick="reinitialiserIncidentsPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
-          <button class="btn-secondary" onclick="navIncidentsPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
+          <button class="btn-secondary" onclick="navIncidentsPeriode(-1)">←</button>
+          <button class="btn-secondary" onclick="reinitialiserIncidentsPeriode()">Aujourd'hui</button>
+          <button class="btn-secondary" onclick="navIncidentsPeriode(1)">→</button>
           <div class="period-label" id="inc-periode-label"></div>
           <div class="period-dates" id="inc-periode-dates"></div>
         </div>
@@ -3258,9 +3258,9 @@
       <!-- Phase 51 : combined period nav row (mockup-aligned) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" onclick="navEntretiensPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
-          <button class="btn-secondary" onclick="reinitialiserEntretiensPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
-          <button class="btn-secondary" onclick="navEntretiensPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
+          <button class="btn-secondary" onclick="navEntretiensPeriode(-1)">←</button>
+          <button class="btn-secondary" onclick="reinitialiserEntretiensPeriode()">Aujourd'hui</button>
+          <button class="btn-secondary" onclick="navEntretiensPeriode(1)">→</button>
           <div class="period-label" id="entr-mois-label"></div>
           <div class="period-dates" id="entr-mois-dates"></div>
         </div>
@@ -3407,9 +3407,9 @@
       <!-- Phase 51 : combined period nav row (mockup-aligned) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" id="heures-prev-btn" onclick="naviguerHeuresPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
-          <button class="btn-secondary" id="heures-reset-btn" onclick="reinitialiserHeuresPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
-          <button class="btn-secondary" id="heures-next-btn" onclick="naviguerHeuresPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
+          <button class="btn-secondary" id="heures-prev-btn" onclick="naviguerHeuresPeriode(-1)">←</button>
+          <button class="btn-secondary" id="heures-reset-btn" onclick="reinitialiserHeuresPeriode()">Aujourd'hui</button>
+          <button class="btn-secondary" id="heures-next-btn" onclick="naviguerHeuresPeriode(1)">→</button>
           <div class="period-label" id="heures-semaine-label"></div>
           <div class="period-dates" id="heures-semaine-dates"></div>
         </div>
@@ -3495,11 +3495,11 @@
       <!-- Phase 45 : cal toolbar mockup-aligned (prev/today/next + period-chips Jour/Semaine/Mois/Année) -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;flex-wrap:wrap;gap:10px">
         <div style="display:flex;align-items:center;gap:8px">
-          <button class="btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" onclick="window.cal16?.naviguer(-1)" aria-label="Précédent">
+          <button class="btn-secondary" onclick="window.cal16?.naviguer(-1)" aria-label="Précédent">
             <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
-          <button class="btn-secondary" style="min-height:34px;padding:6px 12px;font-size:12px;background:var(--brand-soft);color:var(--brand);border-color:rgba(230,57,70,0.4)" onclick="window.cal16?.aujourdhui()">Aujourd'hui</button>
-          <button class="btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" onclick="window.cal16?.naviguer(1)" aria-label="Suivant">
+          <button class="btn-secondary btn-today-brand" onclick="window.cal16?.aujourdhui()">Aujourd'hui</button>
+          <button class="btn-secondary" onclick="window.cal16?.naviguer(1)" aria-label="Suivant">
             <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
           <div id="cal16-label" style="font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize"></div>
@@ -3612,12 +3612,12 @@
       <!-- Phase 52 : combined period nav row (mockup-aligned) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" onclick="naviguerPlanningPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
-          <button class="btn-secondary" onclick="reinitialiserPlanningPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
-          <button class="btn-secondary" onclick="naviguerPlanningPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
+          <button class="btn-secondary" onclick="naviguerPlanningPeriode(-1)">←</button>
+          <button class="btn-secondary" onclick="reinitialiserPlanningPeriode()">Aujourd'hui</button>
+          <button class="btn-secondary" onclick="naviguerPlanningPeriode(1)">→</button>
           <div class="period-label" id="planning-semaine-label"></div>
           <div class="period-dates" id="planning-semaine-dates"></div>
-          <button class="btn-secondary" onclick="ouvrirMenuCopiesSemainePlanning()" style="min-height:34px;padding:6px 10px;font-size:12px;margin-left:4px" title="Copier/vider semaine" aria-label="Plus d'actions sur le planning">⋯</button>
+          <button class="btn-secondary btn-period-more" onclick="ouvrirMenuCopiesSemainePlanning()" title="Copier/vider semaine" aria-label="Plus d'actions sur le planning">⋯</button>
         </div>
         <div class="period-right">
           <select class="period-selector" id="vue-planning-select" onchange="changerVuePlanning(this.value)" aria-label="Vue période planning" style="display:none">
@@ -3813,9 +3813,9 @@
       <!-- Phase 52 : combined period nav row (mockup-aligned) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" onclick="navInspectionsPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
-          <button class="btn-secondary" onclick="reinitialiserInspectionsPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
-          <button class="btn-secondary" onclick="navInspectionsPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
+          <button class="btn-secondary" onclick="navInspectionsPeriode(-1)">←</button>
+          <button class="btn-secondary" onclick="reinitialiserInspectionsPeriode()">Aujourd'hui</button>
+          <button class="btn-secondary" onclick="navInspectionsPeriode(1)">→</button>
           <div class="period-label" id="insp-semaine-label"></div>
           <div class="period-dates" id="insp-semaine-dates"></div>
         </div>
