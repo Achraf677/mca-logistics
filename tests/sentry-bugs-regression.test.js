@@ -121,11 +121,11 @@ test('logique guard _chargesPeriode : reconstruit un objet valide si undefined',
 // Bug 5 : _tableauCompact declare avec var (pas let -> evite TDZ)
 // ============================================================
 test('script.js : _tableauCompact declare avec var (anti-TDZ)', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'script.js'), 'utf8');
-  // Doit avoir au moins une declaration var _tableauCompact
+  // Phase X.AH (2026-05-17) : initDensiteTableau + _tableauCompact ont été déplacés
+  // vers script-core-densite-tableau.js. Le test vérifie maintenant ce nouveau module.
+  const src = fs.readFileSync(path.join(ROOT, 'script-core-densite-tableau.js'), 'utf8');
   assert.match(src, /var\s+_tableauCompact\s*=\s*false/,
     '_tableauCompact doit etre declare avec var pour eviter TDZ');
-  // Ne doit PAS avoir de declaration let _tableauCompact (regression possible)
   assert.doesNotMatch(src, /let\s+_tableauCompact\s*=/,
     'ne pas redeclarer _tableauCompact avec let (regression TDZ)');
 });
