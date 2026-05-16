@@ -376,6 +376,16 @@
 /* Full-width centered button (params integrations etc.) */
 .btn-full-center { width: 100%; justify-content: center; }
 
+/* Phase 84 : checkbox label inline pattern → reusable utility */
+.label-check-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: normal;
+  cursor: pointer;
+  margin: 0;
+}
+
 /* Phase 82 : chart-container max-height variant (stats/rentabilité 300px vs base 350px) */
 .chart-container-sm { max-height: 300px; }
 

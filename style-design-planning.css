@@ -425,6 +425,17 @@
 .cal16-legend-dot.absence { background: var(--ds-warning, #ffd60a); }
 .cal16-legend-dot.repos   { background: var(--text-muted, #7c8299); }
 
+/* Phase 84 : "Copier semaine précédente" button → CSS */
+.btn-copier-semaine {
+  background: rgba(79, 142, 247, .1);
+  border: 1px solid rgba(79, 142, 247, .3);
+  color: var(--blue, #4f8ef7);
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: .82rem;
+  cursor: pointer;
+}
+
 /* Phase 78 : planning-week-table legend wrapper inline styles → CSS */
 .planning-week-table .cal16-legend {
   padding: 10px 16px;

@@ -354,3 +354,32 @@ td.km {
 /* ============ Phase 69 : Équipe KPI colored values ============ */
 #equipe-kpi-incidents { color: var(--brand, #e63946); }
 #equipe-kpi-permis { color: var(--warning, #ffd60a); }
+
+/* ============ Phase 84 : credentials modal inline → CSS ============ */
+.creds-field-label {
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--text-muted, #7c8299);
+  margin-bottom: 4px;
+}
+
+#creds-chauffeur-numero,
+#creds-chauffeur-mdp {
+  flex: 1;
+  font-size: 1rem;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, .05);
+  border-radius: 6px;
+}
+
+#creds-chauffeur-mdp { font-family: monospace; }
+
+.creds-warning-box {
+  font-size: .78rem;
+  color: var(--text-muted, #7c8299);
+  background: rgba(255, 214, 10, .08);
+  border: 1px solid rgba(255, 214, 10, .25);
+  padding: 10px 12px;
+  border-radius: 8px;
+}
