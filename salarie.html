@@ -7,11 +7,14 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="MCA Logistics" />
-  <meta name="theme-color" content="#0a0d14" />
+  <!-- Phase 91.78 : theme-color aligné avec --bg=#1a1d22 (avant : #0a0d14 créait une bande plus sombre en haut) -->
+  <meta name="theme-color" content="#1a1d22" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="robots" content="noindex, nofollow" />
   <title>MCA Logistics — Espace Salarié</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
+  <!-- Phase 91.78 : import design tokens (purement additif, ne casse pas les --bg/--accent existants) -->
+  <link rel="stylesheet" href="/style-tokens.css?v=2" />
   <style>
   :root {
   /* Palette v3.64 : "Asphalt & Speed Red" (couleurs uniquement) */

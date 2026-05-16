@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v343-phase91-77-pwa-theme-color-sync';
+const CACHE_VERSION = 'mca-v2026-05-16-v344-phase91-78-salarie-tokens-themecolor';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
