@@ -32,7 +32,7 @@ Dernière mise à jour : 2026-05-09
   carburant, etc.) a son propre `script-<domaine>.js`. Pas de fourre-tout. Pas de
   fichier > 1500 lignes — sinon découper avant d'ajouter.
   - **Dette tech connue** (mise à jour 2026-05-17, branche `claude/html-refonte-cleanup`) :
-    - `script.js` 9 783 l (Phase X 59 modules extraits — était 14 428 l. Cible <10k ✅)
+    - `script.js` **4 204 l** (Phase X — 72 modules extraits, partant de 14 428 l → -70.8%)
     - `script-mobile.js` 12 360 l, `script-salarie.js` 2 725 l, `script-ai-chat.js` 1 759 l
       → reste à découper en sprint H2 suivant.
 - **Toutes les fonctions au scope global** (`window.X = ...`) côté front pour que
