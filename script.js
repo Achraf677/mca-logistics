@@ -290,110 +290,7 @@ function hasNegativeNumber()   {
 // MOVED -> script-exports.js : exporterJournalAuditCSV
 // MOVED -> script-core-audit.js : viderJournalAudit
 // MOVED -> script-salaries.js : notifierSalarieSiAbsente
-function getEntrepriseExportParams() {
-  const params = chargerObj('params_entreprise', {});
-  const sessionAdmin = getAdminSession();
-  const rcsCompose = params.rcs || [params.rcsVille, params.rcsNumero].filter(Boolean).join(' ');
-  return {
-    nom: params.nom || 'MCA LOGISTICS',
-    nomAdmin: sessionAdmin.nom || params.nomAdmin || '',
-    siret: params.siret || '',
-    tvaIntracom: params.tvaIntracom || '',
-    adresse: params.adresse || '',
-    tel: params.tel || '',
-    email: params.email || '',
-    // Mentions légales CGI 242 nonies A / R123-237 C.com
-    formeJuridique: params.formeJuridique || '',
-    capital: params.capital || '',
-    capitalLibere: params.capitalLibere || '',
-    codeAPE: params.codeAPE || '',
-    rcs: rcsCompose,
-    rcsVille: params.rcsVille || '',
-    rcsNumero: params.rcsNumero || '',
-    adresseLigne: params.adresseLigne || '',
-    codePostal: params.codePostal || '',
-    ville: params.ville || '',
-    pays: params.pays || 'FR',
-    iban: params.iban || '',
-    bic: params.bic || '',
-    banque: params.banque || '',
-    // Transport léger (Règl. CE 1071/2009 + L.3211-1 Code transports)
-    ltiNumero: params.ltiNumero || '',
-    ltiDateEmission: params.ltiDateEmission || '',
-    ltiDateExpiration: params.ltiDateExpiration || '',
-    drealDossier: params.drealDossier || '',
-    registreTransporteurs: params.registreTransporteurs || '',
-    gestionnaireNom: params.gestionnaireNom || '',
-    capaciteProNumero: params.capaciteProNumero || '',
-    capaciteProDate: params.capaciteProDate || '',
-    tauxPenalitesRetard: params.tauxPenalitesRetard != null ? params.tauxPenalitesRetard : 10.15,
-    delaiPaiementDefaut: params.delaiPaiementDefaut != null ? params.delaiPaiementDefaut : 30
-  };
-}
-
-// BUG-010 fix : validation du numéro de TVA intracommunautaire FR (clé + SIREN).
-// Algorithme officiel : clé = (12 + 3 × (SIREN mod 97)) mod 97.
-// Les numéros "new TVA" (clé non-numérique comme "H2", "L1"...) passent le format
-// mais on ne valide pas la checksum dans ce cas (rare, principalement pour les
-// doublons administratifs). On rejette uniquement les cas où la clé EST numérique
-// mais invalide.
-// MOVED -> script-tva.js : validerTVAIntracomFR
-
-// BUG-002 helpers : blocs HTML partagés entre buildFactureHTML et genererFactureLivraison
-// MOVED -> script-core-utils.js : __formatEurFR
-function renderFactureMentionsEntrepriseHeader(params) {
-  const parts = [];
-  if (params.formeJuridique) parts.push(params.formeJuridique);
-  if (params.capital) parts.push('capital ' + __formatEurFR(params.capital));
-  // Mention RCS : si numéro présent -> "RCS <ville> <numéro>", sinon si ville seule -> "Société en cours d'immatriculation au RCS <ville>"
-  if (params.rcsNumero && params.rcsVille) {
-    parts.push('RCS ' + params.rcsVille + ' ' + params.rcsNumero);
-  } else if (params.rcs && !params.rcsVille && !params.rcsNumero) {
-    parts.push('RCS ' + params.rcs);
-  } else if (params.rcsVille && !params.rcsNumero) {
-    parts.push('Société en cours d\'immatriculation au RCS ' + params.rcsVille);
-  }
-  if (params.codeAPE) parts.push('APE ' + params.codeAPE);
-  if (params.siret) parts.push('SIRET ' + params.siret);
-  if (!parts.length) return '';
-  return '<div style="font-size:.72rem;color:#9ca3af;margin-top:4px">' + planningEscapeHtml(parts.join(' · ')) + '</div>';
-}
-// MOVED -> script-clients.js : renderFactureClientBlock
-function renderFacturePiedMentionsLegales(params, livraison, clientFiche) {
-  const delaiClient = clientFiche && parseInt(clientFiche.delaiPaiementJours, 10);
-  const delai = (delaiClient && delaiClient > 0)
-    ? delaiClient
-    : (parseInt(params.delaiPaiementDefaut, 10) || 30);
-  const tauxPenalites = parseFloat(params.tauxPenalitesRetard);
-  const tauxFmt = (Number.isFinite(tauxPenalites) ? tauxPenalites : 10.15).toFixed(2).replace('.', ',');
-  const lignesBanque = [];
-  if (params.iban) lignesBanque.push('IBAN : ' + params.iban);
-  if (params.bic) lignesBanque.push('BIC : ' + params.bic);
-  const dateLivraison = livraison && livraison.date ? formatDateExport(livraison.date) : '';
-  return '<div style="margin-top:14px;padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;font-size:.72rem;color:#4b5563;line-height:1.55">'
-    + '<div style="font-weight:700;color:#111827;margin-bottom:4px">Conditions de règlement</div>'
-    + (dateLivraison ? '<div>Date de livraison / prestation : <strong>' + planningEscapeHtml(dateLivraison) + '</strong></div>' : '')
-    + '<div>Paiement à <strong>' + delai + ' jours</strong> à compter de la date d\'émission (art. L441-10 Code de commerce).</div>'
-    + '<div>En cas de retard de paiement, application de pénalités de retard au taux annuel de <strong>' + tauxFmt + ' %</strong> (taux BCE majoré de 10 points, art. L441-10 C. com.).</div>'
-    + '<div>Indemnité forfaitaire de recouvrement de <strong>40 €</strong> due de plein droit en cas de retard (art. D441-5 C. com.).</div>'
-    + '<div>Pas d\'escompte pour paiement anticipé.</div>'
-    + (lignesBanque.length ? '<div style="margin-top:6px">' + planningEscapeHtml(lignesBanque.join(' · ')) + '</div>' : '')
-    + '</div>';
-}
-function renderBlocInfosEntreprise(params) {
-  const logo = renderLogoEntrepriseExport();
-  return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:18px">`
-    + `<div><div style="font-size:1.35rem;font-weight:800;color:#e63946">${planningEscapeHtml(params.nom || 'MCA Logistics')}</div>`
-    + (params.adresse ? `<div style="font-size:.86rem;color:#6b7280;margin-top:4px">${planningEscapeHtml(params.adresse)}</div>` : '')
-    + (params.tel ? `<div style="font-size:.82rem;color:#6b7280;margin-top:2px">Tél. : ${planningEscapeHtml(params.tel)}</div>` : '')
-    + (params.email ? `<div style="font-size:.82rem;color:#6b7280;margin-top:2px">Email : ${planningEscapeHtml(params.email)}</div>` : '')
-    + `</div>`
-    + (logo || '')
-    + `</div>`;
-}
-function renderFooterEntreprise(params, dateExp, extra) {
-  return `<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between;gap:12px"><span>${extra || params.nom}</span><span>${dateExp}</span></div>`;
-}
+// MOVED -> script-core-entreprise-export-helpers.js : getEntrepriseExportParams + renderFactureMentionsEntrepriseHeader + renderFacturePiedMentionsLegales + renderBlocInfosEntreprise + renderFooterEntreprise
 // MOVED -> script-core-branding.js : getLogoEntrepriseExportSrc
 // MOVED -> script-core-branding.js : renderLogoEntrepriseExport
 
@@ -1918,19 +1815,7 @@ function toggleTypeJour(jour) {
 /* ===== RH — COMPTEUR HEURES ===== */
 // MOVED -> script-salaries.js : calculerHeuresSalarie
 
-function getHeuresSemaineRange() {
-  const lundi = getLundiDeSemaine(_heuresSemaineOffset || 0);
-  const dimanche = new Date(lundi);
-  dimanche.setDate(lundi.getDate() + 6);
-  return {
-    lundi,
-    dimanche,
-    debut: dateToLocalISO(lundi),
-    fin: dateToLocalISO(dimanche),
-    label: `Semaine ${getNumSemaine(lundi)}`,
-    datesLabel: `${lundi.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} au ${dimanche.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`
-  };
-}
+// MOVED -> script-core-heures-semaine-range.js : getHeuresSemaineRange
 
 var _heuresVue = 'semaine';
 var _heuresJourOffset = 0;
@@ -2052,33 +1937,9 @@ window.resolveStorageImages = resolveStorageImages;
 
 /* ===== GOOGLE MAPS — DISTANCE AUTO ===== */
 /* ===== VUE COMPACTE / ÉTENDUE ===== */
-// var au lieu de let : evite les TDZ erratique observees dans Sentry (1 event,
-// probable race condition navigateur sur let top-level + initDensiteTableau
-// appelee en DOMContentLoaded). var est hoisté avec valeur undefined → safe.
-var _tableauCompact = false;
-function initDensiteTableau() {
-  _tableauCompact = localStorage.getItem('tableau_compact') === '1';
-  if (_tableauCompact) document.querySelectorAll('.data-table').forEach(t => t.classList.add('compact'));
-  const btn = document.getElementById('btn-densite');
-  if (btn) { btn.textContent = _tableauCompact ? '⊞ Étendu' : '⊟ Compact'; btn.classList.toggle('active', _tableauCompact); }
-}
+// MOVED -> script-core-densite-tableau.js : initDensiteTableau
 
-/* ===== MODÈLES DE MESSAGES ===== */
-const MSG_TEMPLATES = [
-  { label: 'Tournée prête',   texte: 'Bonjour [prénom] 👋 Votre tournée du jour est prête. Vérifiez vos livraisons dans l\'onglet Livraisons. Bonne journée !' },
-  { label: 'Relevé km',       texte: 'Rappel : pensez à enregistrer votre relevé kilométrique de retour dans l\'onglet Inspection & Km. Merci !' },
-  { label: 'Inspection',      texte: 'Rappel : inspection véhicule obligatoire avant le départ. Prenez les 4 photos demandées. Merci !' },
-  { label: '⛽ Plein',           texte: 'Si vous avez fait le plein aujourd\'hui, n\'oubliez pas de le saisir dans l\'onglet Carburant. Merci !' },
-  { label: '✅ Bonne journée',   texte: 'Bonjour à tous ! Bonne journée de livraisons. Restez prudents sur la route 🚐' },
-];
-
-function insererTemplate(texte, salNom) {
-  const input = document.getElementById('msg-admin-input');
-  if (!input) return;
-  input.value = texte.replace('[prénom]', salNom || '');
-  input.focus();
-  input.dispatchEvent(new Event('input'));
-}
+// MOVED -> script-core-msg-templates.js : insererTemplate + MSG_TEMPLATES
 
 // MOVED -> script-messages.js : afficherTemplatesMsg
 
@@ -2098,127 +1959,7 @@ function insererTemplate(texte, salNom) {
 /* ===== ALERTES PERMIS / ASSURANCE ===== */
 // MOVED -> script-salaries.js : verifierDocumentsSalaries
 
-function verifierNotificationsAutomatiquesMois2() {
-  const alertes = charger('alertes_admin');
-  const auj = new Date();
-  auj.setHours(0,0,0,0);
-  const delai = parseInt(localStorage.getItem('relance_delai') || '7', 10) || 7;
-
-  charger('livraisons').forEach(function(item) {
-    if (item.statut !== 'livre' || getLivraisonStatutPaiement(item) === 'payé') return;
-    const dateBase = new Date((item.date || '') + 'T00:00:00');
-    if (Number.isNaN(dateBase.getTime())) return;
-    const dateEcheance = new Date(dateBase);
-    dateEcheance.setDate(dateEcheance.getDate() + delai);
-    const joursRetard = Math.floor((auj - dateEcheance) / 86400000);
-    if (joursRetard <= 0) return;
-    const niveau = joursRetard > 30 ? 3 : joursRetard > 15 ? 2 : 1;
-    const label = niveau === 3 ? 'Dernier avis' : niveau === 2 ? 'Mise en demeure' : 'Relance amiable';
-    ajouterAlerteSiAbsente('relance_auto', `${label} à envoyer — ${item.client} (${item.numLiv || 'livraison'})`, {
-      livId: item.id,
-      stageKey: 'relance-' + niveau + '-' + item.id,
-      client: item.client || '',
-      numLiv: item.numLiv || ''
-    });
-  });
-
-  const nowIso = aujourdhui();
-  const seuilsVehicule = [30, 15, 7];
-  const seuilsDate = {};
-  seuilsVehicule.forEach(function(jours) {
-    const d = new Date();
-    d.setHours(0,0,0,0);
-    d.setDate(d.getDate() + jours);
-    seuilsDate[jours] = dateToLocalISO(d);
-  });
-  charger('vehicules').forEach(function(item) {
-    const ctIso = normaliserDateISO(item.dateCT);
-    if (!ctIso) return;
-    if (ctIso < nowIso) {
-      ajouterAlerteSiAbsente('ct_expire', `⚠️ Contrôle technique expiré — ${item.immat}`, { vehId:item.id, stageKey:'ct-expire-' + item.id });
-      return;
-    }
-    const seuil = [7, 15, 30].find(function(jours) { return ctIso <= seuilsDate[jours]; });
-    if (seuil) {
-      ajouterAlerteSiAbsente('ct_proche', `CT à renouveler dans ${seuil} jour(s) — ${item.immat} (${formatDateExport(ctIso)})`, {
-        vehId:item.id,
-        stageKey:'ct-' + seuil + '-' + item.id
-      });
-    }
-  });
-
-  // PGI : alertes retard paiement charges (echeance = date charge + delai
-  // fournisseur, defaut 30j). On n'alerte que si statut still "a_payer".
-  charger('charges').forEach(function(c) {
-    var statut = c.statutPaiement || 'a_payer';
-    if (statut === 'paye' || statut === 'partiel') return;
-    var ech = (typeof getChargeDateEcheance === 'function') ? getChargeDateEcheance(c) : null;
-    if (!ech) return;
-    var joursRetard = Math.floor((auj - ech) / 86400000);
-    if (joursRetard < 0) return;
-    var libelle = (c.fournisseur || c.description || c.categorie || 'charge');
-    var msg;
-    if (joursRetard === 0) msg = 'Charge à payer aujourd’hui — ' + libelle + ' (' + euros(c.montant || 0) + ')';
-    else msg = 'Charge en retard de paiement (' + joursRetard + 'j) — ' + libelle + ' (' + euros(c.montant || 0) + ')';
-    ajouterAlerteSiAbsente('charge_retard_paiement', msg, {
-      chargeId: c.id,
-      stageKey: 'charge-retard-' + c.id + '-' + (joursRetard > 30 ? '30' : joursRetard > 7 ? '7' : '0')
-    });
-  });
-
-  // PGI : sweep anomalies carburant (conso anormale + capacite reservoir)
-  if (typeof sweepAnomaliesCarburant === 'function') {
-    try { sweepAnomaliesCarburant(); } catch (e) { console.warn('[anomalies-carb] sweep:', e); }
-  }
-
-  // PGI : salaries actifs sans planning defini (template vide ou aucun jour de
-  // travail). Detecte les onboardings incomplets et evite les angles morts RH.
-  charger('salaries').forEach(function(sal) {
-    if (!sal || sal.statut === 'inactif' || sal.archive) return;
-    var planning = (charger('plannings') || []).find(function(p) { return p.salId === sal.id; });
-    var aJourTravail = planning && Array.isArray(planning.semaine)
-      && planning.semaine.some(function(j) { return j.typeJour === 'travail' || j.travaille === true; });
-    if (!aJourTravail) {
-      ajouterAlerteSiAbsente('planning_manquant',
-        'Aucun planning de travail défini — ' + (sal.nom || sal.id),
-        { salId: sal.id, salNom: sal.nom || '', stageKey: 'planning-manquant-' + sal.id });
-    }
-  });
-
-  // PGI : vehicules sans inspection recente. Securite operationnelle (etat
-  // vehicule, conformite). Seuil 30j = avertissement, 60j = critique.
-  var inspections = charger('inspections') || [];
-  var lastInspByVeh = {};
-  inspections.forEach(function(insp) {
-    if (!insp || !insp.vehId) return;
-    var d = insp.date || (insp.creeLe ? insp.creeLe.slice(0, 10) : '');
-    if (!d) return;
-    if (!lastInspByVeh[insp.vehId] || d > lastInspByVeh[insp.vehId]) {
-      lastInspByVeh[insp.vehId] = d;
-    }
-  });
-  var aujMs = Date.now();
-  charger('vehicules').forEach(function(v) {
-    if (!v || v.archive) return;
-    var last = lastInspByVeh[v.id];
-    var ageJ = last ? Math.floor((aujMs - new Date(last).getTime()) / 86400000) : null;
-    if (last == null) {
-      ajouterAlerteSiAbsente('inspection_manquante',
-        'Aucune inspection enregistrée — ' + (v.immat || v.id),
-        { vehId: v.id, stageKey: 'insp-manquante-jamais-' + v.id });
-    } else if (ageJ >= 60) {
-      ajouterAlerteSiAbsente('inspection_manquante',
-        'Pas d\'inspection depuis ' + ageJ + ' jours (>60j) — ' + (v.immat || v.id),
-        { vehId: v.id, stageKey: 'insp-manquante-60-' + v.id });
-    } else if (ageJ >= 30) {
-      ajouterAlerteSiAbsente('inspection_manquante',
-        'Pas d\'inspection depuis ' + ageJ + ' jours — ' + (v.immat || v.id),
-        { vehId: v.id, stageKey: 'insp-manquante-30-' + v.id });
-    }
-  });
-
-  if (alertes.length !== charger('alertes_admin').length) afficherBadgeAlertes();
-}
+// MOVED -> script-core-notifications-auto.js : verifierNotificationsAutomatiquesMois2
 
 /* ===== TEMPLATES SMS ===== */
 // MOVED -> script-core-templates-sms.js (Phase X.B) : TEMPLATES_SMS, afficherTemplatesSMS, copierTemplateSMS
