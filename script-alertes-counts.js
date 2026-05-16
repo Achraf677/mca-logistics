@@ -1,5 +1,6 @@
 /* Phase 2 PR-H Alertes section-head counts (actives + reportees + traitees) */
 /* Phase 36 — KPI grid counts (critiques / avertissements / info) */
+/* Phase 83 — KPI subs dynamic text + brand color on critiques/alertes */
 (function () {
   'use strict';
 
@@ -12,6 +13,15 @@
     inspection_manquante: 'alerte', relance_auto: 'alerte',
     livraison_modif: 'info', carburant_modif: 'info', km_modif: 'info',
     inspection: 'info'
+  };
+
+  // Short labels for alert types (for kpi-sub display)
+  var TYPE_LABEL = {
+    ct_expire: 'CT expiré', permis_expire: 'Permis expiré', assurance_expire: 'Assurance expirée',
+    charge_retard_paiement: 'Retard paiement', carburant_anomalie: 'Anomalie carburant',
+    ct_proche: 'CT', permis_proche: 'Permis', assurance_proche: 'Assurance',
+    vidange: 'Vidange', prix_manquant: 'Prix manquant', planning_manquant: 'Planning',
+    inspection_manquante: 'Inspection', relance_auto: 'Relance client'
   };
 
   function lire(key) {
@@ -34,6 +44,8 @@
     var seuil30j = 30 * 86400000;
     var actives = 0, reportees = 0, traitees = 0, echeances30 = 0;
     var critiques = 0, alertesCnt = 0, infoCnt = 0;
+    var firstCritique = null;
+    var alerteTypes = {};
 
     // Phase 59 mockup-aligned : compte les échéances dans les 30 jours (CT, permis, assurance, vidange)
     var ECHEANCE_TYPES = { ct_expire: 1, ct_proche: 1, permis_expire: 1, permis_proche: 1, assurance_expire: 1, assurance_proche: 1, vidange: 1 };
@@ -51,9 +63,13 @@
       }
       actives++;
       var sev = SEVERITY_MAP[a.type] || 'info';
-      if (sev === 'critique') critiques++;
-      else if (sev === 'alerte') alertesCnt++;
-      else infoCnt++;
+      if (sev === 'critique') {
+        critiques++;
+        if (!firstCritique) firstCritique = a;
+      } else if (sev === 'alerte') {
+        alertesCnt++;
+        if (a.type && TYPE_LABEL[a.type]) alerteTypes[TYPE_LABEL[a.type]] = true;
+      } else infoCnt++;
       // Échéances dans les 30 jours
       if (ECHEANCE_TYPES[a.type]) {
         var echDate = a.echeance || a.dateEcheance || a.date_echeance;
@@ -63,7 +79,6 @@
             echeances30++;
           }
         } else if (sev === 'critique' || sev === 'alerte') {
-          // Fallback : si pas de date mais c'est critique/alerte (déjà expirée ou imminente)
           echeances30++;
         }
       }
@@ -87,6 +102,40 @@
     if (kpiCrit) kpiCrit.textContent = critiques;
     if (kpiAlert) kpiAlert.textContent = alertesCnt;
     if (kpiInfo) kpiInfo.textContent = infoCnt;
+
+    // Phase 83 : KPI subs dynamic text (mockup-aligned)
+    var kpiCritSub = document.getElementById('alertes-kpi-critiques-sub');
+    if (kpiCritSub) {
+      if (critiques > 0 && firstCritique) {
+        var typeLabel = TYPE_LABEL[firstCritique.type] || firstCritique.type || 'Alerte critique';
+        var echDate = firstCritique.echeance || firstCritique.dateEcheance || firstCritique.date_echeance || '';
+        var suffix = '';
+        if (echDate) {
+          var echMs = new Date(echDate).getTime();
+          if (!isNaN(echMs)) {
+            var joursJ = Math.round((echMs - nowMs) / 86400000);
+            suffix = joursJ >= 0 ? ' dans ' + joursJ + 'j' : ' expiré';
+          }
+        }
+        kpiCritSub.textContent = typeLabel + suffix;
+      } else {
+        kpiCritSub.textContent = 'Action immédiate requise';
+      }
+    }
+    var kpiAlertSub = document.getElementById('alertes-kpi-alertes-sub');
+    if (kpiAlertSub) {
+      var alerteKeys = Object.keys(alerteTypes);
+      kpiAlertSub.textContent = alerteKeys.length > 0 ? alerteKeys.slice(0, 3).join(', ') : 'À traiter cette semaine';
+    }
+
+    // Phase 83 : colors on kpi-lbl + kpi-val (mockup-aligned)
+    var critLbl = document.getElementById('alertes-kpi-critiques-lbl');
+    var alertLbl = document.getElementById('alertes-kpi-alertes-lbl');
+    var brandColor = 'var(--brand, #e63946)';
+    var warnColor = '#d4b67a';
+    if (critLbl) critLbl.style.color = critiques > 0 ? brandColor : '';
+    if (kpiCrit) kpiCrit.style.color = critiques > 0 ? brandColor : '';
+    if (alertLbl) alertLbl.style.color = alertesCnt > 0 ? warnColor : '';
 
     // Phase 67 : title-row sub-meta (alertes-titlerow-actives + critiques-wrap)
     var trActives = document.getElementById('alertes-titlerow-actives');

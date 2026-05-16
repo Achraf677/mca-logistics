@@ -38,7 +38,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Rentabilité | 92% | 100% | Phase 59 : CSV+Excel rentabilité vraiment impl + sub-meta mockup + tabs underline + Export 4 items |
 | Statistiques | 92% | 100% | Phase 59 : exporterStatsCSV + exporterStatsExcel vraiment impl (étaient stubs alert). Sub-meta CA mockup. |
 | Calendrier | 91% | 100% | Phase 67 : #cal16-kpi-pai (Encaissé) maintenant calculé depuis livraisons livrées ce mois. |
-| Alertes | 91% | 100% | Phase 67 : alertes-titlerow-actives + critiques-wrap maintenant mis à jour (étaient bloqués à 0). |
+| Alertes | 93% | 100% | Phase 83 : kpi-sub critiques "CT expiré dans Nj" + alertes catégories + brand-color sur critiques/alertes KPI. |
 | Équipe | 93% | 100% | Phase 82 : kpi-sub actifs "+N ce mois" + permis "Nom dans Nj" (mockup-aligned). |
 | Heures | 94% | 100% | Phase 79 : Km kpi-sub "Sur N véhicules" dynamique (était statique "Livraisons ce mois"). CE 561 sub color déjà en CSS (Phase 75). |
 | Incidents | 93% | 100% | Phase 66 : table Date/Type/Véhicule/Chauffeur/Description/Statut/Actions. Badge Type Accident/Avarie/Vol. Véhicule lookup. Modal ajout champ Type select. |

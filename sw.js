@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v243-phase82-chart-sm-carb-hidden-tva-badge';
+const CACHE_VERSION = 'mca-v2026-05-16-v244-alertes-kpi-subs-colors';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
