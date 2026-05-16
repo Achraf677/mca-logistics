@@ -74,12 +74,12 @@ test('H2.1 collisions — afficherLivraisons : exactement 1 declaration `functio
 // 2. renderLivraisonsAdminFinal — exactement 1 hard def dans script.js
 // ============================================================
 test('H2.1 collisions — renderLivraisonsAdminFinal : exactement 1 def hard dans script.js', () => {
-  const src = stripComments(read('script.js'));
-  // Hard def = 'window.renderLivraisonsAdminFinal = function() {' (au top niveau ou dans IIFE)
+  // Phase X.BW (2026-05-17) : renderLivraisonsAdminFinal extrait vers
+  // script-core-admin-final-lock.js. Le test vérifie maintenant ce module.
+  const src = stripComments(read('script-core-admin-final-lock.js'));
   const hardDefs = src.match(/window\.renderLivraisonsAdminFinal\s*=\s*function\s*\(/g) || [];
   assert.equal(hardDefs.length, 1,
-    `script.js doit contenir exactement 1 def hard de window.renderLivraisonsAdminFinal. Trouvé: ${hardDefs.length}. ` +
-    `Si > 1, fusionne ou neutralise les versions plus anciennes (cf. __adminFinalLock H2.1).`);
+    `script-core-admin-final-lock.js doit contenir exactement 1 def hard de window.renderLivraisonsAdminFinal. Trouvé: ${hardDefs.length}.`);
 });
 
 // ============================================================
