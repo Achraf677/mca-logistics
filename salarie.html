@@ -1154,9 +1154,9 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
     <button type="button" onclick="declencherPj('fichier')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px;background:transparent;border:none;color:var(--text);font-size:.88rem;text-align:left;cursor:pointer;border-radius:8px;">Envoyer un fichier</button>
   </div>
 </div>
-<input type="file" id="msg-pj-photo" accept="image/*" capture="environment" style="display:none" onchange="envoyerPhotoSal(this)" aria-label="msg pj photo" />
-<input type="file" id="msg-pj-galerie" accept="image/*" style="display:none" onchange="envoyerPhotoSal(this)" aria-label="msg pj galerie" />
-<input type="file" id="msg-pj-fichier" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none" onchange="envoyerFichierSal(this)" aria-label="msg pj fichier" />
+<input type="file" id="msg-pj-photo" accept="image/*" capture="environment" style="display:none" onchange="envoyerPhotoSal(this)" aria-label="Prendre une photo en pièce jointe" />
+<input type="file" id="msg-pj-galerie" accept="image/*" style="display:none" onchange="envoyerPhotoSal(this)" aria-label="Choisir une photo dans la galerie" />
+<input type="file" id="msg-pj-fichier" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none" onchange="envoyerFichierSal(this)" aria-label="Joindre un fichier (PDF, Word, Excel)" />
             <textarea id="msg-input"
               placeholder="Votre message..."
               rows="1"
@@ -1172,7 +1172,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
                        this.style.height=Math.min(this.scrollHeight,120)+'px'"
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){
                 event.preventDefault();envoyerMessageSal();}"
-             aria-label="Votre message..."></textarea>
+             aria-label="Saisir un message à l'administrateur"></textarea>
             <button class="btn-send" onclick="envoyerMessageSal()" aria-label="Envoyer le message">➤</button>
           </div>
         </div>
