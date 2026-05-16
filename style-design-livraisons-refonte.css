@@ -175,6 +175,24 @@
 .livraisons-table {
   table-layout: auto;
   width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Phase 91 — coins arrondis sur première/dernière TH (le card-parent .vehicules-table-card a déjà overflow:hidden, mais le border-collapse coupait les bords arrondis) */
+.livraisons-table thead th:first-child {
+  border-top-left-radius: 12px;
+}
+.livraisons-table thead th:last-child,
+.livraisons-table thead th.liv-injected-th[data-injected="montant-ht"] {
+  border-top-right-radius: 12px;
+}
+.livraisons-table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 12px;
+}
+.livraisons-table tbody tr:last-child td:last-child,
+.livraisons-table tbody tr:last-child td.liv-montant-cell {
+  border-bottom-right-radius: 12px;
 }
 .livraisons-table thead th,
 .livraisons-table tbody td {

@@ -53,11 +53,13 @@
 
 .ds-section-head__title h2 {
   font-family: var(--ds-font-display);
-  font-size: var(--ds-fs-h1);
+  /* Phase 91 — taille alignée preview (20px) au lieu de --ds-fs-h1 (28px). */
+  font-size: var(--ds-fs-h2);
   font-weight: var(--ds-fw-display);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   color: var(--ds-text);
   margin: 0 0 var(--ds-sp-1) 0;
+  white-space: nowrap;
 }
 
 .ds-section-head__sub {
