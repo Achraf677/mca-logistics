@@ -168,9 +168,10 @@
   padding: 10px 32px;
 }
 
-/* ============ Phase 90.2 — Column widths : shrink-to-content (mockup-aligned) ============
-   Empêche les colonnes courtes (N°, DATE, CLIENT…) d'être étirées sur toute la largeur dispo.
-   La dernière colonne visible (col 16 Montant HT) absorbe l'espace restant et reste right-aligned. */
+/* ============ Phase 91.10 — Column widths : distribution harmonieuse ============
+   Layout AUTO sans width hints → le browser distribue l'espace proportionnellement
+   au contenu de chaque colonne + extra width répartie partout (pas de trou béant
+   entre Statut et Montant HT comme avec width:1% + width:100% sur col 16). */
 .livraisons-table {
   table-layout: auto;
   width: 100%;
@@ -178,7 +179,12 @@
   border-spacing: 0;
 }
 
-/* Phase 91 — coins arrondis sur première/dernière TH (le card-parent .vehicules-table-card a déjà overflow:hidden, mais le border-collapse coupait les bords arrondis) */
+.livraisons-table thead th,
+.livraisons-table tbody td {
+  white-space: nowrap;
+}
+
+/* Phase 91 — coins arrondis sur première/dernière TH */
 .livraisons-table thead th:first-child {
   border-top-left-radius: 12px;
 }
@@ -192,17 +198,6 @@
 .livraisons-table tbody tr:last-child td:last-child,
 .livraisons-table tbody tr:last-child td.liv-montant-cell {
   border-bottom-right-radius: 12px;
-}
-.livraisons-table thead th,
-.livraisons-table tbody td {
-  width: 1%;
-  white-space: nowrap;
-}
-/* Phase 91.1 — col 16 (Montant HT) absorbe TOUTE la largeur restante, pour que les colonnes
-   de gauche restent collées les unes aux autres (au lieu d'être distribuées sur toute la largeur). */
-.livraisons-table th:nth-child(16),
-.livraisons-table td:nth-child(16) {
-  width: 100%;
 }
 
 /* ============ Pagination footer polish ============ */
