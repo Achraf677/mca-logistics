@@ -886,8 +886,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   getAdminAccounts();
   nettoyerHistoriqueModifsLivraisons();
-  document.getElementById('currentDate').textContent =
-    new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  // Phase 91.81 : currentDate refresh à minuit (sinon date stale si user laisse l'app ouverte > 24h)
+  function _majCurrentDate() {
+    const el = document.getElementById('currentDate');
+    if (el) el.textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  _majCurrentDate();
+  (function _scheduleMidnightTick() {
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5, 0); // +5s buffer
+    const msUntilMidnight = tomorrow.getTime() - now.getTime();
+    setTimeout(function () {
+      _majCurrentDate();
+      // Re-arme pour le minuit suivant (récursif via setTimeout évite drift cumulatif setInterval)
+      _scheduleMidnightTick();
+    }, msUntilMidnight);
+  })();
   document.querySelectorAll('input[type="date"]').forEach(el => { el.value = aujourdhui(); });
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', e => { e.preventDefault(); naviguerVers(item.dataset.page); fermerMenuMobile(); });
