@@ -16,7 +16,8 @@
 .page > .title-row:first-child,
 .page > .ds-crumbs + .title-row,
 .page > .ds-crumbs + .ds-section-head,
-.page > .ds-crumbs + .page-actions {
+.page > .ds-crumbs + .page-actions,
+.page > .hub-subnav:first-child {
   margin-top: 20px;
 }
 
@@ -773,4 +774,57 @@ label.btn-secondary { margin: 0; cursor: pointer; }
   z-index: 999;
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
+}
+
+/* ============ Phase 91.70 — Hub sub-nav (Finance + Parc auto) ============ */
+/* Barre de navigation horizontale en tête des pages d'un même hub,
+   pour éviter de devoir revenir à la sidebar pour basculer entre pages sœurs. */
+.hub-subnav {
+  display: flex;
+  gap: 4px;
+  margin: 16px 0 12px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--ds-bg-card, rgba(255,255,255,0.03));
+  border: 1px solid var(--ds-border, rgba(255,255,255,0.08));
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.hub-subnav::-webkit-scrollbar { display: none; }
+.hub-subnav__tab {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ds-text-muted, var(--text-muted, #9aa0b4));
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hub-subnav__tab:hover {
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.06));
+  color: var(--ds-text, #e8eaf0);
+}
+.hub-subnav__tab.is-active {
+  background: var(--ds-brand-soft, rgba(230,57,70,0.12));
+  color: var(--ds-brand, var(--brand, #e63946));
+}
+.hub-subnav__tab svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@media (max-width: 640px) {
+  .hub-subnav { margin: 12px -4px 10px; }
+  .hub-subnav__tab { padding: 7px 12px; font-size: 0.78rem; }
 }

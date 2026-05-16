@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v335-phase91-69-panneau-agent-css-extract';
+const CACHE_VERSION = 'mca-v2026-05-16-v336-phase91-70-hub-subnav-finance-parc';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -129,6 +129,8 @@ const CORE_ASSETS = [
   '/script-params-apparence.js',
   // Phase 91.65 — A11y normalizer (scope="col" sur <th>)
   '/script-a11y-normalize.js',
+  // Phase 91.70 — Hub sub-nav (Finance + Parc auto)
+  '/script-hub-subnav.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
