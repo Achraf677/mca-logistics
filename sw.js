@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v374-phaseX-AV-toast-extracted';
+const CACHE_VERSION = 'mca-v2026-05-17-v375-phaseX-AX-planning-rewrite-final';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -197,6 +197,10 @@ const CORE_ASSETS = [
   '/script-core-prix-ht.js',
   // Phase X.AV : toast (canonical fan-out)
   '/script-core-toast.js',
+  // Phase X.AW : planning sync search helper
+  '/script-core-planning-sync-search.js',
+  // Phase X.AX : Planning REWRITE FINAL (gros bloc 23 fns)
+  '/script-core-planning-rewrite-final.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts

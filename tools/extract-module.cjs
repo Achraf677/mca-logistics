@@ -33,11 +33,16 @@ const block = lines.slice(startLine - 1, endLine).join('\n');
 const exportedNames = [];
 const fnDecl = /^(?:async\s+)?function\s+([a-zA-Z_$][\w$]*)/gm;
 const constDecl = /^(?:const|let|var)\s+([A-Z][\w$]*)\s*=/gm;
+// Implicit globals : `X = function() {}` at top-level (sloppy mode)
+const bareAssign = /^([a-zA-Z_$][\w$]*)\s*=\s*(?:async\s+)?function/gm;
 let m;
 while ((m = fnDecl.exec(block)) !== null) {
   if (!m[1].startsWith('_')) exportedNames.push(m[1]); // skip underscore-prefixed (private)
 }
 while ((m = constDecl.exec(block)) !== null) exportedNames.push(m[1]);
+while ((m = bareAssign.exec(block)) !== null) {
+  if (!m[1].startsWith('_')) exportedNames.push(m[1]);
+}
 
 const uniqueExports = [...new Set(exportedNames)];
 console.log('Detected exportedNames:', uniqueExports.join(', '));
