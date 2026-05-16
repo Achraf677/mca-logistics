@@ -417,3 +417,10 @@
   border-radius: 3px;
   flex-shrink: 0;
 }
+
+/* Phase 75 : Planning KPI absences color + legend dot variants */
+#planning-kpi-absences { color: var(--ds-warning, #ffd60a); }
+
+.cal16-legend-dot.tournee { background: var(--brand, #e63946); }
+.cal16-legend-dot.absence { background: var(--ds-warning, #ffd60a); }
+.cal16-legend-dot.repos   { background: var(--text-muted, #7c8299); }

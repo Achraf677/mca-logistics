@@ -3061,9 +3061,9 @@
       </div>
       <div id="charges-mini-kpi-bar" class="card" style="margin-bottom:12px;padding:12px 18px">
         <div class="u-toolbar-row">
-          <div>Impayé : <strong id="charges-kpi-impaye" style="color:#dc3545">0 €</strong></div>
-          <div>En retard : <strong id="charges-kpi-retard" style="color:#dc3545">0</strong></div>
-          <div>Payé : <strong id="charges-kpi-paye" style="color:#28a745">0 €</strong></div>
+          <div>Impayé : <strong id="charges-kpi-impaye">0 €</strong></div>
+          <div>En retard : <strong id="charges-kpi-retard">0</strong></div>
+          <div>Payé : <strong id="charges-kpi-paye">0 €</strong></div>
         </div>
       </div>
       <div class="card table-card">
@@ -3401,7 +3401,7 @@
         <div class="kpi"><div class="kpi-lbl">Heures totales</div><div class="kpi-val" id="heures-kpi-total">—</div><div class="kpi-sub">Planning semaine</div></div>
         <div class="kpi"><div class="kpi-lbl">Heures sup.</div><div class="kpi-val" id="heures-kpi-sup">—</div><div class="kpi-sub">25% + 50% inclus</div></div>
         <div class="kpi"><div class="kpi-lbl">Km parcourus</div><div class="kpi-val" id="heures-kpi-km">—</div><div class="kpi-sub">Livraisons ce mois</div></div>
-        <div class="kpi"><div class="kpi-lbl">CE 561 alertes</div><div class="kpi-val" id="heures-kpi-ce561">—</div><div class="kpi-sub" id="heures-kpi-ce561-sub" style="color:var(--brand)"></div></div>
+        <div class="kpi"><div class="kpi-lbl">CE 561 alertes</div><div class="kpi-val" id="heures-kpi-ce561">—</div><div class="kpi-sub" id="heures-kpi-ce561-sub"></div></div>
       </div>
 
       <!-- Phase 51 : combined period nav row (mockup-aligned) -->
@@ -3534,8 +3534,8 @@
           <h3>Ce mois</h3>
           <div class="cal16-kpi-grid">
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">Livraisons</div><div class="cal16-kpi-val" id="cal16-kpi-liv">0</div></div>
-            <div class="cal16-kpi"><div class="cal16-kpi-lbl" style="color:var(--ds-warning,#ffd60a)">Échéances</div><div class="cal16-kpi-val" id="cal16-kpi-ech">0</div></div>
-            <div class="cal16-kpi"><div class="cal16-kpi-lbl" style="color:var(--success,#06d6a0)">Encaissé</div><div class="cal16-kpi-val" id="cal16-kpi-pai">—</div></div>
+            <div class="cal16-kpi"><div class="cal16-kpi-lbl">Échéances</div><div class="cal16-kpi-val" id="cal16-kpi-ech">0</div></div>
+            <div class="cal16-kpi"><div class="cal16-kpi-lbl">Encaissé</div><div class="cal16-kpi-val" id="cal16-kpi-pai">—</div></div>
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">Jours fériés</div><div class="cal16-kpi-val" id="cal16-kpi-feries">—</div></div>
           </div>
 
@@ -3605,7 +3605,7 @@
       <div class="kpi-grid" style="margin-bottom:16px">
         <div class="kpi"><div class="kpi-lbl">Effectif suivi</div><div class="kpi-val" id="planning-kpi-effectif">—</div><div class="kpi-sub">chauffeurs actifs</div></div>
         <div class="kpi"><div class="kpi-lbl">Planifiés cette semaine</div><div class="kpi-val" id="planning-kpi-planifies">—</div><div class="kpi-sub">de l'effectif</div></div>
-        <div class="kpi"><div class="kpi-lbl">Absences</div><div class="kpi-val" id="planning-kpi-absences" style="color:var(--ds-warning,#ffd60a)">—</div><div class="kpi-sub">Congés / absences</div></div>
+        <div class="kpi"><div class="kpi-lbl">Absences</div><div class="kpi-val" id="planning-kpi-absences">—</div><div class="kpi-sub">Congés / absences</div></div>
         <div class="kpi"><div class="kpi-lbl">Heures planifiées</div><div class="kpi-val" id="planning-kpi-heures">—</div><div class="kpi-sub">Total semaine</div></div>
       </div>
 
@@ -3753,9 +3753,9 @@
           </table>
           <!-- Phase 66 : légende planning (mockup-aligned) -->
           <div class="cal16-legend" style="padding:10px 16px;border-top:1px solid var(--border)">
-            <div class="cal16-legend-item"><div class="cal16-legend-dot" style="background:var(--brand)"></div>Tournée planifiée</div>
-            <div class="cal16-legend-item"><div class="cal16-legend-dot" style="background:var(--ds-warning,#ffd60a)"></div>Absence / Congé</div>
-            <div class="cal16-legend-item"><div class="cal16-legend-dot" style="background:var(--text-muted)"></div>Repos</div>
+            <div class="cal16-legend-item"><div class="cal16-legend-dot tournee"></div>Tournée planifiée</div>
+            <div class="cal16-legend-item"><div class="cal16-legend-dot absence"></div>Absence / Congé</div>
+            <div class="cal16-legend-item"><div class="cal16-legend-dot repos"></div>Repos</div>
           </div>
         </div>
       </div>

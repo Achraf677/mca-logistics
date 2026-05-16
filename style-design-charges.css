@@ -154,3 +154,8 @@ td.montant-positif,
 
 /* TVA KPI — solde net colored brand */
 #tva-kpi-solde { color: var(--brand, #e63946); }
+
+/* Phase 75 : charges mini-KPI bar inline colors → CSS */
+#charges-kpi-impaye,
+#charges-kpi-retard { color: var(--brand, #e63946); }
+#charges-kpi-paye   { color: var(--success, #06d6a0); }

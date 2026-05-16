@@ -190,3 +190,6 @@
   color: var(--text-muted, #7c8299);
   font-family: var(--font-mono, monospace);
 }
+
+/* Phase 75 : Heures CE 561 KPI sub color */
+#heures-kpi-ce561-sub { color: var(--brand, #e63946); }
