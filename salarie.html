@@ -849,7 +849,8 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
        ======================================================================== -->
 
 <!-- OFFLINE BANNER -->
-<div id="offline-banner">Hors ligne — synchronisation en attente</div>
+<!-- Phase 91.84 : aria-live + role pour annonce screen reader des changements connexion -->
+<div id="offline-banner" role="status" aria-live="polite" aria-atomic="true">Hors ligne — synchronisation en attente</div>
 
 <!-- ===== ÉCRAN SALARIÉ ===== -->
 <div id="ecran-salarie">
@@ -878,7 +879,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
       </div>
     </div>
     <div class="topbar-right">
-      <span id="online-dot" title="État réseau" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--green,#2ecc71);margin-right:6px"></span>
+      <span id="online-dot" title="État réseau" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--green,#06d6a0);margin-right:6px" aria-label="État réseau" role="status"></span>
       <span id="offline-queue-badge" style="display:none" title="Saisies en attente de synchronisation"></span>
       <button class="btn-profil" onclick="changerOnglet('profil',null)" title="Mon profil" aria-label="Mon profil">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
