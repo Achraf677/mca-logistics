@@ -337,7 +337,8 @@ td.km {
 }
 
 /* Override member-foot buttons to smaller size */
-.member-foot .btn {
+.member-foot .btn,
+.member-foot .btn-secondary {
   flex: 1;
   padding: 7px 12px;
   min-height: 32px;

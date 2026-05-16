@@ -63,6 +63,28 @@
     // Mettre à jour l'élément KPI pour cohérence sidebar
     var kpiFerEl = document.getElementById('cal16-kpi-feries');
     if (kpiFerEl) kpiFerEl.textContent = cntFer > 0 ? String(cntFer) : '—';
+    // Phase 67 : cal16-kpi-pai (Encaissé) — somme livraisons livrées ce mois
+    var kpiPai = document.getElementById('cal16-kpi-pai');
+    if (kpiPai) {
+      try {
+        var now = new Date();
+        var moisStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+        var moisEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).getTime();
+        var livs = JSON.parse(localStorage.getItem('livraisons') || '[]') || [];
+        var totalPai = livs.filter(function(l) {
+          if (!l) return false;
+          var s = (l.statut || l.status || '').toLowerCase();
+          if (s !== 'livre' && s !== 'livré' && s !== 'livree' && s !== 'livrée') return false;
+          var d = new Date(l.date || l.dateLivraison || '');
+          return !isNaN(d.getTime()) && d.getTime() >= moisStart && d.getTime() <= moisEnd;
+        }).reduce(function(sum, l) {
+          return sum + (parseFloat(l.prix || l.prixTTC || l.prixHT || 0));
+        }, 0);
+        kpiPai.textContent = totalPai > 0
+          ? totalPai.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+          : '—';
+      } catch (_) {}
+    }
     if (cntLiv === 0 && cntEch === 0 && cntFer === 0) {
       // Fallback : afficher la période si les KPIs ne sont pas encore prêts
       var label = document.getElementById('cal16-label');

@@ -37,9 +37,9 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | TVA | 92% | 100% | Phase 59 : BUG-026 FIXED tabs + 3 exports impl (CA3 PDF + CSV taux + Excel annexes) + sub-meta mockup |
 | Rentabilité | 92% | 100% | Phase 59 : CSV+Excel rentabilité vraiment impl + sub-meta mockup + tabs underline + Export 4 items |
 | Statistiques | 92% | 100% | Phase 59 : exporterStatsCSV + exporterStatsExcel vraiment impl (étaient stubs alert). Sub-meta CA mockup. |
-| Calendrier | 90% | 100% | Phase 59 : sub-meta mockup format + structure complète. Session 30+ : #cal16-kpi-feries compté depuis DOM (.cal16-day-ferie cells), fallback label mois, intervalle 5s→1.5s. |
-| Alertes | 90% | 100% | Phase 59 : Export dropdown ajouté (CSV + Excel impl réels) + sub-meta mockup format |
-| Équipe | 90% | 100% | Phase 59 : Export dropdown ajouté (CSV + Excel impl réels — numéro/nom/prénom/rôle/permis/visite médicale) + sub-meta mockup |
+| Calendrier | 91% | 100% | Phase 67 : #cal16-kpi-pai (Encaissé) maintenant calculé depuis livraisons livrées ce mois. |
+| Alertes | 91% | 100% | Phase 67 : alertes-titlerow-actives + critiques-wrap maintenant mis à jour (étaient bloqués à 0). |
+| Équipe | 91% | 100% | Phase 67 : .member-foot .btn-secondary override ajouté (même size que .btn). |
 | Heures | 93% | 100% | Phase 62 : bouton "Export paie", CE 561 kpi-sub câblé (nom chauffeur ×N), chips chauffeur dynamiques, card headers h3 + renommés ("Heures travaillées"/"Kilométrage flotte") + badges id |
 | Incidents | 93% | 100% | Phase 66 : table Date/Type/Véhicule/Chauffeur/Description/Statut/Actions. Badge Type Accident/Avarie/Vol. Véhicule lookup. Modal ajout champ Type select. |
 | Paramètres | 93% | 100% | Phase 62 : h2→h3 card headers Entreprise (Informations entreprise/Identité visuelle/Postes) + Comptabilité (Fiscalité TVA→Paramétrage TVA/Trésorerie/Catégories). Nouvelle carte "Cabinet comptable" avec badge Sync OK, toggles FEC+sync, save localStorage. |

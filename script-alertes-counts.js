@@ -87,6 +87,16 @@
     if (kpiCrit) kpiCrit.textContent = critiques;
     if (kpiAlert) kpiAlert.textContent = alertesCnt;
     if (kpiInfo) kpiInfo.textContent = infoCnt;
+
+    // Phase 67 : title-row sub-meta (alertes-titlerow-actives + critiques-wrap)
+    var trActives = document.getElementById('alertes-titlerow-actives');
+    if (trActives) trActives.textContent = actives;
+    var trCritWrap = document.getElementById('alertes-titlerow-critiques-wrap');
+    var trCrit = document.getElementById('alertes-titlerow-critiques');
+    if (trCritWrap && trCrit) {
+      trCrit.textContent = critiques;
+      trCritWrap.style.display = critiques > 0 ? '' : 'none';
+    }
   }
 
   function tryAttach() {
