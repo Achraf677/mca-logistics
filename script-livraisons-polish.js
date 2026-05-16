@@ -333,12 +333,19 @@
               name: 'Facture ' + numLiv.replace(/^L-/, 'F-'),
             });
           }
-        } else { alert('Fonction genererFactureLivraison absente — TODO côté backend'); }
+        } else {
+          // Phase 91.67 : remplacement alert() dev par toast UX (au cas où l'export n'est pas chargé)
+          var t1 = window.afficherToast; if (typeof t1 === 'function') t1('Génération facture indisponible — réessayez après rechargement', 'error');
+          else alert('Génération facture indisponible — réessayez après rechargement');
+        }
       },
       'bl': () => {
         if (typeof window.genererBonsLivraison === 'function') window.genererBonsLivraison(livId);
         else if (typeof window.genererBonLivraison === 'function') window.genererBonLivraison(livId);
-        else alert('Fonction BL absente');
+        else {
+          var t2 = window.afficherToast; if (typeof t2 === 'function') t2('Génération bon de livraison indisponible', 'error');
+          else alert('Génération bon de livraison indisponible');
+        }
         if (typeof window.enregistrerDocumentLivraison === 'function') {
           window.enregistrerDocumentLivraison(livId, { type: 'bl', name: 'Bon de livraison' });
         }
@@ -347,7 +354,10 @@
         // Phase 91.12 — fonction exposée = genererLettreDeVoiture (cf. script.js:3706).
         if (typeof window.genererLettreDeVoiture === 'function') window.genererLettreDeVoiture(livId);
         else if (typeof window.genererLettreVoiture === 'function') window.genererLettreVoiture(livId);
-        else alert('Fonction CMR absente');
+        else {
+          var t3 = window.afficherToast; if (typeof t3 === 'function') t3('Génération lettre de voiture (CMR) indisponible', 'error');
+          else alert('Génération lettre de voiture (CMR) indisponible');
+        }
         if (typeof window.enregistrerDocumentLivraison === 'function') {
           window.enregistrerDocumentLivraison(livId, { type: 'cmr', name: 'Lettre de voiture CMR' });
         }
