@@ -319,12 +319,7 @@ function hasNegativeNumber()   {
 
 // MOVED -> script-entretiens.js : getEntretienMontantTVA
 
-function normaliserDateISO(val) {
-  if (!val) return '';
-  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) return val.slice(0, 10);
-  var d = new Date(val);
-  return Number.isNaN(d.getTime()) ? '' : dateToLocalISO(d);
-}
+// MOVED -> script-core-date-range-utils.js : normaliserDateISO
 
 // MOVED -> script-tva.js : getTVAConfig
 
@@ -396,60 +391,13 @@ function normaliserDateISO(val) {
 // MOVED -> script-livraisons.js : getLivraisonStatutPaiement
 // MOVED -> script-carburant.js : getMontantHTCarburant
 // MOVED -> script-entretiens.js : getMontantHTEntretien
-function getDateRangeInclusive(debut, fin) {
-  const dates = [];
-  if (!debut || !fin) return dates;
-  const current = new Date(debut + 'T00:00:00');
-  const end = new Date(fin + 'T00:00:00');
-  while (current <= end) {
-    dates.push(new Date(current));
-    current.setDate(current.getDate() + 1);
-  }
-  return dates;
-}
+// MOVED -> script-core-date-range-inclusive.js : getDateRangeInclusive
 // MOVED -> script-core-branding.js : getLogoEntreprise
 // MOVED -> script-core-auth.js : getDefaultAdminAccounts
 // MOVED -> script-core-auth.js : adminCompteEstConfigureLocal
 // MOVED -> script-core-auth.js : getAdminAccounts
 // MOVED -> script-core-auth.js : saveAdminAccounts
-function getSecurityHelper() {
-  return window.DelivProSecurity || null;
-}
-// MOVED -> script-core-auth.js : getSessionTimeoutMinutesAdmin
-function evaluerQualiteMotDePasseFort(value) {
-  const security = getSecurityHelper();
-  if (security && typeof security.evaluatePassword === 'function') {
-    return security.evaluatePassword(value, { minLength: 8 });
-  }
-  const motDePasse = String(value || '');
-  if (!motDePasse) return { ok: false, message: 'Utilisez au moins 8 caractères avec majuscule, minuscule et chiffre.', color: 'var(--text-muted)' };
-  if (motDePasse.length >= 8) return { ok: true, message: 'Mot de passe conforme.', color: 'var(--green)' };
-  return { ok: false, message: 'Utilisez au moins 8 caractères.', color: 'var(--red)' };
-}
-// BUG-021 fix : fallback btoa casse sur Unicode (emoji, accents). UTF-8 encode avant btoa.
-function btoaUnicodeSafe(str) {
-  try {
-    return btoa(unescape(encodeURIComponent(String(str || ''))));
-  } catch (e) {
-    try { return btoa(String(str || '')); } catch (_) { return ''; }
-  }
-}
-async function hasherMotDePasseLocal(value) {
-  const security = getSecurityHelper();
-  if (security && typeof security.hashPassword === 'function') {
-    return security.hashPassword(value);
-  }
-  return btoaUnicodeSafe(value);
-}
-async function verifierMotDePasseLocal(value, storedValue) {
-  const security = getSecurityHelper();
-  if (security && typeof security.verifyPassword === 'function') {
-    return security.verifyPassword(value, storedValue);
-  }
-  const stored = String(storedValue || '');
-  const plain = String(value || '');
-  return stored === plain || stored === btoaUnicodeSafe(plain);
-}
+// MOVED -> script-core-security-helpers.js : getSecurityHelper + evaluerQualiteMotDePasseFort + btoaUnicodeSafe
 // MOVED -> script-core-auth.js : getAdminSession
 const ADMIN_EDIT_LOCKS_KEY = 'admin_edit_locks';
 const ADMIN_EDIT_LOCK_TTL_MS = 20 * 60 * 1000;

@@ -31,7 +31,7 @@ const block = lines.slice(startLine - 1, endLine).join('\n');
 
 // Find exported names (function declarations + const + window.X = X)
 const exportedNames = [];
-const fnDecl = /^function\s+([a-zA-Z_$][\w$]*)/gm;
+const fnDecl = /^(?:async\s+)?function\s+([a-zA-Z_$][\w$]*)/gm;
 const constDecl = /^(?:const|let|var)\s+([A-Z][\w$]*)\s*=/gm;
 let m;
 while ((m = fnDecl.exec(block)) !== null) {
