@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v358-phaseX-C-extract-rgpd';
+const CACHE_VERSION = 'mca-v2026-05-16-v359-phaseX-D-extract-tco-ui';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -137,6 +137,8 @@ const CORE_ASSETS = [
   '/script-core-templates-sms.js',
   // Phase X.C (91.92) — Registre RGPD art. 30 extrait de script.js
   '/script-core-rgpd.js',
+  // Phase X.D (91.93) — TCO véhicule UI extrait de script.js
+  '/script-core-tco-ui.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts

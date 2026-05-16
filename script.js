@@ -2675,13 +2675,7 @@ function toggleTypeJour(jour) {
 }
 
 /* ===== CONNEXION TCO DANS LA PAGE VÉHICULES ===== */
-function ouvrirTCO(vehId) {
-  const veh = charger('vehicules').find(v=>v.id===vehId);
-  if (!veh) return;
-  document.getElementById('tco-veh-nom').textContent = `${veh.immat} — ${veh.modele||''}`;
-  afficherTCO(vehId);
-  openModal('modal-tco');
-}
+// MOVED -> script-core-tco-ui.js (Phase X.D) : ouvrirTCO
 
 /* ===== CONNEXION HISTOR. MODIFS DANS MODAL EDIT LIVRAISON ===== */
 // MOVED -> script-livraisons.js : ouvrirEditLivraison
@@ -3488,22 +3482,7 @@ function marquerPaye(id) {
 /* ===== TCO VÉHICULE ===== */
 // MOVED -> script-core-utils.js : calculerTCO
 
-function afficherTCO(vehId) {
-  const veh  = charger('vehicules').find(v=>v.id===vehId);
-  const tco  = calculerTCO(vehId);
-  const cont = document.getElementById('tco-detail');
-  if (!cont || !veh) return;
-
-  cont.innerHTML = `
-    <div style="font-size:.9rem;font-weight:600;margin-bottom:12px">TCO — ${veh.immat} ${veh.modele||''}</div>
-    <div class="tco-grid">
-      <div class="tco-item"><div class="tco-label">Acquisition HT</div><div class="tco-value" style="color:#4f8ef7">${euros(tco.achatHT)}</div></div>
-      <div class="tco-item"><div class="tco-label">⛽ Carburant</div><div class="tco-value" style="color:#e74c3c">${euros(tco.totalCarb)}</div></div>
-      <div class="tco-item"><div class="tco-label">Entretiens</div><div class="tco-value" style="color:var(--accent)">${euros(tco.totalEntr)}</div></div>
-      <div class="tco-item"><div class="tco-label">Autres charges</div><div class="tco-value" style="color:#9b59b6">${euros(tco.totalCharg)}</div></div>
-      <div class="tco-item" style="border:1px solid var(--border)"><div class="tco-label">Total TCO</div><div class="tco-value" style="color:var(--text-primary)">${euros(tco.total)}</div></div>
-    </div>`;
-}
+// MOVED -> script-core-tco-ui.js (Phase X.D) : afficherTCO
 
 /* ===== CARNET ENTRETIEN DÉTAILLÉ ===== */
 // MOVED -> script-entretiens.js : afficherEntretiens
