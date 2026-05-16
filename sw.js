@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v299-phase91-perf-batch-polish-rm-resize';
+const CACHE_VERSION = 'mca-v2026-05-16-v300-phase91-propagation-fixes';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

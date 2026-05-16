@@ -30,11 +30,20 @@
     var carburant = lire('carburant');
 
     // CA HT du mois : sum livraisons dans la période
+    // Phase 91.36 — utilise getMontantHTLivraison() si dispo (formule unique) au lieu du fallback `montant` TTC
+    // qui drift de 20% TVA en cas d'absence de prixHT explicite.
     var caHT = 0, kmTotal = 0;
+    var getHT = (typeof window.getMontantHTLivraison === 'function') ? window.getMontantHTLivraison : null;
     livraisons.forEach(function (l) {
       var d = (l.dateLivraison || l.dateLiv || l.date || '');
       if (d >= moisDebut && d <= moisFin) {
-        caHT += parseFloat(l.prixHT || l.montantHT || l.montant || 0);
+        var htVal = getHT ? getHT(l) : parseFloat(l.prixHT || l.montantHT || 0);
+        if (!htVal && l.prix) {
+          // Fallback : si prix TTC seul, déduire HT via taux TVA livraison
+          var taux = parseFloat(l.tauxTVA || 20) / 100;
+          htVal = parseFloat(l.prix) / (1 + taux);
+        }
+        caHT += htVal || 0;
         kmTotal += parseFloat(l.distance || l.km || l.kilometres || 0);
       }
     });

@@ -125,8 +125,12 @@ function peuplerSelectsLivraisonEdition(chaufId, vehId) {
   const selVeh = document.getElementById('edit-liv-vehicule');
   if (selChauf) {
     selChauf.innerHTML = '<option value="">-- Choisir --</option>';
+    // Phase 91.36 — filtre les salariés inactifs (actif === false ou statut === 'inactif')
+    // sauf si la livraison actuelle est déjà assignée à un inactif (préserve la valeur historique).
     charger('salaries').forEach(function(salarie) {
-      selChauf.innerHTML += '<option value="' + salarie.id + '">' + getSalarieNomComplet(salarie, { includeNumero: true }) + '</option>';
+      const inactif = (salarie.actif === false) || (salarie.statut === 'inactif');
+      if (inactif && salarie.id !== chaufId) return;
+      selChauf.innerHTML += '<option value="' + salarie.id + '">' + getSalarieNomComplet(salarie, { includeNumero: true }) + (inactif ? ' (inactif)' : '') + '</option>';
     });
     selChauf.value = chaufId || '';
   }
@@ -394,6 +398,9 @@ function changerStatutLivraison(id, statut) {
     // Phase 91.28 — refresh chips toolbar (Brouillons / En cours / Livrées counts) après changement statut
     try { if (typeof window.refreshLivraisonsChipsCounts === 'function') window.refreshLivraisonsChipsCounts(); } catch (_) {}
     try { if (typeof afficherLivraisons === 'function') afficherLivraisons(); } catch (_) {}
+    // Phase 91.36 — refresh aussi dashboard + rentabilité (KPI CA/marge/retards dépendent du statut)
+    try { if (typeof window.rafraichirDashboard === 'function') window.rafraichirDashboard(); } catch (_) {}
+    try { if (typeof window.afficherRentabilite === 'function') window.afficherRentabilite(); } catch (_) {}
   }
 }
 // Phase 91.34 — handlers inline du dropdown statut table : exposés window.X pour éviter ReferenceError silencieux.
@@ -567,6 +574,10 @@ function confirmerEditLivraison() {
     afficherBadgeAlertes();
   }
   ajouterEntreeAudit('Modification livraison', (livraisons[idx].numLiv || 'Livraison') + ' · ' + (livraisons[idx].client || 'Client'));
+  // Phase 91.36 — propage refresh aux KPI/widgets qui dépendent de la livraison
+  try { if (typeof window.refreshLivraisonsChipsCounts === 'function') window.refreshLivraisonsChipsCounts(); } catch (_) {}
+  try { if (typeof window.rafraichirDashboard === 'function') window.rafraichirDashboard(); } catch (_) {}
+  try { if (typeof window.afficherRentabilite === 'function') window.afficherRentabilite(); } catch (_) {}
   closeModal('modal-edit-livraison');
   afficherLivraisons();
   afficherToast('✅ Livraison mise à jour');

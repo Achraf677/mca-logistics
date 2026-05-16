@@ -944,6 +944,24 @@ function confirmerEditVehicule() {
   vehicules[idx].vin = getV2('veh-vin').toUpperCase();
   vehicules[idx].carteGrise = getV2('veh-carte-grise');
   sauvegarder('vehicules', vehicules);
+  // Phase 91.36 — propage l'immat dans les livraisons / carburant / entretiens existants (vehNom dénormalisé)
+  try {
+    const newImmat = vehicules[idx].immat || vehicules[idx].immatriculation || vehicules[idx].nom || '';
+    const vehId = vehicules[idx].id;
+    if (vehId && newImmat) {
+      ['livraisons', 'carburant', 'entretiens', 'inspections'].forEach(function (key) {
+        const arr = charger(key);
+        let changed = false;
+        arr.forEach(function (item) {
+          if (item && item.vehId === vehId) {
+            if (item.vehNom !== newImmat) { item.vehNom = newImmat; changed = true; }
+            if (item.vehImmat !== undefined && item.vehImmat !== newImmat) { item.vehImmat = newImmat; changed = true; }
+          }
+        });
+        if (changed) sauvegarder(key, arr);
+      });
+    }
+  } catch (e) { console.warn('[confirmerEditVehicule:propagation]', e); }
   closeModal('modal-vehicule');
   const modal = document.getElementById('modal-vehicule');
   modal.querySelector('h3').textContent = 'Nouveau Véhicule';
