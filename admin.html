@@ -345,7 +345,7 @@
   <main class="main-content" id="mainContent">
     <div class="ptr-indicator" id="ptr-indicator"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M12 5v14"/><polyline points="19 12 12 19 5 12"/></svg> Relâchez pour actualiser...</div>
     <header class="topbar">
-      <button class="btn-menu-mobile" id="menuMobile" aria-label="Ouvrir le menu mobile"><svg viewBox="0 0 24 24" width="18" height="18" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <button class="btn-menu-mobile" id="menuMobile" aria-label="Ouvrir le menu mobile"><svg viewBox="0 0 24 24" width="18" height="18" class="u-svg-base"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
       <div class="topbar-branding" onclick="naviguerVers('dashboard')" title="Retour Dashboard">
         <span class="topbar-logo-name" id="topbar-brand-name">MCA Logistics</span>
       </div>
@@ -359,7 +359,7 @@
         <span class="topbar-bell-badge" id="topbar-bell-count" style="display:none">0</span>
       </button>
       <button class="btn-secondary" id="btn-install-pwa" type="button" onclick="declencherInstallPWA()" style="display:none" title="Installer l'application sur votre appareil"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Installer</button>
-      <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre" aria-label="Basculer entre mode clair et sombre"><svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+      <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre" aria-label="Basculer entre mode clair et sombre"><svg viewBox="0 0 24 24" width="16" height="16" class="u-svg-base"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
       <div id="ai-status-bar" onclick="togglePanneauAgent()">
         <span class="ai-pulse-dot"></span>
         <span class="ai-status-label">Agent IA</span>
@@ -740,15 +740,15 @@
       <div class="period-row">
         <div class="view-toggle">
           <button class="btn-view active" id="btn-vue-tableau" data-vue="tableau" onclick="changerVueLivraisons('tableau')">
-            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>
+            <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>
             Tableau
           </button>
           <button class="btn-view" id="btn-vue-kanban" data-vue="kanban" onclick="changerVueLivraisons('kanban')">
-            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="9" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/></svg>
+            <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="9" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/></svg>
             Kanban
           </button>
           <button class="btn-view" id="btn-vue-calendrier" data-vue="calendrier" onclick="changerVueLivraisons('calendrier')">
-            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
+            <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
             Calendrier
           </button>
         </div>
@@ -1108,9 +1108,9 @@
         <div class="ds-section-head__actions">
           <div class="liv-dropdown-wrap">
             <button class="btn-secondary liv-dropdown-btn" onclick="this.parentElement.classList.toggle('open')" aria-haspopup="true">
-              <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
-              <svg viewBox="0 0 24 24" width="11" height="11" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg viewBox="0 0 24 24" width="11" height="11" class="u-svg-base"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="liv-dropdown-menu">
               <button class="liv-dropdown-item" onclick="exporterVehiculesPDF();this.closest('.liv-dropdown-wrap').classList.remove('open')">
@@ -1675,14 +1675,16 @@
         </div>
         <div class="ds-section-head__actions u-flex-row">
           <!-- Phase 57 : Mois/Trimestre/Année chips in section-head (mockup) -->
-          <button class="btn-chip stats-granularity active" data-granularity="mois" onclick="setStatsGranularity(this,'mois')">Mois</button>
-          <button class="btn-chip stats-granularity" data-granularity="trimestre" onclick="setStatsGranularity(this,'trimestre')">Trimestre</button>
-          <button class="btn-chip stats-granularity" data-granularity="annee" onclick="setStatsGranularity(this,'annee')">Année</button>
+          <div role="tablist" aria-label="Granularité des statistiques" style="display:contents">
+            <button class="btn-chip stats-granularity active" role="tab" aria-selected="true" data-granularity="mois" onclick="setStatsGranularity(this,'mois')">Mois</button>
+            <button class="btn-chip stats-granularity" role="tab" aria-selected="false" data-granularity="trimestre" onclick="setStatsGranularity(this,'trimestre')">Trimestre</button>
+            <button class="btn-chip stats-granularity" role="tab" aria-selected="false" data-granularity="annee" onclick="setStatsGranularity(this,'annee')">Année</button>
+          </div>
           <div class="liv-dropdown-wrap">
             <button class="btn-secondary liv-dropdown-btn" onclick="this.parentElement.classList.toggle('open')" aria-haspopup="true">
-              <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
-              <svg viewBox="0 0 24 24" width="11" height="11" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg viewBox="0 0 24 24" width="11" height="11" class="u-svg-base"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="liv-dropdown-menu">
               <button class="liv-dropdown-item" onclick="exporterStatsPDF();this.closest('.liv-dropdown-wrap').classList.remove('open')">
@@ -1705,11 +1707,11 @@
       <div class="carb-period-nav">
         <div class="period-left">
           <button class="btn-secondary" onclick="navStatsPeriode(-1)" aria-label="Précédent">
-            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M15 18l-6-6 6-6"/></svg>
+            <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
           <button class="btn-secondary btn-today-brand" onclick="reinitialiserStatsPeriode()">Aujourd'hui</button>
           <button class="btn-secondary" onclick="navStatsPeriode(1)" aria-label="Suivant">
-            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M9 18l6-6-6-6"/></svg>
+            <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base"><path d="M9 18l6-6-6-6"/></svg>
           </button>
           <div id="stats-mois-label" class="period-label"></div>
           <div id="stats-mois-dates" class="period-dates"></div>
@@ -2751,9 +2753,9 @@
           <button class="btn-secondary u-nowrap" onclick="typeof envoyerRelancesEmail==='function'?envoyerRelancesEmail():void 0">Envoyer relances</button>
           <div class="liv-dropdown-wrap">
             <button class="btn-secondary liv-dropdown-btn" id="enc-export-btn" aria-haspopup="true" aria-expanded="false" onclick="this.closest('.liv-dropdown-wrap').classList.toggle('open');var o=this.closest('.liv-dropdown-wrap').classList.contains('open');this.setAttribute('aria-expanded',o)">
-              <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
-              <svg viewBox="0 0 24 24" width="11" height="11" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg viewBox="0 0 24 24" width="11" height="11" class="u-svg-base" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="liv-dropdown-menu" role="menu">
               <button class="liv-dropdown-item" role="menuitem" onclick="exporterEncaissementRapport();this.closest('.liv-dropdown-wrap').classList.remove('open')">
@@ -2785,20 +2787,20 @@
       <div id="enc-period-nav">
         <div class="enc-period-left">
           <button class="btn-secondary" onclick="typeof navEncPeriode==='function'&&navEncPeriode(-1)" aria-label="Précédent">
-            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M15 18l-6-6 6-6"/></svg>
+            <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
           <button class="btn-secondary btn-today-brand" onclick="typeof reinitialiserEncPeriode==='function'&&reinitialiserEncPeriode()">Aujourd'hui</button>
           <button class="btn-secondary" onclick="typeof navEncPeriode==='function'&&navEncPeriode(1)" aria-label="Suivant">
-            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M9 18l6-6-6-6"/></svg>
+            <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base"><path d="M9 18l6-6-6-6"/></svg>
           </button>
           <div class="enc-period-label" id="enc-mois-label"></div>
           <div class="enc-period-dates" id="enc-mois-dates"></div>
         </div>
-        <div class="enc-period-chips">
-          <button class="btn-chip" onclick="setEncVue('jour')">Jour</button>
-          <button class="btn-chip" onclick="setEncVue('semaine')">Semaine</button>
-          <button class="btn-chip active" onclick="setEncVue('mois')">Mois</button>
-          <button class="btn-chip" onclick="setEncVue('annee')">Année</button>
+        <div class="enc-period-chips" role="tablist" aria-label="Période d'encaissement">
+          <button class="btn-chip" role="tab" aria-selected="false" onclick="setEncVue('jour')">Jour</button>
+          <button class="btn-chip" role="tab" aria-selected="false" onclick="setEncVue('semaine')">Semaine</button>
+          <button class="btn-chip active" role="tab" aria-selected="true" onclick="setEncVue('mois')">Mois</button>
+          <button class="btn-chip" role="tab" aria-selected="false" onclick="setEncVue('annee')">Année</button>
         </div>
       </div>
       <!-- Phase 40 refonte HTML : KPI grid Encaissement (mockup-matched) -->

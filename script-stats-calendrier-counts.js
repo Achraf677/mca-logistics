@@ -182,8 +182,11 @@
 
 /* Phase 57 : setStatsGranularity — chips Mois/Trimestre/Année dans section-head */
 window.setStatsGranularity = function (btn, granularity) {
-  document.querySelectorAll('.stats-granularity').forEach(function (c) { c.classList.remove('active'); });
-  if (btn) btn.classList.add('active');
+  document.querySelectorAll('.stats-granularity').forEach(function (c) {
+    c.classList.remove('active');
+    c.setAttribute('aria-selected', 'false');
+  });
+  if (btn) { btn.classList.add('active'); btn.setAttribute('aria-selected', 'true'); }
   var modeMap = { mois: 'mois', trimestre: 'annee', annee: 'annee' };
   var mode = modeMap[granularity] || 'mois';
   if (typeof window.changerVueStats === 'function') window.changerVueStats(mode);

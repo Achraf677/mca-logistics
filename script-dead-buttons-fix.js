@@ -58,10 +58,10 @@
     var state = getEncPeriodeState();
     state.mode = mode;
     state.offset = 0;
-    // Active chip visuel
-    document.querySelectorAll('.enc-period-chips .btn-chip').forEach(function (b) { b.classList.remove('active'); });
+    // Active chip visuel + ARIA
+    document.querySelectorAll('.enc-period-chips .btn-chip').forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
     var clicked = document.querySelector('.enc-period-chips .btn-chip[onclick*="setEncVue(\'' + mode + '\')"]');
-    if (clicked) clicked.classList.add('active');
+    if (clicked) { clicked.classList.add('active'); clicked.setAttribute('aria-selected', 'true'); }
     refreshEncaissement();
   }
   window.setEncVue = setEncVue;
