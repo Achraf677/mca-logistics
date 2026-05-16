@@ -9845,7 +9845,7 @@ genererRentabilitePDF = function() {
     wireInteractions(grid, events);
   }
 
-  /* ---------- Rendu vue jour ---------- */
+  /* ---------- Rendu vue jour (Phase 91.49 — refonte vue Jour : KPIs + lanes enrichies) ---------- */
   function renderJour() {
     const grid = document.getElementById('cal16-grid');
     if (!grid) return;
@@ -9854,29 +9854,125 @@ genererRentabilitePDF = function() {
     const filtres = getFiltresActifs();
     const ferie = filtres.feries ? feriePourDate(start) : null;
 
+    // Index par type pour lookups
+    const livIndex = {}; load(LS.livraisons).forEach(l => { if (l && l.id) livIndex[l.id] = l; });
+    const factIndex = {}; load(LS.factures).forEach(f => { if (f && f.id) factIndex[f.id] = f; });
+    const paieIndex = {}; load(LS.paiements).forEach(p => { if (p && p.id) paieIndex[p.id] = p; });
+
+    // KPIs du jour
+    const livsJour = events.filter(ev => ev.type === 'livraisons');
+    const echJour = events.filter(ev => ev.type === 'echeances');
+    const paieJour = events.filter(ev => ev.type === 'paiements');
+    const relJour = events.filter(ev => ev.type === 'relances');
+    const totalEncaisse = paieJour.reduce((s, ev) => s + (paieIndex[ev.id]?.montant || 0), 0);
+    const totalEcheances = echJour.reduce((s, ev) => {
+      const fId = ev.id.replace(/^ech_/, '');
+      const f = factIndex[fId];
+      if (!f) return s;
+      const solde = typeof soldeFacture === 'function' ? soldeFacture(f) : 0;
+      return s + (solde > 0 ? solde : 0);
+    }, 0);
+
     let html = '<div class="cal16-jour" data-date="'+isoDate(start)+'">';
+
+    // Header + retour
     html += '<div class="cal16-jour-back">'
       + '<button class="btn-secondary" onclick="window.cal16.retourMois()" title="Retour à la vue mois">← Retour au mois</button>'
       + '<button class="cal16-jour-close" onclick="window.cal16.retourMois()" title="Fermer" aria-label="Fermer">✕</button>'
       + '</div>';
-    if (ferie) html += '<div class="cal16-jour-ferie"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'+escHtml(ferie.nom)+' (jour férié)</div>';
-    const groups = [['livraisons','Livraisons'],['factures','Factures émises'],['echeances','Échéances'],['relances','Relances'],['paiements','Paiements']];
-    groups.forEach(([t, titre]) => {
+
+    // Banner férié
+    if (ferie) html += '<div class="cal16-jour-ferie">☆ '+escHtml(ferie.nom)+' — jour férié</div>';
+
+    // KPI strip de la journée
+    html += '<div class="cal16-jour-kpis">'
+      + '<div class="cal16-jour-kpi"><div class="cal16-jour-kpi-lbl">Livraisons</div><div class="cal16-jour-kpi-val">'+livsJour.length+'</div></div>'
+      + '<div class="cal16-jour-kpi"><div class="cal16-jour-kpi-lbl">Échéances</div><div class="cal16-jour-kpi-val">'+(totalEcheances > 0 ? fmtEur(totalEcheances) : echJour.length)+'</div></div>'
+      + '<div class="cal16-jour-kpi"><div class="cal16-jour-kpi-lbl">Encaissé</div><div class="cal16-jour-kpi-val">'+(totalEncaisse > 0 ? fmtEur(totalEncaisse) : '—')+'</div></div>'
+      + '<div class="cal16-jour-kpi"><div class="cal16-jour-kpi-lbl">Relances</div><div class="cal16-jour-kpi-val">'+(relJour.length || '—')+'</div></div>'
+      + '</div>';
+
+    // Lanes par catégorie (grid responsive)
+    html += '<div class="cal16-jour-lanes">';
+    const groups = [
+      ['livraisons','Livraisons','📦'],
+      ['echeances','Échéances','⏰'],
+      ['paiements','Paiements','💰'],
+      ['relances','Relances','🔔'],
+      ['factures','Factures émises','📄']
+    ];
+    let hasAny = false;
+    groups.forEach(([t, titre, emoji]) => {
       if (!filtres[t]) return;
       const evs = events.filter(ev => ev.type === t);
       if (!evs.length) return;
-      html += '<div class="cal16-jour-section"><h3>'+titre+' <span class="cal16-count">('+evs.length+')</span></h3>';
+      hasAny = true;
+      html += '<div class="cal16-jour-lane cal16-jour-lane-'+t+'">';
+      html += '<div class="cal16-jour-lane-head"><span class="cal16-jour-lane-emoji">'+emoji+'</span><h4>'+titre+'</h4><span class="cal16-jour-lane-count">'+evs.length+'</span></div>';
+      html += '<div class="cal16-jour-lane-body">';
       evs.forEach(ev => {
-        html += '<div class="cal16-event cal16-event-'+ev.type+' cal16-event-big" '
-          + (ev.draggable ? 'draggable="true" data-drag-id="'+escHtml(ev.id)+'" data-drag-type="'+ev.type+'"' : '')
-          + ' data-ev-id="'+escHtml(ev.id)+'">'
-          + '<span class="cal16-event-icon">'+ev.icon+'</span>'
-          + '<span class="cal16-event-lbl">'+escHtml(ev.label)+'</span>'
-          + '</div>';
+        let subline = '';
+        let badge = '';
+        if (t === 'livraisons') {
+          const l = livIndex[ev.id];
+          if (l) {
+            const route = [l.depart, l.arrivee].filter(Boolean).join(' → ');
+            const prix = parseFloat(l.prix) || 0;
+            subline = (route || '—') + (prix > 0 ? ' · ' + fmtEur(prix) : '');
+            const statut = String(l.statut || '').toLowerCase();
+            const statutLbl = statut === 'livre' ? 'Livré' : statut === 'en-cours' ? 'En cours' : statut === 'brouillon' ? 'Brouillon' : statut === 'annule' || statut === 'annulee' ? 'Annulé' : 'À faire';
+            badge = '<span class="cal16-jour-event-badge cal16-jour-event-badge-'+statut+'">'+statutLbl+'</span>';
+          }
+        } else if (t === 'echeances') {
+          const fId = ev.id.replace(/^ech_/, '');
+          const f = factIndex[fId];
+          if (f) {
+            const solde = typeof soldeFacture === 'function' ? soldeFacture(f) : 0;
+            subline = (f.client || '—') + (solde > 0 ? ' · solde ' + fmtEur(solde) : '');
+            const today = new Date(); today.setHours(0,0,0,0);
+            const enRetard = ev.date < today;
+            badge = enRetard ? '<span class="cal16-jour-event-badge cal16-jour-event-badge-retard">En retard</span>' : '<span class="cal16-jour-event-badge cal16-jour-event-badge-attente">À échoir</span>';
+          }
+        } else if (t === 'paiements') {
+          const p = paieIndex[ev.id];
+          if (p) {
+            subline = (p.client || p.factureNumero || '—') + ' · ' + (p.mode || 'virement');
+            badge = '<span class="cal16-jour-event-badge cal16-jour-event-badge-paye">Encaissé</span>';
+          }
+        } else if (t === 'relances') {
+          subline = 'Niveau ' + (ev.label.match(/N(\d)/)?.[1] || '?');
+          badge = '<span class="cal16-jour-event-badge cal16-jour-event-badge-relance">Envoyée</span>';
+        } else if (t === 'factures') {
+          const f = factIndex[ev.id];
+          if (f) {
+            subline = (f.client || '—') + (f.montantTTC ? ' · ' + fmtEur(f.montantTTC) : '');
+            badge = '<span class="cal16-jour-event-badge">'+escHtml(f.statut || 'émise')+'</span>';
+          }
+        }
+        html += '<button class="cal16-jour-event cal16-event-'+t+'" '
+          + (ev.draggable ? 'draggable="true" data-drag-id="'+escHtml(ev.id)+'" data-drag-type="'+t+'"' : '')
+          + ' data-ev-id="'+escHtml(ev.id)+'" type="button">'
+          + '<span class="cal16-jour-event-icon">'+ev.icon+'</span>'
+          + '<span class="cal16-jour-event-body">'
+            + '<span class="cal16-jour-event-title">'+escHtml(ev.label)+'</span>'
+            + (subline ? '<span class="cal16-jour-event-sub">'+escHtml(subline)+'</span>' : '')
+          + '</span>'
+          + badge
+          + '</button>';
       });
-      html += '</div>';
+      html += '</div></div>';
     });
-    if (!events.length) html += '<div class="cal16-empty" style="padding:40px;text-align:center">Aucun événement ce jour</div>';
+    html += '</div>';
+
+    // Empty state amélioré
+    if (!hasAny && !ferie) {
+      html += '<div class="cal16-jour-empty">'
+        + '<div class="cal16-jour-empty-icon">📅</div>'
+        + '<div class="cal16-jour-empty-title">Journée vide</div>'
+        + '<div class="cal16-jour-empty-sub">Aucune livraison, échéance ou paiement enregistré pour cette date.</div>'
+        + '</div>';
+    }
+
     html += '</div>';
     grid.innerHTML = html;
     wireInteractions(grid, events);

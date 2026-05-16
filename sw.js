@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v311-phase91-47-calendriers-palette-unifiee';
+const CACHE_VERSION = 'mca-v2026-05-16-v313-phase91-48-typo-harmonisation-polices';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
