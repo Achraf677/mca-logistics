@@ -214,3 +214,9 @@
   font-family: var(--ds-font-mono);
   font-feature-settings: "tnum";
 }
+
+/* Phase 77 : stat-pill → cursor pointer (inline style removed) */
+.stat-pill { cursor: pointer; }
+
+/* Phase 77 : dashboard kpi-card dépenses accent border */
+.kpi-card-depenses { border-top: 3px solid #e67e22; }

@@ -293,3 +293,57 @@
 #alertes-kpi-critiques { color: var(--brand, #e63946); }
 .kpi:has(#alertes-kpi-critiques) .kpi-lbl { color: var(--brand, #e63946); }
 .kpi:has(#alertes-kpi-alertes) .kpi-lbl { color: var(--ds-warning, #ffd60a); }
+
+/* ============ Phase 77 : Alertes toolbar inline styles → CSS ============ */
+
+/* Severity tablist (was inline display:flex;gap:4px;border-bottom;padding) */
+.alerte-sev-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+  padding: 0 2px;
+}
+
+/* Quick-filter buttons row */
+.alerte-quick-bar {
+  display: flex;
+  gap: 6px;
+}
+
+/* Quick-filter buttons (Toutes / Non lues) */
+.btn-quick-filter {
+  padding: 6px 10px;
+  min-height: 30px;
+  font-size: 12px;
+}
+
+.btn-quick-filter.active {
+  background: var(--brand, #e63946);
+  color: #fff;
+  border-color: var(--brand, #e63946);
+}
+
+/* Sticky filter bar */
+.alertes-filters-sticky {
+  margin-bottom: 0 !important;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg-card, #1e2230);
+  padding: 10px 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Alertes body padding */
+.alertes-card-body {
+  padding: 0 18px;
+}
+
+/* Alertes list card header — green-tinted (historique) */
+.card-header-success-tint {
+  background: rgba(46, 204, 113, 0.05);
+}
+
+/* Alertes categories bottom spacing */
+#alertes-categories { padding-bottom: 14px; }

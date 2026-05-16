@@ -264,3 +264,34 @@
 /* Phase 75 : cal16-kpi-lbl semantic colors via sibling ID → parent :has() */
 .cal16-kpi:has(#cal16-kpi-ech) .cal16-kpi-lbl { color: var(--ds-warning, #ffd60a); }
 .cal16-kpi:has(#cal16-kpi-pai) .cal16-kpi-lbl { color: var(--success, #06d6a0); }
+
+/* ============ Phase 77 : Livraisons vue-calendrier legend ============ */
+/* (.cal-legend = livraisons page; .cal16-legend = calendrier/planning pages) */
+
+.cal-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--text-muted, #7c8299);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cal-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cal-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.cal-legend-dot.today     { background: var(--brand, #e63946); }
+.cal-legend-dot.ferie     { background: #2ecc71; }
+.cal-legend-dot.livraison { background: rgba(52,152,219,0.7); }
+.cal-legend-dot.echeance  { background: var(--ds-warning, #ffd60a); }

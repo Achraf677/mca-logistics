@@ -241,7 +241,7 @@
        ======================================================================== -->
 
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header" onclick="naviguerVers('dashboard')" style="cursor:pointer" title="Retour Dashboard">
+    <div class="sidebar-header" onclick="naviguerVers('dashboard')" title="Retour Dashboard">
       <span class="logo-text" id="sidebar-nom-entreprise">MCA Logistics</span>
     </div>
     <nav class="sidebar-nav" aria-label="Navigation principale">
@@ -525,7 +525,7 @@
           <div class="kpi-value" id="kpi-benefice">0 €</div>
           <div class="kpi-sub">CA HT − dépenses</div>
         </div>
-        <div class="kpi-card" style="border-top:3px solid #e67e22">
+        <div class="kpi-card kpi-card-depenses">
           <div class="kpi-label">Retards</div>
           <div class="kpi-value" id="kpi-retards-count">—</div>
           <div class="kpi-sub" id="kpi-depenses-detail" style="display:none"></div>
@@ -535,27 +535,27 @@
 
       <!-- Stats pills (Sprint 4) - KPI secondaires compacts -->
       <div class="stats-row-pills" style="margin-bottom:20px">
-        <div class="stat-pill stat-pill-red" style="cursor:pointer" onclick="naviguerVers('encaissements');setTimeout(()=>{try{switchEncTab('relances')}catch(e){}},80)">
+        <div class="stat-pill stat-pill-red" onclick="naviguerVers('encaissements');setTimeout(()=>{try{switchEncTab('relances')}catch(e){}},80)">
           <div class="stat-pill-label">Impayés</div>
           <div class="stat-pill-value" id="kpi-solde">0 €</div>
           <div class="stat-pill-sub">voir relances →</div>
         </div>
-        <div class="stat-pill stat-pill-orange" style="cursor:pointer" onclick="naviguerVers('tva')" title="Aller à l'onglet TVA">
+        <div class="stat-pill stat-pill-orange" onclick="naviguerVers('tva')" title="Aller à l'onglet TVA">
           <div class="stat-pill-label" id="kpi-tva-label">TVA à reverser</div>
           <div class="stat-pill-value" id="kpi-tva-solde">0 €</div>
           <div class="stat-pill-sub" id="kpi-tva-detail"></div>
         </div>
-        <div class="stat-pill stat-pill-red" style="cursor:pointer" onclick="naviguerVers('alertes')">
+        <div class="stat-pill stat-pill-red" onclick="naviguerVers('alertes')">
           <div class="stat-pill-label">Alertes</div>
           <div class="stat-pill-value" id="kpi-alertes">0</div>
           <div class="stat-pill-sub">à traiter</div>
         </div>
-        <div class="stat-pill stat-pill-orange" style="cursor:pointer" onclick="naviguerVers('charges');setTimeout(()=>{var f=document.getElementById('filtre-charge-statut');if(f){f.value='a_payer';if(typeof afficherCharges==='function')afficherCharges();}},80)" title="Voir charges à payer">
+        <div class="stat-pill stat-pill-orange" onclick="naviguerVers('charges');setTimeout(()=>{var f=document.getElementById('filtre-charge-statut');if(f){f.value='a_payer';if(typeof afficherCharges==='function')afficherCharges();}},80)" title="Voir charges à payer">
           <div class="stat-pill-label">Charges impayées</div>
           <div class="stat-pill-value" id="kpi-charges-impayees">0 €</div>
           <div class="stat-pill-sub" id="kpi-charges-impayees-sub">—</div>
         </div>
-        <div class="stat-pill stat-pill-green" style="cursor:pointer" onclick="naviguerVers('encaissement');setTimeout(()=>{try{var c=document.getElementById('encaissement-content');if(c&&typeof window.encaissement!=='undefined')window.encaissement.render();}catch(e){}},80)" title="Voir détail encaissements">
+        <div class="stat-pill stat-pill-green" onclick="naviguerVers('encaissement');setTimeout(()=>{try{var c=document.getElementById('encaissement-content');if(c&&typeof window.encaissement!=='undefined')window.encaissement.render();}catch(e){}},80)" title="Voir détail encaissements">
           <div class="stat-pill-label">Encaissements du mois</div>
           <div class="stat-pill-value" id="kpi-encaissements-mois">0 €</div>
           <div class="stat-pill-sub" id="kpi-encaissements-mois-sub">—</div>
@@ -867,11 +867,11 @@
               <button class="cal-nav-btn" onclick="_calMois=new Date();afficherCalendrier()">Aujourd'hui</button>
             </div>
             <!-- Phase 60 V7 L6 — Légende calendrier mockup-aligned -->
-            <div class="cal-legend" style="display:flex;gap:14px;font-size:11px;color:var(--text-muted);align-items:center;flex-wrap:wrap">
-              <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:var(--brand,#e63946);display:inline-block"></span>Aujourd'hui</span>
-              <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#2ecc71;display:inline-block"></span>Férié</span>
-              <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:rgba(52,152,219,0.7);display:inline-block"></span>Livraison</span>
-              <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:var(--ds-warning,#ffd60a);display:inline-block"></span>Échéance</span>
+            <div class="cal-legend">
+              <span class="cal-legend-item"><span class="cal-legend-dot today"></span>Aujourd'hui</span>
+              <span class="cal-legend-item"><span class="cal-legend-dot ferie"></span>Férié</span>
+              <span class="cal-legend-item"><span class="cal-legend-dot livraison"></span>Livraison</span>
+              <span class="cal-legend-item"><span class="cal-legend-dot echeance"></span>Échéance</span>
             </div>
           </div>
           <div class="calendrier-grid" id="calendrier-grid"></div>
@@ -2011,21 +2011,21 @@
         <div class="card-header card-header-wrap">
           <h3>Liste des alertes</h3>
           <!-- Phase 60 V7 M5 — Sub-tabs Critique/À traiter/Pour info/Reportées (mockup-aligned) -->
-          <div role="tablist" aria-label="Filtres alertes par sévérité" style="display:flex;gap:4px;border-bottom:1px solid var(--border);padding:0 2px">
+          <div class="alerte-sev-tabs" role="tablist" aria-label="Filtres alertes par sévérité">
             <button type="button" class="rent-tab-btn active" role="tab" aria-selected="true" data-alerte-sevtab="toutes" onclick="filtreAlerteSeverite('toutes',this)">Toutes</button>
             <button type="button" class="rent-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-alerte-sevtab="critique" onclick="filtreAlerteSeverite('critique',this)">Critique</button>
             <button type="button" class="rent-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-alerte-sevtab="atraiter" onclick="filtreAlerteSeverite('atraiter',this)">À traiter</button>
             <button type="button" class="rent-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-alerte-sevtab="info" onclick="filtreAlerteSeverite('info',this)">Pour info</button>
             <button type="button" class="rent-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-alerte-sevtab="reportees" onclick="filtreAlerteSeverite('reportees',this)">Reportées</button>
           </div>
-          <div style="display:flex;gap:6px">
-            <button id="btn-alerte-quick-toutes" class="btn-secondary" style="padding:6px 10px;min-height:30px;font-size:12px" onclick="filtreAlerteQuick('toutes')">Toutes</button>
-            <button id="btn-alerte-quick-actives" class="btn-secondary" style="padding:6px 10px;min-height:30px;font-size:12px;background:var(--brand);color:#fff;border-color:var(--brand)" onclick="filtreAlerteQuick('actives')">Non lues</button>
+          <div class="alerte-quick-bar">
+            <button id="btn-alerte-quick-toutes" class="btn-secondary btn-quick-filter" onclick="filtreAlerteQuick('toutes')">Toutes</button>
+            <button id="btn-alerte-quick-actives" class="btn-secondary btn-quick-filter active" onclick="filtreAlerteQuick('actives')">Non lues</button>
           </div>
         </div>
-        <div style="padding:0 18px">
+        <div class="alertes-card-body">
           <!-- Filtres alertes (sticky) -->
-          <div class="filters alertes-filters-sticky" style="margin-bottom:0;position:sticky;top:0;z-index:20;background:var(--bg-card);padding:10px 0;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
+          <div class="filters alertes-filters-sticky">
             <input type="search" id="filtre-alerte-recherche" oninput="afficherAlertes()" placeholder="Rechercher (message, salarié, client, immat…)" style="min-width:240px;flex:1 1 240px" aria-label="Rechercher (message, salarié, client, immat…)" />
             <select id="filtre-alerte-type" onchange="afficherAlertes()" aria-label="Filtrer alerte par type">
               <option value="">Tous les types</option>
@@ -2060,13 +2060,13 @@
             <button class="btn-secondary" onclick="document.getElementById('filtre-alerte-recherche').value='';document.getElementById('filtre-alerte-type').value='';document.getElementById('filtre-alerte-salarie').value='';document.getElementById('filtre-alerte-statut').value='actives';document.getElementById('filtre-alerte-date').value='';filtreAlerteQuick('actives')">Réinitialiser</button>
           </div>
           <!-- Alertes actives triées par catégorie (généré dynamiquement) -->
-          <div id="alertes-categories" style="padding-bottom:14px"></div>
+          <div id="alertes-categories"></div>
         </div>
       </div>
 
       <!-- Historique traité -->
       <div class="card" id="card-alertes-traitees">
-        <div class="card-header" style="background:rgba(46,204,113,0.05)"><h3>Historique des alertes traitées</h3></div>
+        <div class="card-header card-header-success-tint"><h3>Historique des alertes traitées</h3></div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead><tr><th>Type</th><th>Message</th><th>Salarié / Client</th><th>Traité le</th></tr></thead>
