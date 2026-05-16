@@ -122,3 +122,25 @@
   padding: 6px 14px;
   font-size: 12px;
 }
+
+/* Phase 80 : entretiens historique véhicule widgets */
+#entr-ct-venir-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ds-text-muted, #7c8299);
+}
+
+#entr-hist-vehicule-select {
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--ds-border, var(--border, rgba(255,255,255,0.08)));
+  border-radius: 6px;
+  background: var(--bg-card, #1e2230);
+  color: var(--text, #e8eaf0);
+}
+
+#entr-hist-vehicule-timeline {
+  padding: 14px 18px;
+  max-height: 320px;
+  overflow-y: auto;
+}
