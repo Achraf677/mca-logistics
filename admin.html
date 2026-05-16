@@ -1319,6 +1319,11 @@
           </div>
         </div>
         <div class="ds-section-head__actions u-flex-row">
+          <!-- Phase 91.60 : CTA Simulateur ouvre drawer (libère un onglet, simulateur est outil ponctuel pas un axe d'analyse) -->
+          <button class="btn-secondary" onclick="window.openSimulateurRentabilite&&window.openSimulateurRentabilite()" title="Ouvrir le simulateur de rentabilité">
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="margin-right:4px"><rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="8" y1="7" x2="16" y2="7" stroke="currentColor" stroke-width="2"/><line x1="8" y1="11" x2="10" y2="11" stroke="currentColor" stroke-width="2"/><line x1="12" y1="11" x2="14" y2="11" stroke="currentColor" stroke-width="2"/><line x1="8" y1="15" x2="10" y2="15" stroke="currentColor" stroke-width="2"/><line x1="12" y1="15" x2="14" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+            Simulateur
+          </button>
           <button class="btn-secondary" onclick="ouvrirConfigRentabilite()" title="Configurer les paramètres de calcul">Config</button>
           <div class="ds-export-wrap">
             <button class="btn-secondary ds-export-btn" id="rent-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('rent-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
@@ -1368,7 +1373,7 @@
         <button type="button" id="rent-tab-btn-client"    class="rent-tab-btn"        role="tab" aria-selected="false" aria-controls="rent-tab-client"    tabindex="-1" onclick="changerSousOngletRentabilite('client')">Par client</button>
         <button type="button" id="rent-tab-btn-chauffeur" class="rent-tab-btn"        role="tab" aria-selected="false" aria-controls="rent-tab-chauffeur" tabindex="-1" onclick="changerSousOngletRentabilite('chauffeur')">Par chauffeur</button>
         <button type="button" id="rent-tab-btn-tournee"   class="rent-tab-btn"        role="tab" aria-selected="false" aria-controls="rent-tab-tournee"   tabindex="-1" onclick="changerSousOngletRentabilite('tournee')">Par tournée</button>
-        <button type="button" id="rent-tab-btn-simulateur" class="rent-tab-btn"       role="tab" aria-selected="false" aria-controls="rent-tab-simulateur" tabindex="-1" onclick="changerSousOngletRentabilite('simulateur')">Simulateur</button>
+        <!-- Phase 91.60 : Simulateur retiré des tabs (déplacé en drawer ouvert via CTA section-head) -->
       </nav>
 
       <!-- Sous-onglet : Par vehicule -->
@@ -1456,8 +1461,19 @@
         </div>
       </div>
 
-      <!-- Sous-onglet : Simulateur (existant) -->
-      <div id="rent-tab-simulateur" role="tabpanel" aria-labelledby="rent-tab-btn-simulateur" hidden>
+      <!-- Phase 91.60 : Simulateur en drawer overlay (déclenché par CTA section-head, plus en tab) -->
+      <div class="rent-simu-overlay" id="rent-simu-overlay" hidden onclick="if(event.target===this)window.closeSimulateurRentabilite&&window.closeSimulateurRentabilite()"></div>
+      <aside class="rent-simu-drawer" id="rent-simu-drawer" hidden role="dialog" aria-modal="true" aria-labelledby="rent-simu-drawer-title">
+        <header class="rent-simu-drawer__head">
+          <div>
+            <h3 id="rent-simu-drawer-title" style="margin:0">Simulateur de rentabilité</h3>
+            <div class="u-muted-xs">Estimez votre activité à partir d'hypothèses ou d'une livraison réelle</div>
+          </div>
+          <button type="button" class="btn-icon" aria-label="Fermer le simulateur" onclick="window.closeSimulateurRentabilite&&window.closeSimulateurRentabilite()">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/></svg>
+          </button>
+        </header>
+        <div class="rent-simu-drawer__body" id="rent-tab-simulateur" role="tabpanel">
       <div class="rentabilite-shell">
         <div class="card rentabilite-form-card">
           <div class="card-header"><h3>Paramètres d'activité</h3></div>
@@ -1626,7 +1642,8 @@
           <div id="rent-alertes" class="rentabilite-alerts"></div>
         </div>
       </div>
-      </div>
+        </div><!-- /.rent-simu-drawer__body (#rent-tab-simulateur) -->
+      </aside><!-- /.rent-simu-drawer -->
     </section>
 
     <!-- ============================================================

@@ -157,7 +157,13 @@
 
   // ===== UI =====
   function changerSousOngletRentabilite(nom) {
-    var ids = ['simulateur', 'vehicule', 'client', 'chauffeur', 'tournee'];
+    // Phase 91.60 : simulateur retiré des tabs (déplacé en drawer, openSimulateurRentabilite)
+    // — si appelé avec 'simulateur' (legacy / external), on ouvre simplement le drawer.
+    if (nom === 'simulateur') {
+      if (typeof window.openSimulateurRentabilite === 'function') window.openSimulateurRentabilite();
+      return;
+    }
+    var ids = ['vehicule', 'client', 'chauffeur', 'tournee'];
     ids.forEach(function (id) {
       var sec = document.getElementById('rent-tab-' + id);
       if (sec) sec.style.display = (id === nom) ? '' : 'none';
@@ -171,6 +177,46 @@
     if (nom === 'chauffeur'){ if (typeof window.afficherRentabiliteParChauffeur === 'function') window.afficherRentabiliteParChauffeur(); }
     if (nom === 'tournee')  { if (typeof window.afficherRentabiliteParTournee === 'function') window.afficherRentabiliteParTournee(); }
   }
+
+  // Phase 91.60 : Simulateur en drawer overlay (libère un onglet)
+  function openSimulateurRentabilite() {
+    var ov = document.getElementById('rent-simu-overlay');
+    var dr = document.getElementById('rent-simu-drawer');
+    if (!ov || !dr) return;
+    ov.hidden = false;
+    dr.hidden = false;
+    // Force reflow puis applique la classe pour animer (transform 0)
+    void dr.offsetWidth;
+    ov.classList.add('is-open');
+    dr.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+    // Recalcul initial du simulateur si la fn existe
+    if (typeof window.calculerRentabilite === 'function') {
+      try { window.calculerRentabilite(); } catch (_) {}
+    }
+    // Focus premier champ
+    setTimeout(function(){
+      var first = dr.querySelector('input,select,button');
+      if (first) try { first.focus(); } catch (_) {}
+    }, 200);
+  }
+  function closeSimulateurRentabilite() {
+    var ov = document.getElementById('rent-simu-overlay');
+    var dr = document.getElementById('rent-simu-drawer');
+    if (!ov || !dr) return;
+    ov.classList.remove('is-open');
+    dr.classList.remove('is-open');
+    setTimeout(function(){
+      ov.hidden = true;
+      dr.hidden = true;
+      document.body.style.overflow = '';
+    }, 220);
+  }
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Escape') return;
+    var dr = document.getElementById('rent-simu-drawer');
+    if (dr && !dr.hidden) closeSimulateurRentabilite();
+  });
 
   function getRangeAnalyse() {
     // Reutilise le mois selectionne par le simulateur si dispo, sinon mois courant.
@@ -780,6 +826,9 @@
     window.ouvrirConfigRentabilite       = ouvrirConfigRentabilite;
     window.enregistrerConfigRentabilite  = enregistrerConfigRentabilite;
     window.getRangeAnalyseRentabilite    = getRangeAnalyse;
+    // Phase 91.60 : drawer simulateur
+    window.openSimulateurRentabilite     = openSimulateurRentabilite;
+    window.closeSimulateurRentabilite    = closeSimulateurRentabilite;
   }
 
   // Export Node (tests unitaires uniquement) — sprint H2.2
