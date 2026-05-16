@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v382-phaseX-BW-BX-final-admin-blocks';
+const CACHE_VERSION = 'mca-v2026-05-17-v383-phaseX-BY-dashboard-rafraichir';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -233,6 +233,8 @@ const CORE_ASSETS = [
   // Phase X.BW-BX : FINAL ADMIN LOCK + ADMIN FINAL UX/EXPORTS
   '/script-core-admin-final-lock.js',
   '/script-core-admin-final-ux-exports.js',
+  // Phase X.BY : Dashboard rafraichirDashboard
+  '/script-core-dashboard-rafraichir.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
