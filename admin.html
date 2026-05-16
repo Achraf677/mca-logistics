@@ -2213,7 +2213,7 @@
         <div class="card-header">
           <div>
             <h3>Historique des déclarations TVA</h3>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><span id="tva-historique-count">0</span> déclaration(s) — <span id="tva-historique-total">0 €</span> reversés cumulés</div>
+            <div class="card-subtitle"><span id="tva-historique-count">0</span> déclaration(s) — <span id="tva-historique-total">0 €</span> reversés cumulés</div>
           </div>
         </div>
         <div class="table-wrapper">
@@ -2380,7 +2380,7 @@
         <!-- Cabinet comptable (mockup-aligned Phase 62) -->
         <div class="card">
           <div class="card-header"><h3>Cabinet comptable</h3><span class="badge ok" id="param-cabinet-sync-badge">Sync OK</span></div>
-          <div style="padding:18px 20px">
+          <div class="params-card-body">
             <div class="form-grid">
               <div class="form-group full-width"><label>Nom du cabinet</label><input type="text" id="param-cabinet-nom" placeholder="ex : EXCO Eurasud" aria-label="Nom du cabinet comptable" /></div>
               <div class="form-group"><label>Email export compta</label><input type="email" id="param-cabinet-email" placeholder="compta@cabinet.fr" aria-label="Email export comptable" /></div>
@@ -2490,7 +2490,7 @@
       <div class="param-panel" id="ptab-notifications">
         <div class="card">
           <div class="card-header"><h3>Notifications &amp; alertes</h3><span style="font-size:11px;color:var(--text-muted)">12 actives</span></div>
-          <div style="padding:18px 20px">
+          <div class="params-card-body">
             <div class="toggle-row"><div class="info"><div class="name">Alertes CT véhicule</div><div class="desc">À 30j et 7j avant échéance</div></div><div class="toggle on"></div></div>
             <div class="toggle-row"><div class="info"><div class="name">Alertes assurance véhicule</div><div class="desc">À 30j et 7j avant échéance</div></div><div class="toggle on"></div></div>
             <div class="toggle-row"><div class="info"><div class="name">Alertes permis chauffeur</div><div class="desc">À 60j et 30j avant échéance</div></div><div class="toggle on"></div></div>
@@ -2512,7 +2512,7 @@
 
         <div class="card">
           <div class="card-header"><h3>Mot de passe administrateur</h3></div>
-          <div style="padding:18px 20px">
+          <div class="params-card-body">
             <div id="param-admin-compte" style="margin-bottom:12px;font-size:12px;color:var(--text-muted)">Compte connecté : —</div>
             <div class="field"><label>Mot de passe actuel</label>
               <div style="position:relative"><input type="password" id="param-mdp-actuel" placeholder="Actuel" style="padding-right:44px;width:100%"/ aria-label="Actuel" /><button onclick="toggleParamMdp('param-mdp-actuel')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center" aria-label="Afficher/masquer le mot de passe actuel"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
@@ -2529,7 +2529,7 @@
 
         <div class="card">
           <div class="card-header"><h3>Authentification &amp; sessions</h3></div>
-          <div style="padding:18px 20px">
+          <div class="params-card-body">
             <div class="toggle-row"><div class="info"><div class="name">Authentification 2 facteurs (2FA)</div><div class="desc">Code Authenticator au login</div></div><div class="toggle on"></div></div>
             <div class="toggle-row"><div class="info"><div class="name">Verrouillage auto session</div><div class="desc">Après inactivité (min)</div></div><div class="toggle on"></div></div>
             <div class="toggle-row"><div class="info"><div class="name">Multi-device</div><div class="desc">Autoriser plusieurs sessions actives</div></div><div class="toggle"></div></div>
@@ -2549,7 +2549,7 @@
 
         <div class="card">
           <div class="card-header"><h3>Pennylane (compta)</h3><span class="badge ok">Connecté</span></div>
-          <div style="padding:18px 20px">
+          <div class="params-card-body">
             <div class="field"><label>Company ID</label><input type="text" value="23200904" class="mono" readonly / aria-label="Pennylane company ID" /></div>
             <div style="font-size:12px;color:var(--text-muted);padding:8px 0">Dernier sync : <strong style="color:var(--text)">FEC import auto le 1er du mois</strong></div>
             <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="typeof testerConnexionPennylane==='function'&&testerConnexionPennylane()">Tester la connexion</button>
@@ -2558,7 +2558,7 @@
 
         <div class="card">
           <div class="card-header"><h3>Qonto (banque)</h3><span class="badge ok">Connecté</span></div>
-          <div style="padding:18px 20px">
+          <div class="params-card-body">
             <div class="field"><label>Organization slug</label><input type="text" value="mca-logistics-3134" class="mono" readonly / aria-label="Qonto org slug" /></div>
             <div style="font-size:12px;color:var(--text-muted);padding:8px 0">Sync : <strong style="color:var(--text)">quotidien 03:00 UTC</strong> · Rapprochement auto seuil 0.7</div>
             <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="naviguerVers('charges')">Voir les transactions</button>
@@ -2567,7 +2567,7 @@
 
         <div class="card">
           <div class="card-header"><h3>Gemini AI</h3><span class="badge ok">Tier 1</span></div>
-          <div style="padding:18px 20px">
+          <div class="params-card-body">
             <div style="font-size:12px;color:var(--text-muted);padding:0 0 10px">Consommation : <strong style="color:var(--text)">~0,55-0,90 €/mois</strong> · Cap : 5 €/mois</div>
             <div class="toggle-row"><div class="info"><div class="name">Chatbot IA</div><div class="desc">Assistance opérationnelle</div></div><div class="toggle on"></div></div>
             <div class="toggle-row"><div class="info"><div class="name">OCR multimodal</div><div class="desc">Factures + tickets + RIB</div></div><div class="toggle on"></div></div>
@@ -2576,7 +2576,7 @@
 
         <div class="card">
           <div class="card-header"><h3>OpenRouteService (Maps)</h3><span class="badge ok">Actif</span></div>
-          <div style="padding:18px 20px">
+          <div class="params-card-body">
             <div style="font-size:12px;color:var(--text-muted);padding:0 0 10px">Quota : <strong style="color:var(--text)">2000 req/jour</strong> · Profil : HGV (camion)</div>
             <button class="btn btn-secondary" style="width:100%;justify-content:center">Voir la consommation</button>
           </div>
@@ -2591,7 +2591,7 @@
 
         <div class="card">
           <div class="card-header"><h3>Thème &amp; palette</h3></div>
-          <div style="padding:18px 20px">
+          <div class="params-card-body">
             <div class="field"><label for="param-theme-mode">Mode</label>
               <select id="param-theme-mode"><option>Sombre (Asphalt &amp; Speed Red)</option><option>Clair (Premium)</option><option>Auto (système)</option></select>
             </div>
@@ -2609,7 +2609,7 @@
 
         <div class="card">
           <div class="card-header"><h3>Préférences</h3></div>
-          <div style="padding:18px 20px">
+          <div class="params-card-body">
             <div class="field"><label for="param-langue">Langue</label>
               <select id="param-langue"><option>Français</option><option>English</option></select>
             </div>
@@ -2640,7 +2640,7 @@
 
         <div class="card">
           <div class="card-header"><h3>Sauvegarde automatique</h3><span class="badge ok">Actif</span></div>
-          <div style="padding:18px 20px">
+          <div class="params-card-body">
             <div class="toggle-row"><div class="info"><div class="name">Backup quotidien Supabase</div><div class="desc">Snapshot 02:00 UTC</div></div><div class="toggle on"></div></div>
             <div class="toggle-row"><div class="info"><div class="name">Export Cloudflare R2</div><div class="desc">Réplique hebdomadaire</div></div><div class="toggle on"></div></div>
             <div class="param-backup-stats" id="param-backup-stats" style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
@@ -2658,7 +2658,7 @@
 
         <div class="card">
           <div class="card-header"><h3>Audit log &amp; journal</h3></div>
-          <div style="padding:18px 20px">
+          <div class="params-card-body">
             <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Toutes les modifications admin sont tracées dans <code style="color:var(--brand);background:var(--bg-elevated);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:11px">audit_log</code> (18 tables couvertes).</div>
             <div style="display:flex;gap:8px;margin-bottom:14px">
               <button class="btn btn-secondary" onclick="exporterJournalAuditCSV()">Export CSV</button>
@@ -2675,7 +2675,7 @@
 
         <div class="card params-card-wide">
           <div class="card-header"><h3>Historique des versions</h3></div>
-          <div style="padding:18px 20px">
+          <div class="params-card-body">
             <p style="font-size:12px;color:var(--text-muted);margin:0 0 14px">
               Liste chronologique des évolutions du site. Format complet dans <code>CHANGELOG.md</code>.
             </p>
@@ -3405,15 +3405,15 @@
       </div>
 
       <!-- Phase 51 : combined period nav row (mockup-aligned) -->
-      <div class="carb-period-nav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:8px">
+      <div class="carb-period-nav">
+        <div class="period-left">
           <button class="btn-secondary" id="heures-prev-btn" onclick="naviguerHeuresPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
           <button class="btn-secondary" id="heures-reset-btn" onclick="reinitialiserHeuresPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
           <button class="btn-secondary" id="heures-next-btn" onclick="naviguerHeuresPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
-          <div style="font-family:var(--font-display);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize" id="heures-semaine-label"></div>
-          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="heures-semaine-dates"></div>
+          <div class="period-label" id="heures-semaine-label"></div>
+          <div class="period-dates" id="heures-semaine-dates"></div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center">
+        <div class="period-right">
           <select class="period-selector" id="filtre-heures-vue" onchange="changerVueHeures(this.value)" aria-label="Vue période heures" style="display:none">
             <option value="jour">Par jour</option>
             <option value="semaine" selected>Par semaine</option>
@@ -3610,16 +3610,16 @@
       </div>
 
       <!-- Phase 52 : combined period nav row (mockup-aligned) -->
-      <div class="carb-period-nav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:8px">
+      <div class="carb-period-nav">
+        <div class="period-left">
           <button class="btn-secondary" onclick="naviguerPlanningPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
           <button class="btn-secondary" onclick="reinitialiserPlanningPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
           <button class="btn-secondary" onclick="naviguerPlanningPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
-          <div style="font-family:var(--font-display);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize" id="planning-semaine-label"></div>
-          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="planning-semaine-dates"></div>
+          <div class="period-label" id="planning-semaine-label"></div>
+          <div class="period-dates" id="planning-semaine-dates"></div>
           <button class="btn-secondary" onclick="ouvrirMenuCopiesSemainePlanning()" style="min-height:34px;padding:6px 10px;font-size:12px;margin-left:4px" title="Copier/vider semaine" aria-label="Plus d'actions sur le planning">⋯</button>
         </div>
-        <div style="display:flex;gap:6px;align-items:center">
+        <div class="period-right">
           <select class="period-selector" id="vue-planning-select" onchange="changerVuePlanning(this.value)" aria-label="Vue période planning" style="display:none">
             <option value="jour">Par jour</option>
             <option value="semaine" selected>Par semaine</option>
@@ -3811,15 +3811,15 @@
         <div class="kpi"><div class="kpi-lbl">Véhicule à risque</div><div class="kpi-val" id="insp-kpi-risque">—</div><div class="kpi-sub" id="insp-kpi-risque-sub"></div></div>
       </div>
       <!-- Phase 52 : combined period nav row (mockup-aligned) -->
-      <div class="carb-period-nav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;gap:8px">
+      <div class="carb-period-nav">
+        <div class="period-left">
           <button class="btn-secondary" onclick="navInspectionsPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
           <button class="btn-secondary" onclick="reinitialiserInspectionsPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
           <button class="btn-secondary" onclick="navInspectionsPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
-          <div style="font-family:var(--font-display);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize" id="insp-semaine-label"></div>
-          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="insp-semaine-dates"></div>
+          <div class="period-label" id="insp-semaine-label"></div>
+          <div class="period-dates" id="insp-semaine-dates"></div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center">
+        <div class="period-right">
           <select class="period-selector" id="vue-insp-select" onchange="changerVueInspections(this.value)" aria-label="Vue période inspections" style="display:none">
             <option value="jour">Par jour</option>
             <option value="semaine" selected>Par semaine</option>

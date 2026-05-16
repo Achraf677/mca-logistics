@@ -329,3 +329,6 @@
 
 /* card-header wrap variant (flex-wrap + gap for complex headers) */
 .card-header-wrap { flex-wrap: wrap; gap: 10px; }
+
+/* Phase 73 : params card body content padding */
+.params-card-body { padding: 18px 20px; }
