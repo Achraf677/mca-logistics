@@ -4812,7 +4812,8 @@
           <button class="btn-primary" onclick="ajouterCommentaireLiv(document.getElementById('edit-liv-id').value)" style="padding:7px 12px;font-size:.82rem" aria-label="Ajouter un commentaire">+</button>
         </div>
       </div>
-      <div class="modal-footer" style="gap:8px;flex-wrap:wrap"><button class="btn-secondary" onclick="closeModal('modal-edit-livraison')">Annuler</button><button class="btn-secondary" onclick="genererBonLivraison(document.getElementById('edit-liv-id').value)" title="Générer le bon de livraison PDF">Bon de livraison</button><button class="btn-secondary" onclick="genererFactureLivraison(document.getElementById('edit-liv-id').value)" title="Générer la facture PDF">Facture</button><button class="btn-primary" onclick="confirmerEditLivraison()">Enregistrer</button></div>
+      <!-- Phase 91.9 — boutons "Bon de livraison" + "Facture" retirés du modal Modifier (accessibles via N° livraison + dropdown Générer dans la toolbar). -->
+      <div class="modal-footer" style="gap:8px;flex-wrap:wrap"><button class="btn-secondary" onclick="closeModal('modal-edit-livraison')">Annuler</button><button class="btn-primary" onclick="confirmerEditLivraison()">Enregistrer</button></div>
     </div>
   </div>
 
