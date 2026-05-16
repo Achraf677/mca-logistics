@@ -28,6 +28,14 @@
   padding: 0 2px;
   overflow-x: auto;
   scrollbar-width: none;
+  /* Phase 91.62 : tabs sticky pour navigation rapide entre sections sur écrans longs.
+     Background opaque + z-index pour rester au-dessus du contenu pendant le scroll. */
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--ds-bg, #0d1117);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 #page-parametres .param-tabs-bar::-webkit-scrollbar { display: none; }
 

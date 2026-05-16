@@ -2347,21 +2347,8 @@
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-header"><h3>Identité visuelle</h3></div>
-          <div class="modal-body">
-            <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-              <div id="param-logo-preview">🚐</div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <label class="btn-primary">
-                  Importer
-                  <input type="file" id="param-logo-file" accept="image/*" style="display:none" onchange="changerLogoEntreprise(this)" aria-label="Importer un logo entreprise" />
-                </label>
-                <button class="btn-secondary" onclick="supprimerLogoEntreprise()">Supprimer</button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Phase 91.62 : carte "Identité visuelle" déplacée dans l'onglet Apparence
+             (logo entreprise = identité visuelle = Apparence, pas Entreprise). -->
 
         <!-- Gestion des postes -->
         <div class="card">
@@ -2584,6 +2571,24 @@
       <!-- ===== PANEL : Apparence ===== -->
       <div class="param-panel" id="ptab-apparence" role="tabpanel" aria-labelledby="param-tab-apparence" hidden>
       <div class="params-grid">
+
+        <!-- Phase 91.62 : "Identité visuelle" déplacée depuis l'onglet Entreprise
+             (logo = identité visuelle = appartient à Apparence). -->
+        <div class="card">
+          <div class="card-header"><h3>Identité visuelle</h3></div>
+          <div class="modal-body">
+            <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+              <div id="param-logo-preview">🚐</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <label class="btn-primary">
+                  Importer
+                  <input type="file" id="param-logo-file" accept="image/*" style="display:none" onchange="changerLogoEntreprise(this)" aria-label="Importer un logo entreprise" />
+                </label>
+                <button class="btn-secondary" onclick="supprimerLogoEntreprise()">Supprimer</button>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div class="card">
           <div class="card-header"><h3>Thème &amp; palette</h3></div>
