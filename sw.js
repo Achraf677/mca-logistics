@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v379-phaseX-BK-BP-sprints-16-23';
+const CACHE_VERSION = 'mca-v2026-05-17-v380-phaseX-BQ-BU-sprints-25-29';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -223,6 +223,11 @@ const CORE_ASSETS = [
   '/script-core-sprint20-rh360.js',
   '/script-core-sprint21-parc360.js',
   '/script-core-sprint22-23-hubs.js',
+  // Phase X.BQ-BU : Sprints 25-29 IIFEs
+  '/script-core-sprint25-drawer-360.js',
+  '/script-core-sprint26-timeline-stats-signature.js',
+  '/script-core-sprint28-bugs-cleanup.js',
+  '/script-core-sprint29-parametres-pro.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
