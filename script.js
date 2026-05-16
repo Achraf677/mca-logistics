@@ -700,15 +700,7 @@ let _confirmResolve = null;
 window.promptDialog = promptDialog;
 
 /* ===== SCROLL TO TOP ===== */
-function initScrollTop() {
-  const main = document.getElementById('mainContent');
-  const btn  = document.getElementById('btn-scroll-top');
-  if (!main || !btn) return;
-  main.addEventListener('scroll', () => {
-    btn.classList.toggle('visible', main.scrollTop > 300);
-  });
-  btn.onclick = () => main.scrollTo({ top:0, behavior:'smooth' });
-}
+// MOVED -> script-core-ui-helpers.js (Phase X.H) : initScrollTop
 
 /* ===== NOM ENTREPRISE DANS TOPBAR ===== */
 // MOVED -> script-core-storage.js : chargerNomEntreprise
@@ -1067,8 +1059,7 @@ function appliquerLibellesAnalyseHT() {
 
 // MOVED -> script-planning.js : initFormulairePlanningRapide
 
-function ouvrirMenuMobile()  { document.getElementById('sidebar').classList.add('mobile-open');    document.getElementById('sidebarOverlay').classList.add('active'); }
-function fermerMenuMobile()  { document.getElementById('sidebar').classList.remove('mobile-open'); document.getElementById('sidebarOverlay').classList.remove('active'); }
+// MOVED -> script-core-ui-helpers.js (Phase X.H) : ouvrirMenuMobile + fermerMenuMobile
 
 /* ===== MODALS ===== */
 // BUG-006 fix : a11y — role="dialog", aria-modal, focus trap, Échap pour fermer, restauration focus.
@@ -2680,17 +2671,8 @@ function toggleTypeJour(jour) {
 /* ===== CONNEXION HISTOR. MODIFS DANS MODAL EDIT LIVRAISON ===== */
 // MOVED -> script-livraisons.js : ouvrirEditLivraison
 
-/* ===== VUE COMPACTE TABLEAUX ===== */
-let _vueCompacte = false;
-function toggleVueCompacte() {
-  _vueCompacte = !_vueCompacte;
-  document.querySelectorAll('.data-table').forEach(t => t.classList.toggle('compact', _vueCompacte));
-  const btn = document.getElementById('btn-density-compact');
-  const btn2= document.getElementById('btn-density-normal');
-  if (btn)  btn.classList.toggle('active',  _vueCompacte);
-  if (btn2) btn2.classList.toggle('active', !_vueCompacte);
-  afficherToast(_vueCompacte ? 'Vue compacte' : 'Vue normale');
-}
+/* ===== VUE COMPACTE TABLES ===== */
+// MOVED -> script-core-ui-helpers.js (Phase X.H) : _vueCompacte + toggleVueCompacte
 
 /* ===== MODÈLES DE MESSAGES PRÉDÉFINIS ===== */
 const MODELES_MESSAGES = [

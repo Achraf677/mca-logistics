@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v361-phaseX-FG-extract-ptr-livraisons-helpers';
+const CACHE_VERSION = 'mca-v2026-05-16-v362-phaseX-H-extract-ui-helpers';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -145,6 +145,8 @@ const CORE_ASSETS = [
   '/script-core-pull-to-refresh.js',
   // Phase X.G (91.96) — Livraisons helpers (conduite + paiement + facture counter)
   '/script-core-livraisons-helpers.js',
+  // Phase X.H (91.97) — UI helpers (scrollTop + menu mobile + vue compacte)
+  '/script-core-ui-helpers.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
