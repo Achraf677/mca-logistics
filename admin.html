@@ -352,7 +352,7 @@
       <div class="topbar-title" id="pageTitle">Dashboard</div>
       <div class="topbar-search-wrap" onclick="ouvrirRechercheGlobale()" title="Recherche globale (Ctrl+K)">
         <svg class="topbar-search-icon" viewBox="0 0 24 24" width="14" height="14"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input class="topbar-search-trigger" type="text" placeholder="Rechercher N°, client, chauffeur…" readonly />
+        <input class="topbar-search-trigger" type="text" placeholder="Rechercher N°, client, chauffeur…" aria-label="Recherche globale" readonly />
       </div>
       <button class="topbar-bell" type="button" onclick="naviguerVers('alertes')" aria-label="Alertes" title="Voir les alertes">
         <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
@@ -802,7 +802,7 @@
       <div class="filters filters-livraisons">
         <div class="searchbar">
           <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <input type="search" id="filtre-recherche-liv" placeholder="Rechercher un client, un N° LIV ou un chauffeur..." oninput="afficherLivraisons()" / aria-label="Rechercher un client, un N° LIV ou un chauffeur..." />
+          <input type="search" id="filtre-recherche-liv" placeholder="Rechercher un client, un N° LIV ou un chauffeur..." oninput="afficherLivraisons()" aria-label="Rechercher un client, un N° LIV ou un chauffeur..." />
         </div>
         <select id="filtre-statut" onchange="afficherLivraisons()" aria-label="Filtrer par statut">
           <option value="">Tous les statuts</option><option value="en-attente">En attente</option><option value="en-cours">En cours</option><option value="livre">Livré</option><option value="brouillon">Brouillon</option>
@@ -1133,7 +1133,7 @@
       <div class="filters filters-vehicules" style="margin-bottom:16px">
         <div class="searchbar">
           <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <input type="search" id="filtre-veh-search" placeholder="Rechercher un véhicule, une plaque, un modèle..." oninput="afficherVehicules()" / aria-label="Rechercher un véhicule, une plaque, un modèle..." />
+          <input type="search" id="filtre-veh-search" placeholder="Rechercher un véhicule, une plaque, un modèle..." oninput="afficherVehicules()" aria-label="Rechercher un véhicule, une plaque, un modèle..." />
         </div>
         <select id="filtre-veh-salarie" onchange="afficherVehicules()" aria-label="Filtrer véhicule par salarié">
           <option value="">Tous les véhicules</option>
@@ -2364,7 +2364,7 @@
           <div class="modal-body">
             <div id="liste-postes" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
             <div style="display:flex;gap:8px">
-              <input type="text" id="nouveau-poste" placeholder="Ajouter un poste ou une fonction" autocomplete="off" style="flex:1;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:.88rem;font-family:inherit" onkeydown="if(event.key==='Enter')ajouterPoste()" / aria-label="Ajouter un poste ou une fonction" />
+              <input type="text" id="nouveau-poste" placeholder="Ajouter un poste ou une fonction" autocomplete="off" style="flex:1;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:.88rem;font-family:inherit" onkeydown="if(event.key==='Enter')ajouterPoste()" aria-label="Ajouter un poste ou une fonction" />
               <button class="btn-primary" onclick="ajouterPoste()" style="padding:8px 16px">+ Ajouter</button>
             </div>
           </div>
@@ -2550,7 +2550,7 @@
         <div class="card">
           <div class="card-header"><h3>Pennylane (compta)</h3><span class="badge ok">Connecté</span></div>
           <div class="params-card-body">
-            <div class="field"><label>Company ID</label><input type="text" value="23200904" class="mono" readonly / aria-label="Pennylane company ID" /></div>
+            <div class="field"><label>Company ID</label><input type="text" value="23200904" class="mono" readonly aria-label="Pennylane company ID" /></div>
             <div style="font-size:12px;color:var(--text-muted);padding:8px 0">Dernier sync : <strong style="color:var(--text)">FEC import auto le 1er du mois</strong></div>
             <button class="btn btn-secondary btn-full-center" onclick="typeof testerConnexionPennylane==='function'&&testerConnexionPennylane()">Tester la connexion</button>
           </div>
@@ -2559,7 +2559,7 @@
         <div class="card">
           <div class="card-header"><h3>Qonto (banque)</h3><span class="badge ok">Connecté</span></div>
           <div class="params-card-body">
-            <div class="field"><label>Organization slug</label><input type="text" value="mca-logistics-3134" class="mono" readonly / aria-label="Qonto org slug" /></div>
+            <div class="field"><label>Organization slug</label><input type="text" value="mca-logistics-3134" class="mono" readonly aria-label="Qonto org slug" /></div>
             <div style="font-size:12px;color:var(--text-muted);padding:8px 0">Sync : <strong style="color:var(--text)">quotidien 03:00 UTC</strong> · Rapprochement auto seuil 0.7</div>
             <button class="btn btn-secondary btn-full-center" onclick="naviguerVers('charges')">Voir les transactions</button>
           </div>
@@ -3055,7 +3055,7 @@
         </select>
         <div class="searchbar">
           <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <input type="search" id="filtre-charge-search" placeholder="Rechercher une charge, une catégorie ou un véhicule..." oninput="afficherCharges()" / aria-label="Rechercher une charge, une catégorie ou un véhicule..." />
+          <input type="search" id="filtre-charge-search" placeholder="Rechercher une charge, une catégorie ou un véhicule..." oninput="afficherCharges()" aria-label="Rechercher une charge, une catégorie ou un véhicule..." />
         </div>
         <button class="btn-secondary" onclick="resetFiltresCharges()">Réinitialiser</button>
       </div>
@@ -3165,7 +3165,7 @@
       <div class="filters" style="margin-bottom:16px">
         <div class="searchbar">
           <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <input type="search" id="filtre-inc-search" placeholder="Rechercher un client, chauffeur, description, n° livraison..." oninput="afficherIncidents()" / aria-label="Rechercher un client, chauffeur, description, n° livraison..." />
+          <input type="search" id="filtre-inc-search" placeholder="Rechercher un client, chauffeur, description, n° livraison..." oninput="afficherIncidents()" aria-label="Rechercher un client, chauffeur, description, n° livraison..." />
         </div>
         <select id="filtre-inc-gravite" onchange="afficherIncidents()" aria-label="Filtrer incident par gravité">
           <option value="">Toutes gravités</option>
@@ -3435,7 +3435,7 @@
       <div class="filters" style="margin-bottom:16px">
         <div class="searchbar searchbar-heures">
           <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <input type="search" id="filtre-heures-salarie" placeholder="Rechercher un salarié, un poste ou un matricule..." oninput="afficherCompteurHeures()" / aria-label="Rechercher un salarié, un poste ou un matricule..." />
+          <input type="search" id="filtre-heures-salarie" placeholder="Rechercher un salarié, un poste ou un matricule..." oninput="afficherCompteurHeures()" aria-label="Rechercher un salarié, un poste ou un matricule..." />
         </div>
       </div>
 
@@ -3670,7 +3670,7 @@
                   <div class="planning-search-wrap">
                     <div class="searchbar planning-searchbar">
                       <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-                      <input type="search" id="absence-sal-search" placeholder="Rechercher un salarié, un poste ou un matricule..." oninput="filtrerRechercheAbsence()" autocomplete="off" / aria-label="Rechercher un salarié, un poste ou un matricule..." />
+                      <input type="search" id="absence-sal-search" placeholder="Rechercher un salarié, un poste ou un matricule..." oninput="filtrerRechercheAbsence()" autocomplete="off" aria-label="Rechercher un salarié, un poste ou un matricule..." />
                     </div>
                     <div id="absence-sal-suggestions" class="planning-search-suggestions" style="display:none"></div>
                   </div>
@@ -3743,7 +3743,7 @@
             <div class="planning-toolbar-sub">Lecture rapide des horaires, repos et absences sur la semaine affichée.</div>
           </div>
           <div class="planning-table-search">
-            <input type="text" id="filtre-planning-salarie" placeholder="Rechercher un salarié..." oninput="filtrerPlanningSemaine()" / aria-label="Rechercher un salarié..." />
+            <input type="text" id="filtre-planning-salarie" placeholder="Rechercher un salarié..." oninput="filtrerPlanningSemaine()" aria-label="Rechercher un salarié..." />
           </div>
         </div>
         <div class="table-wrapper planning-week-table">
@@ -3924,11 +3924,11 @@
               <h4 class="fp-section-title">Informations générales</h4>
               <div class="form-grid fp-grid fp-grid-dense">
                 <div class="form-group"><label>Client *</label>
-                  <input type="text" id="liv-client" placeholder="Nom du client" oninput="autoCompleteClient(this.value);window.mcaLivForm&&window.mcaLivForm.onInput('liv-client')" autocomplete="off" / aria-label="Nom du client" />
+                  <input type="text" id="liv-client" placeholder="Nom du client" oninput="autoCompleteClient(this.value);window.mcaLivForm&&window.mcaLivForm.onInput('liv-client')" autocomplete="off" aria-label="Nom du client" />
                   <div id="client-suggestions" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:2px"></div>
                 </div>
                 <div class="form-group"><label>SIREN</label>
-                  <input type="text" id="liv-client-siren" placeholder="9 chiffres" maxlength="9" inputmode="numeric" autocomplete="off" oninput="window.mcaLivForm&&window.mcaLivForm.validateSiren(this)" / aria-label="9 chiffres" />
+                  <input type="text" id="liv-client-siren" placeholder="9 chiffres" maxlength="9" inputmode="numeric" autocomplete="off" oninput="window.mcaLivForm&&window.mcaLivForm.validateSiren(this)" aria-label="9 chiffres" />
                   <div class="fp-field-hint" id="liv-client-siren-hint"></div>
                 </div>
                 <div class="form-group"><label for="liv-date">Date</label><input type="date" id="liv-date" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-date')" /></div>
@@ -4020,18 +4020,18 @@
 
               <div class="fp-subsection-title" style="margin-top:18px">Marchandise</div>
               <div class="form-grid fp-grid fp-grid-dense">
-                <div class="form-group full-width"><label>Nature</label><input type="text" id="liv-marchandise-nature" placeholder="Palettes alimentaires, pièces mécaniques…" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-marchandise-nature')" / aria-label="Palettes alimentaires, pièces mécaniques…" /></div>
-                <div class="form-group"><label>Poids (kg)</label><input type="number" id="liv-marchandise-poids" min="0" step="0.1" placeholder="1500" / aria-label="1500" /></div>
-                <div class="form-group"><label>Volume (m³)</label><input type="number" id="liv-marchandise-volume" min="0" step="0.01" placeholder="12.5" / aria-label="12.5" /></div>
-                <div class="form-group"><label>Colis</label><input type="number" id="liv-marchandise-colis" min="0" step="1" placeholder="8" / aria-label="8" /></div>
+                <div class="form-group full-width"><label>Nature</label><input type="text" id="liv-marchandise-nature" placeholder="Palettes alimentaires, pièces mécaniques…" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-marchandise-nature')" aria-label="Palettes alimentaires, pièces mécaniques…" /></div>
+                <div class="form-group"><label>Poids (kg)</label><input type="number" id="liv-marchandise-poids" min="0" step="0.1" placeholder="1500" aria-label="1500" /></div>
+                <div class="form-group"><label>Volume (m³)</label><input type="number" id="liv-marchandise-volume" min="0" step="0.01" placeholder="12.5" aria-label="12.5" /></div>
+                <div class="form-group"><label>Colis</label><input type="number" id="liv-marchandise-colis" min="0" step="1" placeholder="8" aria-label="8" /></div>
               </div>
 
               <div class="fp-subsection-title" style="margin-top:14px">Matières dangereuses (ADR)</div>
               <div class="form-grid fp-grid fp-grid-dense">
                 <div class="form-group full-width"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;margin:0"><input type="checkbox" id="liv-adr-est" onchange="document.getElementById('liv-adr-details').style.display=this.checked?'grid':'none'" /><span>Transport ADR — matières dangereuses</span></label></div>
                 <div class="form-grid full-width fp-grid fp-grid-dense" id="liv-adr-details" style="display:none;grid-column:1/-1">
-                  <div class="form-group"><label>Code ONU</label><input type="text" id="liv-adr-onu" placeholder="UN1202" maxlength="10" / aria-label="UN1202" /></div>
-                  <div class="form-group"><label>Classe</label><input type="text" id="liv-adr-classe" placeholder="3" maxlength="5" / aria-label="3" /></div>
+                  <div class="form-group"><label>Code ONU</label><input type="text" id="liv-adr-onu" placeholder="UN1202" maxlength="10" aria-label="UN1202" /></div>
+                  <div class="form-group"><label>Classe</label><input type="text" id="liv-adr-classe" placeholder="3" maxlength="5" aria-label="3" /></div>
                   <div class="form-group"><label for="liv-adr-groupe">Emballage</label><select id="liv-adr-groupe"><option value="">—</option><option value="I">I</option><option value="II">II</option><option value="III">III</option></select></div>
                 </div>
               </div>
@@ -4343,9 +4343,9 @@
           <div class="form-group"><label for="veh-date-acquisition">Date d'acquisition</label><input type="date" id="veh-date-acquisition" onchange="mettreAJourFinContratVehicule();mettreAJourInfosVehiculeFinancement()" /></div>
           <div class="form-group"><label for="veh-date-ct-dernier">Dernier CT</label><input type="date" id="veh-date-ct-dernier" /></div>
           <div class="form-group"><label for="veh-date-ct">Prochain CT</label><input type="date" id="veh-date-ct" /></div>
-          <div class="form-group"><label>Entretien tous les X km</label><input type="number" id="veh-entretien-interval-km" placeholder="Ex : 15000" min="0" step="100" / aria-label="Ex : 15000" /></div>
-          <div class="form-group"><label>Entretien tous les X mois</label><input type="number" id="veh-entretien-interval-mois" placeholder="Ex : 12" min="0" step="1" / aria-label="Ex : 12" /></div>
-          <div class="form-group"><label>TVA carburant déductible (%)</label><input type="number" id="veh-tva-carburant" min="0" max="100" step="1" placeholder="Ex : 100" value="100" / aria-label="Ex : 100" /></div>
+          <div class="form-group"><label>Entretien tous les X km</label><input type="number" id="veh-entretien-interval-km" placeholder="Ex : 15000" min="0" step="100" aria-label="Ex : 15000" /></div>
+          <div class="form-group"><label>Entretien tous les X mois</label><input type="number" id="veh-entretien-interval-mois" placeholder="Ex : 12" min="0" step="1" aria-label="Ex : 12" /></div>
+          <div class="form-group"><label>TVA carburant déductible (%)</label><input type="number" id="veh-tva-carburant" min="0" max="100" step="1" placeholder="Ex : 100" value="100" aria-label="Ex : 100" /></div>
           <div class="form-group full-width"><label for="veh-salarie">Affecter à un salarié (optionnel)</label><select id="veh-salarie"><option value="">-- Aucun --</option></select></div>
         </div>
         <!-- BUG-046 fix : données flotte métier transport (carte grise + Crit'Air + TVA) -->
@@ -4505,7 +4505,7 @@
           <div class="form-group"><label for="carb-prix-litre">Prix par litre (€) *</label><input type="number" id="carb-prix-litre" placeholder="1.85" min="0" step="0.01" /></div>
           <div class="form-group"><label for="carb-km">Km compteur</label><input type="number" id="carb-km" placeholder="Kilométrage actuel" min="0" step="1" /></div>
           <div class="form-group"><label>Taux TVA</label>
-            <input type="number" id="carb-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" placeholder="20" / aria-label="20" />
+            <input type="number" id="carb-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" placeholder="20" aria-label="20" />
           </div>
           <div class="form-group"><label for="carb-date">Date</label><input type="date" id="carb-date" /></div>
         </div>
@@ -4530,7 +4530,7 @@
       <div class="modal-body">
         <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">Ces paramètres servent au calcul des marges multi-axes (par véhicule, client, chauffeur, tournée).</p>
         <div class="form-grid">
-          <div class="form-group form-group-full"><label>Tarif horaire chauffeur par défaut (€/h, brut chargé)</label><input type="number" id="cfg-rent-tarif-horaire" min="0" step="0.5" placeholder="12" / aria-label="12" /></div>
+          <div class="form-group form-group-full"><label>Tarif horaire chauffeur par défaut (€/h, brut chargé)</label><input type="number" id="cfg-rent-tarif-horaire" min="0" step="0.5" placeholder="12" aria-label="12" /></div>
           <div class="form-group form-group-full">
             <label>Méthode de répartition des coûts indirects</label>
             <select id="cfg-rent-methode" aria-label="Méthode de calcul rentabilité">
@@ -4558,9 +4558,9 @@
 
         <div style="font-weight:600;margin-bottom:8px;font-size:.92rem">Conso L/100 anormale</div>
         <div class="form-grid">
-          <div class="form-group"><label>Seuil avertissement (% au-dessus de la moyenne)</label><input type="number" id="cfg-carb-seuil-orange" min="5" max="200" step="5" placeholder="25" / aria-label="25" /></div>
-          <div class="form-group"><label>Seuil critique (% au-dessus de la moyenne)</label><input type="number" id="cfg-carb-seuil-rouge" min="10" max="300" step="5" placeholder="50" / aria-label="50" /></div>
-          <div class="form-group"><label>Fenêtre historique (nb pleins)</label><input type="number" id="cfg-carb-fenetre" min="2" max="20" step="1" placeholder="6" / aria-label="6" /></div>
+          <div class="form-group"><label>Seuil avertissement (% au-dessus de la moyenne)</label><input type="number" id="cfg-carb-seuil-orange" min="5" max="200" step="5" placeholder="25" aria-label="25" /></div>
+          <div class="form-group"><label>Seuil critique (% au-dessus de la moyenne)</label><input type="number" id="cfg-carb-seuil-rouge" min="10" max="300" step="5" placeholder="50" aria-label="50" /></div>
+          <div class="form-group"><label>Fenêtre historique (nb pleins)</label><input type="number" id="cfg-carb-fenetre" min="2" max="20" step="1" placeholder="6" aria-label="6" /></div>
         </div>
 
         <div style="font-weight:600;margin:14px 0 8px;font-size:.92rem">Patterns suspects</div>
@@ -4568,14 +4568,14 @@
           <div class="form-group form-group-full"><label><input type="checkbox" id="cfg-carb-doublons" /> Détecter 2 pleins en moins de 24h sans km parcourus</label></div>
           <div class="form-group form-group-full"><label><input type="checkbox" id="cfg-carb-regression" /> Détecter régression km (km saisi &lt; km précédent)</label></div>
           <div class="form-group form-group-full"><label><input type="checkbox" id="cfg-carb-km-excessif" /> Détecter km/jour excessif</label></div>
-          <div class="form-group"><label>Seuil km/jour max</label><input type="number" id="cfg-carb-km-jour" min="100" max="3000" step="50" placeholder="1000" / aria-label="1000" /></div>
+          <div class="form-group"><label>Seuil km/jour max</label><input type="number" id="cfg-carb-km-jour" min="100" max="3000" step="50" placeholder="1000" aria-label="1000" /></div>
         </div>
 
         <div style="font-weight:600;margin:14px 0 8px;font-size:.92rem">Pleins hors heures (week-end / nuit)</div>
         <div class="form-grid">
           <div class="form-group form-group-full"><label><input type="checkbox" id="cfg-carb-hors-heures" /> Activer la détection (alertes peuvent être nombreuses)</label></div>
-          <div class="form-group"><label>Heure début journée normale</label><input type="number" id="cfg-carb-h-debut" min="0" max="23" step="1" placeholder="6" / aria-label="6" /></div>
-          <div class="form-group"><label>Heure fin journée normale</label><input type="number" id="cfg-carb-h-fin" min="1" max="24" step="1" placeholder="22" / aria-label="22" /></div>
+          <div class="form-group"><label>Heure début journée normale</label><input type="number" id="cfg-carb-h-debut" min="0" max="23" step="1" placeholder="6" aria-label="6" /></div>
+          <div class="form-group"><label>Heure fin journée normale</label><input type="number" id="cfg-carb-h-fin" min="1" max="24" step="1" placeholder="22" aria-label="22" /></div>
         </div>
       </div>
       <div class="modal-footer">
@@ -4593,7 +4593,7 @@
         <div class="form-group" style="margin-bottom:12px">
           <label>Salarié *</label>
           <div style="position:relative">
-            <input type="text" id="plan-salarie-search" placeholder="Rechercher un salarié, poste ou matricule..." oninput="filtrerRecherchePlanningModal()" autocomplete="off" / aria-label="Rechercher un salarié, poste ou matricule..." />
+            <input type="text" id="plan-salarie-search" placeholder="Rechercher un salarié, poste ou matricule..." oninput="filtrerRecherchePlanningModal()" autocomplete="off" aria-label="Rechercher un salarié, poste ou matricule..." />
             <div id="plan-salarie-suggestions" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,.24);z-index:20"></div>
           </div>
           <select id="plan-salarie" style="display:none" tabindex="-1" aria-hidden="true"><option value="">-- Choisir un salarié --</option></select>
@@ -4806,7 +4806,7 @@
         <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px">Commentaires internes (admin uniquement)</div>
         <div class="commentaires-container" id="commentaires-liv-list"></div>
         <div class="commentaire-input-row">
-          <input type="text" id="commentaire-liv-input" placeholder="Ajouter un commentaire..." onkeydown="if(event.key==='Enter')ajouterCommentaireLiv(document.getElementById('edit-liv-id').value)" / aria-label="Ajouter un commentaire..." />
+          <input type="text" id="commentaire-liv-input" placeholder="Ajouter un commentaire..." onkeydown="if(event.key==='Enter')ajouterCommentaireLiv(document.getElementById('edit-liv-id').value)" aria-label="Ajouter un commentaire..." />
           <button class="btn-primary" onclick="ajouterCommentaireLiv(document.getElementById('edit-liv-id').value)" style="padding:7px 12px;font-size:.82rem" aria-label="Ajouter un commentaire">+</button>
         </div>
       </div>
@@ -4824,7 +4824,7 @@
           <div class="form-group"><label for="edit-carb-litres">Litres *</label><input type="number" id="edit-carb-litres" min="0" step="0.1" /></div>
           <div class="form-group"><label for="edit-carb-prix">Prix / litre (€) *</label><input type="number" id="edit-carb-prix" min="0" step="0.01" /></div>
           <div class="form-group"><label>Taux TVA</label>
-            <input type="number" id="edit-carb-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" placeholder="20" / aria-label="20" />
+            <input type="number" id="edit-carb-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" placeholder="20" aria-label="20" />
           </div>
           <div class="form-group"><label for="edit-carb-km">Km compteur</label><input type="number" id="edit-carb-km" min="0" step="1" /></div>
           <div class="form-group"><label for="edit-carb-date">Date</label><input type="date" id="edit-carb-date" /></div>
@@ -4880,23 +4880,23 @@
           </div>
           <div class="form-group full-width">
             <label>Fournisseur</label>
-            <input type="text" id="charge-fournisseur" placeholder="Rechercher un fournisseur (nom, secteur, SIREN...)" oninput="autoCompleteFournisseurCharge(this.value)" autocomplete="off" / aria-label="Rechercher un fournisseur (nom, secteur, SIREN...)" />
+            <input type="text" id="charge-fournisseur" placeholder="Rechercher un fournisseur (nom, secteur, SIREN...)" oninput="autoCompleteFournisseurCharge(this.value)" autocomplete="off" aria-label="Rechercher un fournisseur (nom, secteur, SIREN...)" />
             <div id="fournisseur-suggestions" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:2px"></div>
           </div>
           <div class="form-group full-width"><label for="charge-desc">Description</label><input type="text" id="charge-desc" placeholder="Description" /></div>
           <div class="form-group"><label for="charge-montant-ht">Montant HT (€) *</label><input type="number" id="charge-montant-ht" placeholder="0.00" min="0" step="0.01" oninput="calculerTTCDepuisHT('charge')" /></div>
           <div class="form-group"><label>Taux TVA</label>
-            <input type="number" id="charge-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" oninput="calculerTTCDepuisHT('charge')" placeholder="20" / aria-label="20" />
+            <input type="number" id="charge-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" oninput="calculerTTCDepuisHT('charge')" placeholder="20" aria-label="20" />
           </div>
           <div class="form-group"><label for="charge-tva">Montant TVA (€)</label><input type="number" id="charge-tva" placeholder="0.00" min="0" step="0.01" oninput="setChargeTvaManuelle(true); calculerTTCDepuisTVA('charge')" /><div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">Auto, ou saisi manuellement (facture mixte)</div></div>
           <div class="form-group"><label for="charge-montant">Montant TTC (€)</label><input type="number" id="charge-montant" placeholder="0.00" min="0" step="0.01" oninput="calculerHTDepuisTTC('charge')" /></div>
           <div class="form-group" id="charge-tva-period-wrap" style="display:none"><label for="charge-tva-period">Période TVA concernée</label><input type="month" id="charge-tva-period" /></div>
           <div class="form-group" id="charge-veh-wrap"><label for="charge-veh">Véhicule concerné</label><select id="charge-veh"><option value="">— Général —</option></select></div>
-          <div class="form-group" id="charge-carb-litres-wrap" style="display:none"><label>Litres <span class="u-muted-xs">(crée le plein dans Carburant)</span></label><input type="number" id="charge-carb-litres" placeholder="40" min="0" step="0.1" / aria-label="40" /></div>
-          <div class="form-group" id="charge-carb-prix-litre-wrap" style="display:none"><label>Prix/L (€)</label><input type="number" id="charge-carb-prix-litre" placeholder="1.85" min="0" step="0.01" / aria-label="1.85" /></div>
+          <div class="form-group" id="charge-carb-litres-wrap" style="display:none"><label>Litres <span class="u-muted-xs">(crée le plein dans Carburant)</span></label><input type="number" id="charge-carb-litres" placeholder="40" min="0" step="0.1" aria-label="40" /></div>
+          <div class="form-group" id="charge-carb-prix-litre-wrap" style="display:none"><label>Prix/L (€)</label><input type="number" id="charge-carb-prix-litre" placeholder="1.85" min="0" step="0.01" aria-label="1.85" /></div>
           <div class="form-group full-width" id="charge-livraison-wrap">
             <label>Livraison concernée <span class="u-muted-xs">(optionnel — impute le coût à une livraison)</span></label>
-            <input type="text" id="charge-livraison-search" placeholder="Rechercher par n° livraison, client, date..." oninput="autoCompleteLivraisonCharge(this.value)" autocomplete="off" / aria-label="Rechercher par n° livraison, client, date..." />
+            <input type="text" id="charge-livraison-search" placeholder="Rechercher par n° livraison, client, date..." oninput="autoCompleteLivraisonCharge(this.value)" autocomplete="off" aria-label="Rechercher par n° livraison, client, date..." />
             <div id="charge-livraison-selected" style="font-size:.82rem;color:var(--green);margin-top:4px;display:none"></div>
             <div id="livraison-suggestions" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:2px"></div>
           </div>
@@ -4986,7 +4986,7 @@
           </div>
           <div class="form-group"><label for="entr-cout-ht">Coût HT (€)</label><input type="number" id="entr-cout-ht" placeholder="0.00" min="0" step="0.01" oninput="calculerTTCDepuisHT('entr')" /></div>
           <div class="form-group"><label>Taux TVA</label>
-            <input type="number" id="entr-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" oninput="calculerTTCDepuisHT('entr')" placeholder="20" / aria-label="20" />
+            <input type="number" id="entr-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" oninput="calculerTTCDepuisHT('entr')" placeholder="20" aria-label="20" />
             <div id="entr-montant-tva" style="font-size:.78rem;color:var(--accent);margin-top:4px"></div>
           </div>
           <div class="form-group"><label for="entr-cout">Coût TTC (€)</label><input type="number" id="entr-cout" placeholder="0.00" min="0" step="0.01" oninput="calculerHTDepuisTTC('entr')" /></div>
@@ -5277,7 +5277,7 @@
         </div>
         <div class="form-group">
           <label>Pour confirmer, tape exactement : <strong id="reset-compteur-code">RESET LIVRAISONS</strong></label>
-          <input type="text" id="reset-compteur-input" placeholder="Recopie la phrase ci-dessus" autocomplete="off" oninput="majBoutonResetCompteur()" / aria-label="Recopie la phrase ci-dessus" />
+          <input type="text" id="reset-compteur-input" placeholder="Recopie la phrase ci-dessus" autocomplete="off" oninput="majBoutonResetCompteur()" aria-label="Recopie la phrase ci-dessus" />
         </div>
       </div>
       <div class="modal-footer">
@@ -5298,7 +5298,7 @@
       <div class="modal-body">
         <div class="searchbar searchbar-global">
           <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <input type="search" id="barre-recherche-univ" placeholder="Client, N° LIV, chauffeur, véhicule..." oninput="rechercheUniverselle(this.value)" autocomplete="off" / aria-label="Client, N° LIV, chauffeur, véhicule..." />
+          <input type="search" id="barre-recherche-univ" placeholder="Client, N° LIV, chauffeur, véhicule..." oninput="rechercheUniverselle(this.value)" autocomplete="off" aria-label="Client, N° LIV, chauffeur, véhicule..." />
         </div>
         <div id="recherche-resultats" class="search-results-global" style="display:none"></div>
         <div class="search-global-hint">Astuce : utilise <kbd>Ctrl</kbd> + <kbd>K</kbd> pour ouvrir la recherche rapidement.</div>
