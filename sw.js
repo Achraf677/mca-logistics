@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v355-phase91-89-tests-fix-zero-fails';
+const CACHE_VERSION = 'mca-v2026-05-16-v356-phaseX-A-extract-postes';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -131,6 +131,8 @@ const CORE_ASSETS = [
   '/script-a11y-normalize.js',
   // Phase 91.70 — Hub sub-nav (Finance + Parc auto)
   '/script-hub-subnav.js',
+  // Phase X.A (91.90) — Postes extraits de script.js
+  '/script-core-postes.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts

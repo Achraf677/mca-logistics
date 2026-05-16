@@ -3401,57 +3401,8 @@ const MCA_DEFAULTS_ENTREPRISE = {
 // MOVED -> script-core-storage.js : chargerParametres
 
 /* ===== GESTION DES POSTES ===== */
-function getPostes() { return loadSafe('postes', ["Livreur","Dispatcher"]); }
-// MOVED -> script-core-storage.js : sauvegarderPostes
-
-function afficherPostes() {
-  const postes = getPostes();
-  const cont = document.getElementById('liste-postes');
-  if (!cont) return;
-  cont.innerHTML = postes.map((p,i) => `
-    <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(230,57,70,.1);border:1px solid rgba(230,57,70,.25);color:var(--accent);padding:5px 12px;border-radius:20px;font-size:.82rem;font-weight:600">
-      ${p}
-      <button onclick="supprimerPoste(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:.9rem;padding:0;line-height:1" title="Supprimer">✕</button>
-    </span>`).join('');
-  // Mettre à jour les selects de poste partout
-  majSelectsPostes();
-}
-
-function ajouterPoste() {
-  const input = document.getElementById('nouveau-poste');
-  const nom = input?.value.trim();
-  if (!nom) { afficherToast('⚠️ Nom du poste vide','error'); return; }
-  const postes = getPostes();
-  if (postes.find(p=>p.toLowerCase()===nom.toLowerCase())) { afficherToast('⚠️ Ce poste existe déjà','error'); return; }
-  postes.push(nom);
-  sauvegarderPostes(postes);
-  input.value = '';
-  afficherPostes();
-  afficherToast('✅ Poste ajouté : ' + nom);
-}
-
-function supprimerPoste(idx) {
-  const postes = getPostes();
-  postes.splice(idx, 1);
-  sauvegarderPostes(postes);
-  afficherPostes();
-  afficherToast('Poste supprimé');
-}
-
-function majSelectsPostes() {
-  const postes = getPostes();
-  ['nsal-poste','edit-sal-poste'].forEach(id => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    const v = sel.value;
-    // Si c'est un select (pas un input text)
-    if (sel.tagName === 'SELECT') {
-      sel.innerHTML = '<option value="">-- Choisir un poste --</option>';
-      postes.forEach(p => { sel.innerHTML += `<option value="${p}">${p}</option>`; });
-      sel.value = v;
-    }
-  });
-}
+// MOVED -> script-core-postes.js (Phase X.A) : getPostes / afficherPostes / ajouterPoste /
+//   supprimerPoste / majSelectsPostes
 
 // MOVED -> script-core-storage.js : sauvegarderParametres
 
