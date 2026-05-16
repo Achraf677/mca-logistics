@@ -85,8 +85,8 @@
       + row('Date livraison', fmtDateFr(liv.date || liv.date_livraison || liv.dateLivraison))
       + row('Montant HT', fmtEur2(ht))
       + row('TVA (20%)', fmtEur2(tva))
-      + '<div class="dr-row"><div class="dr-key">Total TTC</div><div class="dr-val amount-strong">' + fmtEur2(ttc) + '</div></div>'
-      + (ht > 0 ? '<div class="dr-row"><div class="dr-key">Marge brute (est.)</div><div class="dr-val" style="color:#06d6a0">' + fmtEur(marge) + ' · ~60%</div></div>' : '');
+      + '<div class="dr-row"><div class="dr-key">Total TTC</div><div class="dr-val amount-strong">' + fmtEur2(ttc) + '</div></div>';
+      // Phase 91.3 — ligne "Marge brute (est.)" retirée (user feedback : info non pertinente dans le drawer).
   }
 
   function row(key, valHtml) {

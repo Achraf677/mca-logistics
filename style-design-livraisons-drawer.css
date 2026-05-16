@@ -71,10 +71,11 @@
 }
 
 .dr-title {
-  font-family: var(--ds-font-display, var(--font-display, system-ui));
+  /* Phase 91.3 — police classique (body) au lieu de display (user feedback). */
+  font-family: var(--ds-font-body, var(--font-body, system-ui));
   font-size: 16px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-weight: 700;
+  letter-spacing: -0.005em;
   color: var(--ds-text, var(--text));
   font-feature-settings: "tnum";
   line-height: 1.2;
