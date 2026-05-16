@@ -637,25 +637,16 @@
       </nav>
 
       <!-- Phase 6 refonte HTML : title-row pattern (page name H1 + meta count) -->
-      <div class="title-row">
-        <h1 class="page-title">Livraisons</h1>
-        <div class="sub-meta">
-          <strong id="livraisons-titlerow-count">0</strong>
-          <span id="livraisons-titlerow-periode">ce mois</span>
-          <span id="livraisons-titlerow-retards-wrap" style="display:none">
-            <span> · </span>
-            <span class="alert"><strong id="livraisons-titlerow-retards">0</strong> retard<span id="livraisons-titlerow-retards-s"></span> à traiter</span>
-          </span>
-        </div>
-      </div>
+      <!-- Phase 91.5 — title-row "Livraisons + 2 ce mois" retiré (user feedback : sub-meta peu pertinent, déjà couvert par chips + page-actions). IDs cachés conservés pour compat scripts. -->
+      <span id="livraisons-titlerow-count" hidden>0</span>
+      <span id="livraisons-titlerow-periode" hidden>ce mois</span>
+      <span id="livraisons-titlerow-retards-wrap" hidden><span id="livraisons-titlerow-retards">0</span><span id="livraisons-titlerow-retards-s"></span></span>
 
-      <!-- Phase 2 HTML refonte : section-head pattern mockup. Sub-meta epuree (Phase 31) -->
+      <!-- Phase 91.5 : "Filtrer, exporter, suivre..." inline à droite de "Toutes les livraisons" (au lieu d'en dessous). -->
       <div class="page-actions page-actions-livraisons ds-section-head">
-        <div class="ds-section-head__title">
+        <div class="ds-section-head__title ds-section-head__title--inline">
           <h2>Toutes les livraisons</h2>
-          <div class="ds-section-head__sub">
-            <span>Filtrer, exporter, suivre l'état de chaque tournée</span>
-          </div>
+          <span class="ds-section-head__inline-sub">Filtrer, exporter, suivre l'état de chaque tournée</span>
           <!-- IDs preserves pour compat scripts (caches) -->
           <span id="livraisons-section-sub-mois" hidden></span>
           <span id="livraisons-section-sub-count" hidden>0</span>
@@ -842,7 +833,7 @@
                 <th class="sortable" data-sort-key="paiement">Paiement</th>
                 <th class="sortable" data-sort-key="datePaiement">Date paiement</th>
                 <th>Actions</th>
-                <th class="liv-injected-th" data-injected="montant-ht" style="text-align:right">Montant HT</th>
+                <th class="liv-injected-th sortable" data-injected="montant-ht" data-sort-key="ht" style="text-align:right">Montant HT</th>
               </tr></thead>
               <tbody id="tb-livraisons"><tr><td colspan="16" class="empty-row">Aucune livraison</td></tr></tbody>
             </table>

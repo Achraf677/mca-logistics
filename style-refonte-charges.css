@@ -62,6 +62,23 @@
   white-space: nowrap;
 }
 
+/* Phase 91.5 — variant inline : h2 + sub-meta sur la même ligne (au lieu d'empilés). */
+.ds-section-head__title--inline {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ds-section-head__title--inline h2 {
+  margin: 0;
+}
+.ds-section-head__inline-sub {
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+  font-weight: 400;
+}
+
 .ds-section-head__sub {
   /* Phase 60 polish V4 (Gemini audit HIGH) : éviter wrap qui crée des sauts de ligne */
   display: inline-flex;
