@@ -2447,18 +2447,9 @@
           </div>
         </div>
 
-        <!-- Phase 60 V7 polish — Catégories charges custom (réintègre charges_categories) -->
-        <div class="card card-span-full">
-          <div class="card-header"><h3>Catégories de charges custom</h3></div>
-          <div class="modal-body">
-            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:14px">Les catégories utilisées pour classer les charges d'exploitation. Ajoute des catégories métier spécifiques à ton activité (péages, badges, formations…).</p>
-            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-              <input type="text" id="param-cat-charge-new" placeholder="Nouvelle catégorie (ex : péages)" aria-label="Nouvelle catégorie de charge" />
-              <button class="btn-primary" onclick="window.ajouterCategorieCharge&&window.ajouterCategorieCharge()" style="padding:8px 14px">Ajouter</button>
-            </div>
-            <div id="param-cat-charges-list"></div>
-          </div>
-        </div>
+        <!-- Phase 91.57 : bloc "Catégories de charges custom" déplacé vers la page Charges
+             (plus logique métier : on saisit ses catégories au plus près des charges).
+             IDs préservés pour compat script-charges-categories.js. -->
 
       </div><!-- /params-grid comptable -->
       </div><!-- /ptab-comptable -->
@@ -2955,6 +2946,24 @@
           <div class="ds-kpi-card__sub"><span id="charges-kpi-cat-assurance-count">0</span> lignes</div>
         </div>
       </div>
+      <!-- Phase 91.57 — Statuts paiement remontés en KPI cards (avant : mini-bar enfouie après filtres) -->
+      <div class="ds-kpi-grid ds-kpi-grid--charges" id="charges-kpi-grid-statut" aria-label="KPIs par statut paiement" style="margin-top:12px">
+        <div class="ds-kpi-card" style="border-left:3px solid var(--ds-danger, #ef4444)">
+          <div class="ds-kpi-card__label" style="color:var(--ds-danger, #ef4444)">Impayé</div>
+          <div class="ds-kpi-card__value" id="charges-kpi-impaye">0 €</div>
+          <div class="ds-kpi-card__sub">À régler ce mois</div>
+        </div>
+        <div class="ds-kpi-card" style="border-left:3px solid var(--ds-warning, #f59e0b)">
+          <div class="ds-kpi-card__label" style="color:var(--ds-warning, #f59e0b)">En retard</div>
+          <div class="ds-kpi-card__value" id="charges-kpi-retard">0</div>
+          <div class="ds-kpi-card__sub">Échéance dépassée</div>
+        </div>
+        <div class="ds-kpi-card" style="border-left:3px solid var(--ds-success, #10b981)">
+          <div class="ds-kpi-card__label" style="color:var(--ds-success, #10b981)">Payé</div>
+          <div class="ds-kpi-card__value" id="charges-kpi-paye">0 €</div>
+          <div class="ds-kpi-card__sub">Réglé ce mois</div>
+        </div>
+      </div>
       <!-- Phase 48 : chart area (Évolution + Répartition) -->
       <div class="charges-charts-row">
         <div class="card charges-chart-card">
@@ -3024,13 +3033,8 @@
         </div>
         <button class="btn-secondary" onclick="resetFiltresCharges()">Réinitialiser</button>
       </div>
-      <div id="charges-mini-kpi-bar" class="card" style="margin-bottom:12px;padding:12px 18px">
-        <div class="u-toolbar-row">
-          <div>Impayé : <strong id="charges-kpi-impaye">0 €</strong></div>
-          <div>En retard : <strong id="charges-kpi-retard">0</strong></div>
-          <div>Payé : <strong id="charges-kpi-paye">0 €</strong></div>
-        </div>
-      </div>
+      <!-- Phase 91.57 : mini-kpi-bar retirée (KPI Impayé/Retard/Payé promus dans la grille KPI principale en haut) -->
+      <div id="charges-mini-kpi-bar" hidden></div>
       <div class="card table-card">
         <div class="table-wrapper">
           <table class="data-table charges-table">
@@ -3039,6 +3043,22 @@
           </table>
         </div>
       </div>
+
+      <!-- Phase 91.57 : Catégories de charges custom (déplacé depuis Paramètres → logique métier au plus près) -->
+      <details class="card" style="margin-top:18px;padding:14px 18px" id="charges-categories-custom-block">
+        <summary style="cursor:pointer;font-weight:700;font-size:0.95rem;color:var(--ds-text)">
+          <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" style="vertical-align:-2px;margin-right:6px" aria-hidden="true"><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+          Catégories de charges custom
+          <span style="font-weight:400;color:var(--ds-text-muted);font-size:0.82rem;margin-left:6px">— Ajoute des catégories métier spécifiques (péages, badges, formations…)</span>
+        </summary>
+        <div style="padding-top:14px">
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+            <input type="text" id="param-cat-charge-new" placeholder="Nouvelle catégorie (ex : péages)" aria-label="Nouvelle catégorie de charge" style="flex:1;min-width:220px;max-width:340px" />
+            <button class="btn-primary" onclick="window.ajouterCategorieCharge&&window.ajouterCategorieCharge()" style="padding:8px 14px">Ajouter</button>
+          </div>
+          <div id="param-cat-charges-list"></div>
+        </div>
+      </details>
     </section>
 
     <!-- ============================================================
