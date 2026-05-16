@@ -336,6 +336,29 @@
       } catch (e) { console.warn('[refreshDrawerDocuments]', e); }
     };
 
+    // Phase 91.37 — refresh tous les panels du drawer si déjà ouvert (après modif via modal-edit)
+    window.refreshDrawerLivraisonDetail = function (livId) {
+      try {
+        const drawerPanel = document.getElementById('dr-liv-panel');
+        if (!drawerPanel || drawerPanel.hidden || !drawerPanel.classList.contains('open')) return;
+        if (livId && livId !== currentLivId) return;
+        const livs = (window.charger ? window.charger('livraisons') : []) || [];
+        const l = livs.find(x => x && x.id === (livId || currentLivId));
+        if (!l) return;
+        const detail = document.getElementById('dr-liv-detail-panel');
+        const docs = document.getElementById('dr-liv-documents-panel');
+        const paie = document.getElementById('dr-liv-paiement-panel');
+        const hist = document.getElementById('dr-liv-historique-panel');
+        if (detail) detail.innerHTML = renderDetailPanel(l);
+        if (docs) docs.innerHTML = renderDocumentsPanel(l);
+        if (paie) paie.innerHTML = renderPaiementPanel(l);
+        if (hist) hist.innerHTML = renderHistoriquePanel(l);
+        // Refresh title aussi
+        const titleEl = document.getElementById('dr-liv-title');
+        if (titleEl) titleEl.textContent = (l.numLiv || l.num_liv || '—') + ' · ' + (l.client || '—');
+      } catch (e) { console.warn('[refreshDrawerLivraisonDetail]', e); }
+    };
+
     // Show
     const overlay = document.getElementById('dr-liv-overlay');
     const panel = document.getElementById('dr-liv-panel');

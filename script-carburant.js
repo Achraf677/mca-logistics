@@ -154,6 +154,9 @@ function ajouterCarburant() {
   // (race condition avec realtime adapter). 2eme rafraichi 250ms apres pour
   // re-render avec la donnee Supabase confirmee.
   setTimeout(function () { try { afficherCarburant(); } catch (_) {} }, 250);
+  // Phase 91.37 — refresh dashboard + rentabilité (KPI conso + coût/km dépendent du nouveau plein)
+  try { if (typeof window.rafraichirDashboard === 'function') window.rafraichirDashboard(); } catch (_) {}
+  try { if (typeof window.afficherRentabilite === 'function') window.afficherRentabilite(); } catch (_) {}
 }
 
 // L4028 (script.js d'origine)

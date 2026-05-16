@@ -210,11 +210,22 @@ function ajouterLivraison() {
         clientTvaSnapshot = match.tvaIntra || '';
         clientPaysSnapshot = match.pays || 'FR';
       } else {
+        // Phase 91.37 — copie adresse destinataire LDV vers client auto-créé (sinon fiche vide)
+        const destAdr = (document.getElementById('liv-dest-adresse')?.value || '').trim();
+        const destCp = (document.getElementById('liv-dest-cp')?.value || '').trim();
+        const destVille = (document.getElementById('liv-dest-ville')?.value || '').trim();
+        const destPays = (document.getElementById('liv-dest-pays')?.value || 'FR').trim();
+        const destContact = (document.getElementById('liv-dest-contact')?.value || '').trim();
         const nouveau = {
           id: genId(),
           nom: client,
           type: 'pro',
           siren: clientSiren || '',
+          adresse: destAdr || '',
+          cp: destCp || '',
+          ville: destVille || '',
+          pays: destPays || 'FR',
+          contact: destContact || '',
           creeLe: new Date().toISOString(),
           creeDepuis: 'livraison'
         };
@@ -578,6 +589,11 @@ function confirmerEditLivraison() {
   try { if (typeof window.refreshLivraisonsChipsCounts === 'function') window.refreshLivraisonsChipsCounts(); } catch (_) {}
   try { if (typeof window.rafraichirDashboard === 'function') window.rafraichirDashboard(); } catch (_) {}
   try { if (typeof window.afficherRentabilite === 'function') window.afficherRentabilite(); } catch (_) {}
+  // Phase 91.37 — refresh drawer livraison + drawer client + encaissement
+  try { if (typeof window.refreshDrawerDocuments === 'function') window.refreshDrawerDocuments(id); } catch (_) {}
+  try { if (typeof window.refreshDrawerLivraisonDetail === 'function') window.refreshDrawerLivraisonDetail(id); } catch (_) {}
+  try { if (typeof window.refreshDrawerClient === 'function') window.refreshDrawerClient(); } catch (_) {}
+  try { if (typeof window.afficherEncaissement === 'function') window.afficherEncaissement(); } catch (_) {}
   closeModal('modal-edit-livraison');
   afficherLivraisons();
   afficherToast('✅ Livraison mise à jour');
