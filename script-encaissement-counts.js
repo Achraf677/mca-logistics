@@ -42,10 +42,60 @@
     var totalEncaisse = encaisseMois.reduce(function (s, l) { return s + parseFloat(l.prixTTC || l.prixHT || l.prix || 0); }, 0);
     if (kpiEncaisse) kpiEncaisse.textContent = fmtEuros(totalEncaisse);
 
+    // Phase 87 : encaisse sub "+X% vs [mois préc]" (mockup-aligned)
+    var kpiEncaisseSub = document.getElementById('enc-kpi-encaisse-sub');
+    if (kpiEncaisseSub) {
+      var MOIS_FR = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
+      var prevMoisStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      var prevMoisEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+      var prevMoisNom = MOIS_FR[prevMoisStart.getMonth()];
+      var encaissePrev = livraisons.filter(function (l) {
+        if (!l) return false;
+        var s = l.statutPaiement || l.statut_paiement || '';
+        if (s !== 'payé' && s !== 'paye' && s !== 'payee') return false;
+        var d = new Date(l.datePaiement || l.date_paiement || l.date || l.dateLivraison || '');
+        return !isNaN(d.getTime()) && d >= prevMoisStart && d <= prevMoisEnd;
+      });
+      var totalEncaissePrev = encaissePrev.reduce(function (s, l) { return s + parseFloat(l.prixTTC || l.prixHT || l.prix || 0); }, 0);
+      if (totalEncaissePrev > 0 && totalEncaisse > 0) {
+        var pctDelta = Math.round((totalEncaisse - totalEncaissePrev) / totalEncaissePrev * 100);
+        if (pctDelta > 0) {
+          kpiEncaisseSub.innerHTML = '<span class="up">+' + pctDelta + '%</span> vs ' + prevMoisNom;
+        } else if (pctDelta < 0) {
+          kpiEncaisseSub.innerHTML = '<span class="down">' + pctDelta + '%</span> vs ' + prevMoisNom;
+        } else {
+          kpiEncaisseSub.textContent = '= vs ' + prevMoisNom;
+        }
+      } else {
+        kpiEncaisseSub.textContent = 'Règlements reçus';
+      }
+    }
+
     // Impayés
     var totalImpayes = impayes.reduce(function (s, l) { return s + parseFloat(l.prixTTC || l.prixHT || l.prix || 0); }, 0);
     if (kpiImpayes) kpiImpayes.textContent = totalImpayes > 0 ? fmtEuros(totalImpayes) : '—';
     if (subImpayes) subImpayes.textContent = impayes.length;
+
+    // Phase 87 : impayes sub "+N facture" delta vs last week (mockup-aligned)
+    var kpiImpayesSub = document.getElementById('enc-kpi-impayes-sub');
+    if (kpiImpayesSub) {
+      var semAgo = new Date(); semAgo.setDate(semAgo.getDate() - 7);
+      var impayesSemAgo = livraisons.filter(function (l) {
+        if (!l) return false;
+        var s = l.statutPaiement || l.statut_paiement || '';
+        if (s === 'payé' || s === 'paye' || s === 'payee' || s === 'litige') return false;
+        var d = new Date(l.date || l.dateLivraison || l.date_livraison || '');
+        return !isNaN(d.getTime()) && d <= semAgo;
+      }).length;
+      var deltaFact = impayes.length - impayesSemAgo;
+      if (deltaFact > 0) {
+        kpiImpayesSub.innerHTML = '<span class="down">+' + deltaFact + ' facture' + (deltaFact > 1 ? 's' : '') + '</span>';
+      } else if (deltaFact < 0) {
+        kpiImpayesSub.innerHTML = '<span class="up">' + deltaFact + ' facture' + (Math.abs(deltaFact) > 1 ? 's' : '') + '</span>';
+      } else {
+        kpiImpayesSub.textContent = impayes.length + ' facture' + (impayes.length !== 1 ? 's' : '');
+      }
+    }
 
     // DSO
     var dsoData = (typeof window.calculerDSO === 'function') ? window.calculerDSO(livraisons) : null;

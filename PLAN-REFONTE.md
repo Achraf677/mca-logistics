@@ -33,7 +33,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Entretiens | 94% | 100% | Phase 80 : CT table 6 cols — "Dernier CT" ajouté (Véhicule/Immatriculation/Dernier CT/Prochain CT/Jours restants/Statut). Donnée depuis v.dateCTDernier. |
 | Inspections | 94% | 100% | Phase 85 : kpi-sub semaine "N véhicules contrôlés" + défauts "N véhicules touchés" + conformité "+N% vs S[N-1]". |
 | Charges | 92% | 100% | Phase 59 : exporterChargesExcel vraiment impl (était inexistant) + Phase 48+51 period nav/charts/Parking chip |
-| Encaissement | 92% | 100% | Phase 59 : exporterEncaissementExcel vraiment impl (was stub) + sub-meta 3 parties mockup |
+| Encaissement | 94% | 100% | Phase 87 : enc-kpi-encaisse-sub "+X% vs [mois]" + impayes-sub "+N factures" + relances sub "À envoyer cette semaine". |
 | TVA | 94% | 100% | Phase 86 : kpi-lbl "(sortie)"/"(entrée)" + échéance "15/MM" dynamique + "N jours restants" + brand solde + CA/charges HT subs. |
 | Rentabilité | 92% | 100% | Phase 59 : CSV+Excel rentabilité vraiment impl + sub-meta mockup + tabs underline + Export 4 items |
 | Statistiques | 92% | 100% | Phase 59 : exporterStatsCSV + exporterStatsExcel vraiment impl (étaient stubs alert). Sub-meta CA mockup. |
