@@ -201,12 +201,12 @@
 }
 
 /* ============ SEMAINE LABEL (date range courante) ============ */
-
+/* Phase 91.48 : date ranges → DM Sans (Syne déformait les dates longues) */
 #planning-semaine-label,
 #planning-semaine-dates {
-  font-family: var(--ds-font-display);
-  font-weight: var(--ds-fw-display);
-  letter-spacing: -0.01em;
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-bold);
+  letter-spacing: -0.005em;
   color: var(--ds-text);
 }
 

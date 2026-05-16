@@ -66,7 +66,7 @@ html, body { margin: 0; padding: 0; }
 body {
   background: var(--m-bg);
   color: var(--m-text);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, -apple-system, sans-serif);
   font-size: 15px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
@@ -353,7 +353,7 @@ a { color: var(--m-accent); text-decoration: none; }
   margin-top: 12px;
   padding: 6px 12px;
   font-size: 0.65rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--ds-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   color: var(--m-text-muted);
   opacity: 0.55;
   letter-spacing: 0.02em;

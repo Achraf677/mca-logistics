@@ -131,10 +131,11 @@ td.montant-positif,
   gap: 8px;
 }
 
+/* Phase 91.48 : period labels → DM Sans (dates/périodes, pas décoratif) */
 .carb-period-nav .period-label {
-  font-family: var(--font-display, 'Syne', sans-serif);
+  font-family: var(--ds-font-body, var(--font-body));
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   margin-left: 8px;
   text-transform: capitalize;
   color: var(--text, #e8eaf0);
@@ -143,7 +144,7 @@ td.montant-positif,
 .carb-period-nav .period-dates {
   font-size: 11px;
   color: var(--text-muted, #7c8299);
-  font-family: var(--font-mono, 'DM Mono', monospace);
+  font-family: var(--ds-font-mono, var(--font-mono, monospace));
 }
 
 .carb-period-nav .period-right {

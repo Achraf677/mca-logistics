@@ -170,13 +170,14 @@
   border-bottom: 1px solid var(--ds-border, #2a2f37);
 }
 
+/* Phase 91.48 : mobile card titles → DM Sans bold (14px Syne = bizarre) */
 .m-card-header h2,
 .m-card-header h3,
 .m-card-title {
-  font-family: var(--ds-font-display, "Syne", sans-serif);
+  font-family: var(--ds-font-body, "DM Sans", sans-serif);
   font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-weight: 700;
+  letter-spacing: -0.005em;
   margin: 0;
   color: var(--ds-text, #f1f3f5);
 }

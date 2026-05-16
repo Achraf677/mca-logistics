@@ -308,7 +308,7 @@
 }
 
 .last-deliveries-card td.mono {
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--ds-font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
   font-size: 12px;
   letter-spacing: 0.02em;
   color: var(--ds-text-muted, var(--text-muted));

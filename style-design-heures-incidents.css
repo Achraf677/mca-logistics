@@ -21,10 +21,11 @@
 }
 
 /* Heures card headers — match mockup icons + labels */
+/* Phase 91.48 : card headers → DM Sans bold (titres de sections, pas display) */
 #page-heures .card .card-header h3 {
   font-size: 15px;
-  font-family: var(--font-display, 'Syne', sans-serif);
-  font-weight: 800;
+  font-family: var(--ds-font-body, var(--font-body));
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
@@ -177,10 +178,11 @@
   gap: 8px;
 }
 
+/* Phase 91.48 : period labels → DM Sans (dates/mois, pas décoratif) */
 #inc-period-nav .period-label {
-  font-family: var(--font-display, 'Syne', sans-serif);
+  font-family: var(--ds-font-body, var(--font-body));
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   margin-left: 8px;
   text-transform: capitalize;
 }

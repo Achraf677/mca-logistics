@@ -196,7 +196,7 @@
   font-size: 16px;
   font-weight: 800;
   /* Phase 60 polish (Gemini audit MEDIUM) : plaques en mono pour cohérence (FG-788-FB) */
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--ds-font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
   letter-spacing: 0.02em;
 }
 

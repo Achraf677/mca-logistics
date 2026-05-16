@@ -152,12 +152,13 @@
   color: var(--ds-brand);
 }
 
+/* Phase 91.48 : labels de période calendrier → DM Sans (mois/années lisibles) */
 .cal-mois-label,
 #cal-mois-label,
 #cal16-label {
-  font-family: var(--ds-font-display);
-  font-weight: var(--ds-fw-display);
-  letter-spacing: -0.01em;
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-bold);
+  letter-spacing: -0.005em;
   color: var(--ds-text);
   text-transform: capitalize;
 }
