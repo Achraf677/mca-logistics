@@ -78,7 +78,8 @@
           : diff <= 30
             ? '<span class="badge" style="background:rgba(214,158,46,0.12);color:#c97d0e;border-color:rgba(214,158,46,0.35)">Bientôt</span>'
             : '<span class="badge ok">OK</span>';
-      rows.push({ diff: diff, html: '<tr><td>' + nom + '</td><td style="font-family:var(--font-mono,monospace)">' + immat + '</td><td style="font-family:var(--font-mono,monospace)">' + ctDate + '</td><td style="' + joursRestantsCls + ';text-align:right;font-variant-numeric:tabular-nums">' + joursRestantsStr + '</td><td>' + statBadge + '</td></tr>' });
+      var dernierCt = v.dateCTDernier || v.dernierCT || v.date_dernier_ct || '—';
+      rows.push({ diff: diff, html: '<tr><td>' + nom + '</td><td style="font-family:var(--font-mono,monospace)">' + immat + '</td><td style="font-family:var(--font-mono,monospace);color:var(--ds-text-muted,var(--text-muted))">' + dernierCt + '</td><td style="font-family:var(--font-mono,monospace)">' + ctDate + '</td><td style="' + joursRestantsCls + ';text-align:right;font-variant-numeric:tabular-nums">' + joursRestantsStr + '</td><td>' + statBadge + '</td></tr>' });
     });
 
     rows.sort(function(a, b) { return a.diff - b.diff; });

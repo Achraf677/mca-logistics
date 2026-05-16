@@ -30,7 +30,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Fournisseurs | 92% | 100% | Phase 78 : Top dépense val=nom/sub=montant (était inversé, Phase 60 comment erroné) |
 | Véhicules | 92% | 100% | Phase 59 : exporterVehiculesCSV + exporterVehiculesExcel tous deux vraiment impl (étaient stubs/fallback) |
 | Carburant | 92% | 100% | Phase 59 : exporterCarburantExcel vraiment impl (était fallback CSV). Tous exports réels. |
-| Entretiens | 93% | 100% | Phase 65 : CT table 5 cols (Véhicule/Immatriculation/Prochain CT/Jours restants/Statut badge Expiré/Urgent/Bientôt/OK). Fenêtre 30j→60j. |
+| Entretiens | 94% | 100% | Phase 80 : CT table 6 cols — "Dernier CT" ajouté (Véhicule/Immatriculation/Dernier CT/Prochain CT/Jours restants/Statut). Donnée depuis v.dateCTDernier. |
 | Inspections | 92% | 100% | Phase 59 : BUG-023 FIXED — table mockup-aligned (Date/Véhicule/Chauffeur/Photos/Défauts/Statut + badges ok/warn/alert). Photos count clickable → lightbox |
 | Charges | 92% | 100% | Phase 59 : exporterChargesExcel vraiment impl (était inexistant) + Phase 48+51 period nav/charts/Parking chip |
 | Encaissement | 92% | 100% | Phase 59 : exporterEncaissementExcel vraiment impl (was stub) + sub-meta 3 parties mockup |
@@ -40,7 +40,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Calendrier | 91% | 100% | Phase 67 : #cal16-kpi-pai (Encaissé) maintenant calculé depuis livraisons livrées ce mois. |
 | Alertes | 91% | 100% | Phase 67 : alertes-titlerow-actives + critiques-wrap maintenant mis à jour (étaient bloqués à 0). |
 | Équipe | 91% | 100% | Phase 67 : .member-foot .btn-secondary override ajouté (même size que .btn). |
-| Heures | 93% | 100% | Phase 62 : bouton "Export paie", CE 561 kpi-sub câblé (nom chauffeur ×N), chips chauffeur dynamiques, card headers h3 + renommés ("Heures travaillées"/"Kilométrage flotte") + badges id |
+| Heures | 94% | 100% | Phase 79 : Km kpi-sub "Sur N véhicules" dynamique (était statique "Livraisons ce mois"). CE 561 sub color déjà en CSS (Phase 75). |
 | Incidents | 93% | 100% | Phase 66 : table Date/Type/Véhicule/Chauffeur/Description/Statut/Actions. Badge Type Accident/Avarie/Vol. Véhicule lookup. Modal ajout champ Type select. |
 | Paramètres | 93% | 100% | Phase 62 : h2→h3 card headers Entreprise (Informations entreprise/Identité visuelle/Postes) + Comptabilité (Fiscalité TVA→Paramétrage TVA/Trésorerie/Catégories). Nouvelle carte "Cabinet comptable" avec badge Sync OK, toggles FEC+sync, save localStorage. |
 | Brouillons IA | 90% | 100% | Phase 59 : chips filtrent vraiment (setStatusFilter) + sub-meta mockup + Valider/Rejeter sélection batch wired |

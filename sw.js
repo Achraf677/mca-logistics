@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v230-form-group-full-modal-scroll-entretiens';
+const CACHE_VERSION = 'mca-v2026-05-16-v231-entr-ct-dernier-col-heures-km-sub';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
