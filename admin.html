@@ -5458,10 +5458,10 @@
 
   <!-- Phase 91.69 : panneau-agent extrait de 8 inline style="..." vers classes CSS
        (tokens --ds-* respectés, dark + light themes compatibles via cascade). -->
-  <div id="panneau-agent" class="panneau-agent">
+  <div id="panneau-agent" class="panneau-agent" role="dialog" aria-modal="false" aria-labelledby="panneau-agent-title" aria-hidden="true" tabindex="-1">
     <div class="panneau-agent__head">
       <div class="panneau-agent__title-wrap">
-        <div class="panneau-agent__title">MCA Agent</div>
+        <div class="panneau-agent__title" id="panneau-agent-title">MCA Agent</div>
         <div class="panneau-agent__sub" id="agent-last-check">En attente d'activation...</div>
       </div>
       <button onclick="togglePanneauAgent()" title="Fermer" class="panneau-agent__close" aria-label="Fermer le panneau agent">✕</button>

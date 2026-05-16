@@ -166,6 +166,7 @@ function togglePanneauAgent() {
   const isOpen = panneau.style.right === '0px';
   panneau.style.right = isOpen ? '-420px' : '0px';
   overlay.style.display = isOpen ? 'none' : 'block';
+  panneau.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
   if (!isOpen) {
     const decisions = loadSafe('agent_decisions', []);
     decisions.forEach(d => d.lu = true);
