@@ -83,7 +83,7 @@ function autoCompleteLivraisonCharge(query) {
     var prix = (typeof euros === 'function') ? euros(l.prix || 0) : ((l.prix || 0) + ' €');
     return '<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center" '
       + 'onclick="selectionnerLivraisonChargeParId(\'' + l.id + '\')" '
-      + 'onmouseover="this.style.background=\'rgba(245,166,35,0.08)\'" '
+      + 'onmouseover="this.style.background=\'rgba(230,57,70,0.08)\'" '
       + 'onmouseout="this.style.background=\'transparent\'">'
       + '<div><strong>' + (l.numLiv || '?') + '</strong> · ' + (l.client || '—')
       + '<div style="font-size:.74rem;color:var(--text-muted)">' + (l.date || '') + (l.chaufNom ? ' · ' + l.chaufNom : '') + '</div></div>'

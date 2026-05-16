@@ -126,7 +126,7 @@ function genererRapportMensuel() {
     <!-- KPIs -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px">
       ${[
-        ['CA du mois', new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(caTotal), '#f5a623'],
+        ['CA du mois', new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(caTotal), '#e63946'],
         ['Livraisons', livraisons.length + ' total', '#4f8ef7'],
         ['⛽ Carburant',  new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(carbTotal), '#e74c3c'],
         ['Bénéfice',  new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(benefice), benefice>=0?'#2ecc71':'#e74c3c'],
@@ -142,7 +142,7 @@ function genererRapportMensuel() {
       <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:12px">Statuts des livraisons</div>
       <div style="display:flex;gap:20px;flex-wrap:wrap">
         <div><span style="background:rgba(46,204,113,.15);color:#2ecc71;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">✅ Livré : ${livrees}</span></div>
-        <div><span style="background:rgba(245,166,35,.15);color:#f5a623;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">⏳ En attente : ${enAttente}</span></div>
+        <div><span style="background:rgba(230,57,70,.15);color:#e63946;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">En attente : ${enAttente}</span></div>
         <div><span style="background:rgba(52,152,219,.15);color:#4f8ef7;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">En cours : ${livraisons.filter(l=>l.statut==='en-cours').length}</span></div>
       </div>
     </div>
@@ -175,7 +175,7 @@ function genererRapportMensuel() {
           <tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'#fff':'#fafafa'}">
             <td style="padding:9px 12px;font-weight:500">${nom}</td>
             <td style="padding:9px 12px;text-align:right">${s.livs}</td>
-            <td style="padding:9px 12px;text-align:right;font-weight:700;color:#f5a623">${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(s.ca)}</td>
+            <td style="padding:9px 12px;text-align:right;font-weight:700;color:#e63946">${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(s.ca)}</td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -768,7 +768,7 @@ function exporterRapportHeuresEtKmPDF() {
     + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px">'
       + '<div style="background:#f8f9fc;border-radius:12px;padding:14px;text-align:center;border-top:3px solid #4f8ef7"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Salariés</div><div style="font-size:1.2rem;font-weight:800;color:#4f8ef7">' + salaries.length + '</div></div>'
       + '<div style="background:#f8f9fc;border-radius:12px;padding:14px;text-align:center;border-top:3px solid #2ecc71"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Total km</div><div style="font-size:1.2rem;font-weight:800;color:#2ecc71">' + Math.round(totalKm) + ' km</div></div>'
-      + '<div style="background:#f8f9fc;border-radius:12px;padding:14px;text-align:center;border-top:3px solid #f5a623"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Période</div><div style="font-size:1rem;font-weight:800;color:#f5a623">' + planningEscapeHtml(range.label) + '</div></div>'
+      + '<div style="background:#f8f9fc;border-radius:12px;padding:14px;text-align:center;border-top:3px solid #e63946"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Période</div><div style="font-size:1rem;font-weight:800;color:#e63946">' + planningEscapeHtml(range.label) + '</div></div>'
     + '</div>'
     + '<div style="margin-bottom:26px">'
       + '<div style="font-size:1rem;font-weight:800;margin-bottom:12px;color:#111827">Compteur d’heures</div>'
@@ -843,7 +843,7 @@ function exporterTvaPDF() {
     renderBlocInfosEntreprise(params) +
     '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#2ecc71">TVA Collectée exigible</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Exigibilité</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">Base HT</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:right">TTC</th></tr></thead><tbody>'+collRows+'<tr style="background:#e8f5e9;font-weight:700"><td style="padding:6px 12px">TOTAL</td><td></td><td></td><td style="padding:6px 12px;text-align:right;color:#2ecc71">'+euros(totalCollectee)+'</td><td></td></tr></tbody></table>' +
-    (pendingRows ? '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#f5a623">Facturé mais non encore exigible</div><table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Date facture</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:left">Statut</th></tr></thead><tbody>' + pendingRows + '</tbody></table>' : '') +
+    (pendingRows ? '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#e63946">Facturé mais non encore exigible</div><table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Date facture</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:left">Statut</th></tr></thead><tbody>' + pendingRows + '</tbody></table>' : '') +
     '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#e67e22">TVA Déductible</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Date</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">Base HT</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:right">TTC</th></tr></thead><tbody>'+dedRows+'<tr style="background:#fff3e0;font-weight:700"><td style="padding:6px 12px">TOTAL</td><td></td><td></td><td style="padding:6px 12px;text-align:right;color:#e67e22">'+euros(totalDeductible)+'</td><td></td></tr></tbody></table>' +
     '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#2563eb">Règlements TVA rattachés à la période</div>' +

@@ -222,7 +222,7 @@ function afficherCarburant() {
   tb.innerHTML = [...pleins].sort((a,b) => new Date(b.creeLe)-new Date(a.creeLe)).map(p => {
     const src = p.source==='salarie'
       ? '<span style="background:rgba(79,142,247,0.15);color:#4f8ef7;padding:2px 7px;border-radius:12px;font-size:0.75rem;">Salarié</span>'
-      : '<span style="background:rgba(245,166,35,0.12);color:var(--accent);padding:2px 7px;border-radius:12px;font-size:0.75rem;">⚙️ Admin</span>';
+      : '<span style="background:rgba(230,57,70,0.12);color:var(--accent);padding:2px 7px;border-radius:12px;font-size:0.75rem;"><svg viewBox="0 0 24 24" width="10" height="10" style="vertical-align:-1px;margin-right:2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Admin</span>';
     const mod = p.modifie ? '<span style="background:rgba(231,76,60,0.15);color:#e74c3c;padding:2px 7px;border-radius:12px;font-size:0.75rem;margin-left:4px;">✏️ Modifié</span>' : '';
     // Badge anomalie carburant
     let badgeAnom = '';
