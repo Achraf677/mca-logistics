@@ -32,24 +32,7 @@ window.escapeAttr = escapeAttr;
 window.escHtml = escapeHtml; // alias attendu par certains call sites existants
 
 // BUG-009 fix : validateurs SIRET (Luhn) + IBAN (mod-97)
-function validerSIRET(siret) {
-  const s = String(siret || '').replace(/\s+/g, '');
-  if (!/^\d{14}$/.test(s)) return false;
-  // Algorithme de Luhn : positions impaires (depuis la droite) ×1, paires ×2
-  let sum = 0;
-  for (let i = 0; i < 14; i++) {
-    let n = parseInt(s[13 - i], 10);
-    if (i % 2 === 1) { n *= 2; if (n > 9) n -= 9; }
-    sum += n;
-  }
-  // Exception La Poste : SIRET 356000000XXXXX accepté par DGFiP si somme chiffres = multiple de 5
-  if (s.startsWith('356000000')) {
-    let sumPoste = 0;
-    for (const c of s) sumPoste += parseInt(c, 10);
-    return sumPoste % 5 === 0;
-  }
-  return sum % 10 === 0;
-}
+// MOVED -> script-core-valider-siret.js : validerSIRET
 
 // Validation SIREN (9 chiffres, Luhn) — utilisée pour la validation inline du formulaire livraison
 // MOVED -> script-clients.js : validerSIREN
@@ -979,35 +962,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   audit();
 })();
 
-function appliquerLibellesAnalyseHT() {
-  const rent = {
-    'rent-ca': "Chiffre d'affaires HT",
-    'rent-carb': 'Dépenses carburant HT',
-    'rent-entretien': 'Dépenses entretien HT',
-    'rent-cout-km': 'Coût HT par kilomètre',
-    'rent-profit': 'Profit net estimé HT'
-  };
-  Object.entries(rent).forEach(([id, label]) => {
-    const card = document.getElementById(id)?.closest('.kpi-card');
-    const target = card?.querySelector('.kpi-label');
-    if (target) target.textContent = label;
-  });
-  const stats = {
-    'stats-ca-periode': 'CA période HT',
-    'stats-panier-moyen': 'Panier moyen HT'
-  };
-  Object.entries(stats).forEach(([id, label]) => {
-    const card = document.getElementById(id)?.closest('.kpi-card');
-    const target = card?.querySelector('.kpi-label');
-    if (target) target.textContent = label;
-  });
-  const rentTitle = document.getElementById('chartRentabilite')?.closest('.card')?.querySelector('.card-header h2');
-  if (rentTitle) rentTitle.textContent = 'Répartition des dépenses HT';
-  const statsTitle = document.getElementById('chartCA')?.closest('.card')?.querySelector('.card-header h2');
-  if (statsTitle) statsTitle.textContent = 'Évolution du CA HT';
-  const statsDriverTitle = document.getElementById('chartCAParChauffeur')?.closest('.card')?.querySelector('.card-header h2');
-  if (statsDriverTitle) statsDriverTitle.textContent = 'CA HT par chauffeur (détail)';
-}
+// MOVED -> script-core-libelles-analyse-ht.js : appliquerLibellesAnalyseHT
 
 // MOVED -> script-planning.js : toggleAbsenceTypeFields
 
@@ -1034,96 +989,7 @@ document.addEventListener('click', e => {
   closeModal(e.target.id);
 });
 
-function mettreAJourSelects() {
-  const chauffeurs = charger('chauffeurs');
-  const vehicules  = charger('vehicules');
-  const salaries   = charger('salaries');
-
-  // Véhicule dans charges et entretiens
-  ['charge-veh','entr-veh'].forEach(id => {
-    const sel = document.getElementById(id); if (!sel) return;
-    const v = sel.value;
-    sel.innerHTML = id==='charge-veh' ? '<option value="">— Général —</option>' : '<option value="">— Choisir —</option>';
-    vehicules.forEach(vh => sel.innerHTML += `<option value="${vh.id}">${vh.immat}${vh.modele?' — '+vh.modele:''}</option>`);
-    sel.value = v;
-  });
-
-  // Livraisons récentes dans incident (30 derniers jours)
-  const incSel = document.getElementById('inc-livraison');
-  if (incSel) {
-    const v = incSel.value;
-    const dateMin = new Date(Date.now()-30*24*60*60*1000).toLocalISODate();
-    incSel.innerHTML = '<option value="">— Aucune livraison spécifique —</option>';
-    charger('livraisons').filter(l=>l.date>=dateMin).sort((a,b)=>new Date(b.date)-new Date(a.date))
-      .forEach(l => incSel.innerHTML += `<option value="${l.id}">${l.numLiv||''} — ${l.client} (${l.date})</option>`);
-    incSel.value = v;
-  }
-
-  // Sélect salarié dans modal incident
-  peupleIncSalarie();
-
-  // Phase 91.44 (Agent Salariés M2 + Véhicules M5) — exclure salariés/véhicules inactifs des selects
-  const salariesActifs = salaries.filter(s => s && s.actif !== false);
-  const vehiculesActifs = vehicules.filter(v => {
-    if (!v) return false;
-    const st = String(v.statut || 'actif').toLowerCase();
-    return st !== 'inactif' && st !== 'vendu' && st !== 'hors_service';
-  });
-
-  // Sélect salarié dans modal planning
-  const sp = document.getElementById('plan-salarie');
-  if (sp) {
-    const v = sp.value;
-    sp.innerHTML = '<option value="">-- Choisir un salarié --</option>';
-    salariesActifs.forEach(s => { sp.innerHTML += `<option value="${s.id}">${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
-    sp.value = v;
-  }
-
-  const sc = document.getElementById('liv-chauffeur');
-  if (sc) {
-    const v = sc.value; sc.innerHTML = '<option value="">-- Choisir un salarié / chauffeur --</option>';
-    // Salariés d'abord (avec badge), puis chauffeurs non-salariés
-    salariesActifs.forEach(s => { sc.innerHTML += `<option value="${s.id}">${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
-    chauffeurs.filter(c => !salaries.find(s => s.id === c.id))
-      .forEach(c => { sc.innerHTML += `<option value="${c.id}">${c.nom}</option>`; });
-    sc.value = v;
-  }
-
-  const sec = document.getElementById('edit-liv-chauffeur');
-  if (sec) {
-    const v = sec.value; sec.innerHTML = '<option value="">-- Choisir un salarié / chauffeur --</option>';
-    salariesActifs.forEach(s => { sec.innerHTML += `<option value="${s.id}">${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
-    chauffeurs.filter(c => !salaries.find(s => s.id === c.id))
-      .forEach(c => { sec.innerHTML += `<option value="${c.id}">${c.nom}</option>`; });
-    sec.value = v;
-  }
-
-  ['liv-vehicule','edit-liv-vehicule','carb-vehicule','entr-vehicule'].forEach(id => {
-    const sel = document.getElementById(id); if (!sel) return;
-    const v = sel.value; sel.innerHTML = '<option value="">-- Choisir un véhicule --</option>';
-    vehiculesActifs.forEach(veh => { sel.innerHTML += `<option value="${veh.id}">${veh.immat} — ${veh.modele}${veh.salNom ? ' ('+veh.salNom+')' : ''}</option>`; });
-    sel.value = v;
-  });
-
-  // Sélect véhicule dans création salarié
-  const sv = document.getElementById('nsal-vehicule');
-  if (sv) {
-    const v = sv.value; sv.innerHTML = '<option value="">-- Aucun pour l\'instant --</option>';
-    vehicules.filter(veh => !veh.salId).forEach(veh => { sv.innerHTML += `<option value="${veh.id}">${veh.immat} — ${veh.modele}</option>`; });
-    sv.value = v;
-  }
-
-  // Sélect véhicule dans modal edit salarié
-  const sve = document.getElementById('edit-sal-vehicule');
-  if (sve) {
-    const v = sve.value; sve.innerHTML = '<option value="">-- Retirer l\'affectation --</option>';
-    vehicules.forEach(veh => {
-      const dejaPris = veh.salId && veh.salId !== (window._editSalarieId || '');
-      if (!dejaPris) sve.innerHTML += `<option value="${veh.id}">${veh.immat} — ${veh.modele}</option>`;
-    });
-    sve.value = v;
-  }
-}
+// MOVED -> script-core-maj-selects.js : mettreAJourSelects
 
 /* ===== LIVRAISONS ===== */
 // MOVED -> script-livraisons.js : ajouterLivraison
@@ -1180,16 +1046,7 @@ window.addEventListener('delivpro:storage-sync', function(e) {
 
 // MOVED -> script-livraisons.js : afficherLivraisons
 
-function changerStatutPaiement(id, statut) {
-  const livraisons = charger('livraisons');
-  const idx = livraisons.findIndex(l => l.id === id);
-  if (idx > -1) {
-    livraisons[idx].statutPaiement = statut;
-    sauvegarder('livraisons', livraisons);
-    ajouterEntreeAudit('Paiement livraison', (livraisons[idx].numLiv || 'Livraison') + ' · statut ' + statut);
-    afficherToast('Paiement mis à jour');
-  }
-}
+// MOVED -> script-core-livraisons-statut-paiement.js : changerStatutPaiement
 
 // MOVED -> script-livraisons.js : getLivraisonInlineSelectClass
 
@@ -1199,15 +1056,7 @@ function changerStatutPaiement(id, statut) {
 
 // MOVED -> script-livraisons.js : supprimerLivraison
 
-function resetFiltres() {
-  ['filtre-statut','filtre-paiement','filtre-date-debut','filtre-date-fin','filtre-recherche-liv','filtre-chauffeur'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  _livPeriodePersonnalisee = null;
-  var range = getPeriodeRange(_livPeriodeMode, _livPeriodeOffset);
-  majPeriodeDisplay('liv-periode-label', 'liv-periode-dates', range);
-  afficherLivraisons();
-}
+// MOVED -> script-core-reset-filtres-livraisons.js : resetFiltres
 
 // MOVED -> script-livraisons.js : appliquerFiltresDatesLivraisons
 
@@ -1294,48 +1143,7 @@ document.addEventListener('click', function(e) {
 });
 
 /* ===== RELEVÉS KM — ADMIN ===== */
-function afficherReleveKm() {
-  const salaries = charger('salaries');
-  const vehicules = charger('vehicules');
-  const tb = document.getElementById('tb-releve-km');
-  const range = getHeuresPeriodeRange();
-  const tous = [];
-  salaries.forEach(s => {
-    charger('km_sal_'+s.id)
-      .filter(e => (e.date || '') >= range.debut && (e.date || '') <= range.fin)
-      .forEach(e => {
-        const veh = vehicules.find(v => v.salId === s.id) || null;
-        tous.push({ ...e, salNom: s.nom, salNumero: s.numero, vehId: veh?.id || '', vehNom: veh?.immat || '—' });
-      });
-  });
-  tous.sort((a,b) => new Date(b.creeLe)-new Date(a.creeLe));
-  if (!tous.length) {
-    tb.innerHTML = emptyState('🛣️','Aucun relevé km',`Aucun relevé kilométrique sur ${range.label.toLowerCase()} (${range.datesLabel}).`);
-    return;
-  }
-  tb.innerHTML = tous.map(e => {
-    const modTag = e.modifie
-      ? '<span style="font-size:.72rem;background:rgba(231,76,60,.12);color:#e74c3c;padding:1px 6px;border-radius:12px;margin-left:4px">✏️ Modifié</span>'
-      : '';
-    const kmDepart = e.kmDepart != null ? e.kmDepart.toLocaleString('fr-FR')+' km' : '—';
-    const kmArrivee = e.kmArrivee != null ? e.kmArrivee.toLocaleString('fr-FR')+' km' : '—';
-    const distance = e.kmArrivee != null
-      ? ((e.distance || (e.kmArrivee - e.kmDepart)) || 0).toFixed(0)+' km'
-      : 'En attente';
-    return `<tr>
-      <td><strong>${e.salNom}</strong> <span style="color:var(--text-muted);font-size:0.8rem">${e.salNumero||''}</span></td>
-      <td>${e.vehId ? `<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau('${e.vehId}')" title="Ouvrir le véhicule">${e.vehNom}</button>` : e.vehNom}</td>
-      <td>${e.date}</td>
-      <td>${kmDepart}</td>
-      <td>${kmArrivee}</td>
-      <td><strong style="color:var(--accent)">${distance}</strong>${modTag}</td>
-      <td>
-        <button class="btn-icon" onclick="ouvrirEditKmAdmin('${e.salId}','${e.id}')">✏️</button>
-        <button class="btn-icon danger" onclick="supprimerKmAdmin('${e.salId}','${e.id}')">🗑️</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
+// MOVED -> script-core-releve-km.js : afficherReleveKm
 
 let _editKmSalId = null, _editKmId = null;
 // MOVED -> script-core-auth.js : ouvrirEditKmAdmin
@@ -2188,30 +1996,7 @@ window.csvCelluleSecurisee = csvCelluleSecurisee;
 /* ===== TAUX DE PONCTUALITÉ ===== */
 // MOVED -> script-core-utils.js : calculerPonctualite
 
-function afficherPonctualite() {
-  const cont = document.getElementById('ponctualite-container');
-  if (!cont) return;
-  const { taux, livrees, total } = calculerPonctualite();
-  const color = taux>=90?'var(--green)':taux>=70?'var(--accent)':'var(--red)';
-  cont.innerHTML = `
-    <div class="card mt-20">
-      <div class="card-header"><h2>Taux de ponctualité</h2><span style="font-size:1.3rem;font-weight:800;color:${color}">${taux}%</span></div>
-      <div style="padding:16px">
-        <div class="ponctualite-bar"><div class="ponctualite-fill" style="width:${taux}%;background:${color}"></div></div>
-        <div style="font-size:.82rem;color:var(--text-muted);margin-top:6px">${livrees} livrées sur ${total} assignées</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px">
-          ${[
-            ['✅ Livrées', livrees, 'var(--green)'],
-            ['⏳ En attente', total-livrees, 'var(--accent)'],
-            ['Taux', taux+'%', color]
-          ].map(([l,v,c])=>`<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px;text-align:center">
-            <div style="font-size:1.1rem;font-weight:700;color:${c}">${v}</div>
-            <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px">${l}</div>
-          </div>`).join('')}
-        </div>
-      </div>
-    </div>`;
-}
+// MOVED -> script-core-ponctualite-card.js : afficherPonctualite
 
 /* ===== TABLEAU DE BORD CLIENT ENRICHI ===== */
 // MOVED -> script-clients.js : afficherClientsDashboard
