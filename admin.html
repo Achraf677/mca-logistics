@@ -696,10 +696,7 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
                 <div><div class="ld-name">Lettre de voiture</div><div class="ld-sub">CMR conforme transport</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="window.actionGenererLivraison&&window.actionGenererLivraison('facture-groupee')">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M9 9h6v6H9z"/></svg>
-                <div><div class="ld-name">Facture groupée</div><div class="ld-sub">PDF par client sélectionné</div></div>
-              </button>
+              <!-- Phase 91 — "Facture groupée" retirée de Générer (doublon avec Exporter → PDF groupé). -->
             </div>
           </div>
           <!-- Dropdown Exporter -->
@@ -709,22 +706,23 @@
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
+            <!-- Phase 91 — Exporter : 4 items mockup-aligned (XLSX, PDF groupé, PDF classique facture, CSV). -->
             <div class="liv-dropdown-menu" data-dropdown-menu="export" role="menu">
-              <button class="liv-dropdown-item" onclick="if(typeof exporterLivraisonsPDF==='function')exporterLivraisonsPDF();else exporterLivraisons()">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
-                <div><div class="ld-name">Export PDF</div><div class="ld-sub">Bon imprimable, 1 page</div></div>
-              </button>
-              <button class="liv-dropdown-item" onclick="exporterLivraisons()">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                <div><div class="ld-name">Export CSV</div><div class="ld-sub">Toutes les colonnes, point-virgule</div></div>
-              </button>
               <button class="liv-dropdown-item" onclick="if(typeof exporterLivraisonsXLSX==='function')exporterLivraisonsXLSX();else exporterLivraisons()">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 <div><div class="ld-name">Export Excel (.xlsx)</div><div class="ld-sub">Avec onglets par statut</div></div>
               </button>
               <button class="liv-dropdown-item" onclick="if(typeof genererFacturesPeriode==='function')genererFacturesPeriode();else exporterLivraisons()">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M9 9h6v6H9z"/></svg>
-                <div><div class="ld-name">Facture groupée</div><div class="ld-sub">PDF par client sélectionné</div></div>
+                <div><div class="ld-name">PDF groupé</div><div class="ld-sub">Un PDF par client sélectionné</div></div>
+              </button>
+              <button class="liv-dropdown-item" onclick="if(typeof exporterLivraisonsPDF==='function')exporterLivraisonsPDF();else exporterLivraisons()">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
+                <div><div class="ld-name">PDF classique facture</div><div class="ld-sub">Bon imprimable, 1 page</div></div>
+              </button>
+              <button class="liv-dropdown-item" onclick="exporterLivraisons()">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <div><div class="ld-name">Export CSV</div><div class="ld-sub">Toutes les colonnes, point-virgule</div></div>
               </button>
             </div>
           </div>

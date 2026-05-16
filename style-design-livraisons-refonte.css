@@ -159,14 +159,14 @@
   text-transform: uppercase;
   letter-spacing: 0.07em;
   font-weight: 700;
-  padding: 14px 14px;
+  padding: 14px 22px;
 }
 
 /* Rows : padding réduit pour cibler hauteur mockup ~53px (select natif ~32px + 2×10 + 1 border).
-   Phase 90.2 — padding-horizontal aligné header (14px) ; column widths shrink-to-content
-   pour coller les colonnes à gauche (mockup). */
+   Phase 91.2 — padding-horizontal 22px : espace plus généreux entre colonnes
+   (user feedback : "ya largement de la place entre"). */
 .livraisons-table tbody td {
-  padding: 10px 14px;
+  padding: 10px 22px;
 }
 
 /* ============ Phase 90.2 — Column widths : shrink-to-content (mockup-aligned) ============
@@ -199,9 +199,11 @@
   width: 1%;
   white-space: nowrap;
 }
+/* Phase 91.1 — col 16 (Montant HT) absorbe TOUTE la largeur restante, pour que les colonnes
+   de gauche restent collées les unes aux autres (au lieu d'être distribuées sur toute la largeur). */
 .livraisons-table th:nth-child(16),
 .livraisons-table td:nth-child(16) {
-  width: auto;
+  width: 100%;
 }
 
 /* ============ Pagination footer polish ============ */

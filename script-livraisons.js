@@ -725,20 +725,20 @@ function genererBonLivraison(livId) {
         <div style="padding:16px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <div style="font-size:.9rem">Prestation de livraison (TTC)</div>
-            <div style="font-size:1.4rem;font-weight:800;color:#e63946">\${l.prix ? new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(l.prix) : 'Sur devis'}</div>
+            <div style="font-size:1.4rem;font-weight:800;color:#e63946">${l.prix ? new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(l.prix) : 'Sur devis'}</div>
           </div>
-          \${l.prix ? (() => {
+          ${l.prix ? (() => {
             const taux = parseFloat(localStorage.getItem('taux_tva')||'20');
             const ht   = l.prix / (1 + taux/100);
             const tvaM = l.prix - ht;
-            return \`<div style="display:flex;justify-content:space-between;font-size:.82rem;color:#6b7280;padding-top:8px;border-top:1px solid #e5e7eb">
-              <span>Montant HT</span><span style="font-weight:600">\${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(ht)}</span>
+            return `<div style="display:flex;justify-content:space-between;font-size:.82rem;color:#6b7280;padding-top:8px;border-top:1px solid #e5e7eb">
+              <span>Montant HT</span><span style="font-weight:600">${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(ht)}</span>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:.82rem;color:#6b7280;margin-top:4px">
-              <span>TVA \${taux}%</span><span>\${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(tvaM)}</span>
-            </div>\`;
+              <span>TVA ${taux}%</span><span>${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(tvaM)}</span>
+            </div>`;
           })() : ''}
-          \${l.modePaiement ? \`<div style="font-size:.82rem;color:#6b7280;margin-top:8px">Mode de paiement : \${l.modePaiement}</div>\` : ''}
+          ${l.modePaiement ? `<div style="font-size:.82rem;color:#6b7280;margin-top:8px">Mode de paiement : ${l.modePaiement}</div>` : ''}
         </div>
       </div>
 
