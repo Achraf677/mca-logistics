@@ -174,13 +174,13 @@ function togglePanneauAgent() {
   }
 }
 
-// L1990 (script.js d'origine)
+// L1990 (script.js d'origine) — Phase 91.88 : cap "99+" pour cohérence avec autres badges
 function majBadgeAgent() {
   const decisions = loadSafe('agent_decisions', []);
   const nonLues = decisions.filter(d => !d.lu).length;
   const badge = document.getElementById('ai-decisions-badge');
   if (!badge) return;
-  badge.textContent = nonLues;
+  badge.textContent = nonLues > 99 ? '99+' : String(nonLues);
   badge.style.display = nonLues > 0 ? 'inline-block' : 'none';
 }
 
