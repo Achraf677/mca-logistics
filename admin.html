@@ -1863,7 +1863,7 @@
           </div>
           <!-- SmartUpload mode auto : drop n'importe quel doc (RIB / permis) -> auto-detect + prefill -->
           <div class="form-group full-width" style="margin-top:14px;margin-bottom:8px">
-            <label class="file-upload-button" for="nsal-smart-upload-input" style="background:var(--accent-soft);border:1px dashed var(--accent);color:var(--accent);text-align:center">
+            <label class="file-upload-button file-upload-button-accent" for="nsal-smart-upload-input">
               <span id="nsal-smart-upload-label">Uploader (auto) — RIB / permis (auto-détection)</span>
             </label>
             <input type="file" id="nsal-smart-upload-input" accept="image/*,application/pdf" data-max-bytes="20971520" style="display:none" />
@@ -1894,7 +1894,7 @@
           </div>
           <!-- Suivi médical (R.4624-10 Code travail — visite d'embauche obligatoire tout salarié) -->
           <details id="nsal-transport-section" style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
-            <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">Suivi médical du travail
+            <summary class="details-summary">Suivi médical du travail
             </summary>
             <div class="u-card-section">
               <div class="form-grid">
@@ -3306,7 +3306,7 @@
       <!-- H18: Contrôles techniques à venir (peuplé dynamiquement depuis vehicules.dateCT) -->
       <div class="card" id="entr-ct-venir-card" style="margin-bottom:14px;display:none">
         <div class="card-header">
-          <h3>Contrôles techniques à venir <span id="entr-ct-venir-count" style="font-size:12px;font-weight:500;color:var(--ds-text-muted)"></span></h3>
+          <h3>Contrôles techniques à venir <span id="entr-ct-venir-count"></span></h3>
         </div>
         <div class="table-wrapper">
           <table class="data-table" id="tb-ct-venir">
@@ -3320,11 +3320,11 @@
       <div class="card" id="entr-hist-vehicule-card" style="margin-bottom:14px">
         <div class="card-header">
           <h3>Historique véhicule</h3>
-          <select id="entr-hist-vehicule-select" aria-label="Sélectionner un véhicule" style="font-size:12px;padding:4px 8px;border:1px solid var(--ds-border,var(--border));border-radius:6px;background:var(--bg-card);color:var(--text)" onchange="window.__entrHistVehicule&&window.__entrHistVehicule(this.value)">
+          <select id="entr-hist-vehicule-select" aria-label="Sélectionner un véhicule" onchange="window.__entrHistVehicule&&window.__entrHistVehicule(this.value)">
             <option value="">— Sélectionner un véhicule —</option>
           </select>
         </div>
-        <div id="entr-hist-vehicule-timeline" style="padding:14px 18px;max-height:320px;overflow-y:auto">
+        <div id="entr-hist-vehicule-timeline">
           <div style="font-size:13px;color:var(--ds-text-muted,var(--text-muted))">Sélectionnez un véhicule pour afficher son historique.</div>
         </div>
       </div>
@@ -4350,7 +4350,7 @@
         </div>
         <!-- BUG-046 fix : données flotte métier transport (carte grise + Crit'Air + TVA) -->
         <details id="veh-transport-section" style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
-          <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">Données flotte & conformité
+          <summary class="details-summary">Données flotte & conformité
           </summary>
           <div class="u-card-section">
             <div class="form-grid">
@@ -4483,7 +4483,7 @@
       <div class="modal-body">
         <!-- SmartUpload mode auto : drop ticket carburant -> OCR detecte + pre-remplit -->
         <div class="form-group full-width" style="margin-bottom:14px">
-          <label class="file-upload-button" for="carb-smart-upload-input" style="background:var(--accent-soft);border:1px dashed var(--accent);color:var(--accent);text-align:center">
+          <label class="file-upload-button file-upload-button-accent" for="carb-smart-upload-input">
             <span id="carb-smart-upload-label">Uploader (auto) — ticket carburant</span>
           </label>
           <input type="file" id="carb-smart-upload-input" accept="image/*,application/pdf" data-max-bytes="20971520" style="display:none" />
@@ -4666,7 +4666,7 @@
           </div>
         </div>
         <details style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
-          <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">Suivi médical du travail</summary>
+          <summary class="details-summary">Suivi médical du travail</summary>
           <div class="u-card-section">
             <div class="form-grid">
               <div class="form-group"><label for="edit-sal-visite-date">Date dernière visite</label><input type="date" id="edit-sal-visite-date" /></div>
@@ -4858,7 +4858,7 @@
         <input type="hidden" id="charge-edit-id" />
         <!-- SmartUpload mode auto : drop facture / ticket -> OCR detecte + pre-remplit -->
         <div class="form-group full-width" style="margin-bottom:14px">
-          <label class="file-upload-button" for="charge-smart-upload-input" style="background:var(--accent-soft);border:1px dashed var(--accent);color:var(--accent);text-align:center">
+          <label class="file-upload-button file-upload-button-accent" for="charge-smart-upload-input">
             <span id="charge-smart-upload-label">Uploader (auto) — facture / ticket</span>
           </label>
           <input type="file" id="charge-smart-upload-input" accept="image/*,application/pdf" data-max-bytes="20971520" style="display:none" />
