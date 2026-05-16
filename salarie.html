@@ -774,11 +774,48 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
   #offline-banner { transition: none !important; }
   .livraison-statut select { transition: none !important; }
 }
+
+/* Phase 91.73 : utilitaires a11y (visually-hidden + skip link) */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.a11y-skip-link {
+  position: absolute;
+  top: -100px;
+  left: 8px;
+  z-index: 10000;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transition: top 0.15s ease-out;
+}
+.a11y-skip-link:focus {
+  top: 8px;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
 </style>
   <!-- Phase 16 refonte HTML : mobile refinement (header + nav + cards + lists + fab + sheet + drawer) -->
   <link rel="stylesheet" href="/style-design-mobile-refine.css?v=2" />
 </head>
 <body class="app-shell app-booting">
+
+  <!-- Phase 91.73 : Skip link a11y (WCAG 2.4.1) — saute la topbar pour atterrir
+       sur le contenu principal au clavier. -->
+  <a href="#main-scroll" class="a11y-skip-link">Aller au contenu principal</a>
 
   <!-- ========================================================================
        MCA LOGISTICS — salarie.html — Plan du fichier (espace chauffeur web)
@@ -864,7 +901,9 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
   </div>
 
   <!-- CONTENU -->
-  <div class="main" id="main-scroll">
+  <!-- Phase 91.73 : div.main → <main> landmark + h1 visuellement masqué pour WCAG 1.3.1/2.4.6 -->
+  <main class="main" id="main-scroll" tabindex="-1">
+    <h1 class="visually-hidden">Espace chauffeur — MCA Logistics</h1>
     <div class="main-inner">
 
       <!-- ============================================================
@@ -1246,7 +1285,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
       </div>
 
     </div><!-- fin main-inner -->
-  </div><!-- fin main -->
+  </main><!-- fin main (Phase 91.73 : landmark <main>) -->
 
   <!-- BOTTOM NAV -->
   <nav id="bottom-nav" role="tablist" aria-label="Navigation mobile">
