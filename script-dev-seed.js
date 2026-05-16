@@ -43,7 +43,10 @@
   const wantSeed = params.get('seed') === '1';
   const wantReset = params.get('reset') === '1';
   const wantReseed = params.get('reseed') === '1';
-  const alreadySeeded = localStorage.getItem('mca_dev_seeded') === '1';
+
+  // Phase 91.21 — DÉSACTIVE auto-seed (le flag localStorage 'mca_dev_seeded' réinjectait
+  // les données fake sur chaque reload après un premier ?seed=1). On nettoie le flag aussi.
+  try { localStorage.removeItem('mca_dev_seeded'); } catch (_) {}
 
   // Quick handlers via URL
   if (wantReset) {
@@ -60,15 +63,8 @@
     return;
   }
 
-  if (!wantSeed && !alreadySeeded) {
-    expose();
-    return;
-  }
-
-  function safeRead(key) {
-    try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
-  }
-  if (safeRead('livraisons').length > 0 && !wantSeed) {
+  // Seed UNIQUEMENT si ?seed=1 explicite dans l'URL (plus de re-trigger auto).
+  if (!wantSeed) {
     expose();
     return;
   }
