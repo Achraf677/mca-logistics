@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v375-phaseX-AX-planning-rewrite-final';
+const CACHE_VERSION = 'mca-v2026-05-17-v376-phaseX-AY-AZ-iifes-autonomes';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -201,6 +201,9 @@ const CORE_ASSETS = [
   '/script-core-planning-sync-search.js',
   // Phase X.AX : Planning REWRITE FINAL (gros bloc 23 fns)
   '/script-core-planning-rewrite-final.js',
+  // Phase X.AY-AZ : 2 IIFEs autonomes
+  '/script-core-synchro-admin-polling.js',
+  '/script-core-sidebar-hierarchique.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
