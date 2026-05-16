@@ -14,6 +14,14 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
+/* Phase 91.51 — safety net global : Syne n'a PAS de variante italic chargée,
+   donc tout `font-style: italic` sur Syne déclenche du faux-italic synthétique
+   (lettres slantées par le browser) → visuellement "moche" (user feedback).
+   On bloque cette synthèse via font-synthesis. */
+* {
+  font-synthesis: none;
+}
+
 :root {
   /* ============ COLOR — SURFACES (Asphalt) ============ */
   --ds-bg:              #1a1d22;

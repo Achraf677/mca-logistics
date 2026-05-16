@@ -48,13 +48,13 @@
   font-weight: var(--ds-fw-bold);
 }
 
-/* Signature ds : KPI values en Syne italic 800 (les chiffres sont la signature visuelle).
-   Le font-feature-settings "tnum" garde l'alignement vertical des chiffres. */
+/* Phase 91.51 — user-feedback : italic Syne sur KPI values retiré (visuellement "moche").
+   On garde Syne 800 letter-spacing -0.03em + tnum pour la signature, sans italic. */
 .kpi-card .kpi-value {
   font-family: var(--ds-font-display);
   font-size: var(--ds-fs-kpi);
   font-weight: var(--ds-fw-display);
-  font-style: italic;
+  font-style: normal;
   letter-spacing: -0.03em;
   line-height: var(--ds-lh-tight);
   color: var(--ds-text);
@@ -97,7 +97,7 @@
 .hero-sante-seuil {
   font-family: var(--ds-font-display);
   font-weight: var(--ds-fw-display);
-  font-style: italic;
+  font-style: normal;
   letter-spacing: -0.02em;
   font-feature-settings: "tnum";
 }
@@ -105,7 +105,7 @@
 .sante-ring-score {
   font-family: var(--ds-font-display);
   font-weight: var(--ds-fw-display);
-  font-style: italic;
+  font-style: normal;
 }
 
 /* ============ CARDS GENERIQUES ============ */

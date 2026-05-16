@@ -64,7 +64,7 @@
   font-family: var(--ds-font-display);
   font-size: var(--ds-fs-kpi);
   font-weight: var(--ds-fw-display);
-  font-style: italic;
+  font-style: normal;
   letter-spacing: -0.03em;
   color: var(--ds-text);
   font-feature-settings: "tnum";
@@ -89,7 +89,7 @@
   font-family: var(--ds-font-display);
   font-size: var(--ds-fs-kpi);
   font-weight: var(--ds-fw-display);
-  font-style: italic;
+  font-style: normal;
   letter-spacing: -0.03em;
   color: var(--ds-text);
   font-feature-settings: "tnum";
@@ -113,7 +113,7 @@
   font-family: var(--ds-font-display);
   font-size: var(--ds-fs-h2);
   font-weight: var(--ds-fw-display);
-  font-style: italic;
+  font-style: normal;
   letter-spacing: -0.02em;
   color: var(--ds-text);
   font-feature-settings: "tnum";
@@ -221,7 +221,7 @@
   font-family: var(--ds-font-display);
   font-size: var(--ds-fs-h2);
   font-weight: var(--ds-fw-display);
-  font-style: italic;
+  font-style: normal;
   letter-spacing: -0.02em;
   color: var(--ds-text);
   font-feature-settings: "tnum";

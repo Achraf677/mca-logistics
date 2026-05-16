@@ -1576,20 +1576,42 @@ function rafraichirDashboard() {
     ? (nbChargesEnRetard + ' en retard')
     : (chargesImpayees.length + ' à payer'));
 
-  // KPI Encaissements du mois (parité avec Charges du mois) — somme TTC
-  // des livraisons payées dont datePaiement est dans le mois courant.
+  // KPI Encaissements du mois — Phase 91.50 : aligné sur script-encaissement-counts.js (Phase 91.42)
+  // Source A : table paiements[] (sens:'in' uniquement, date paiement stricte)
+  // Source B : livraisons.statutPaiement='payé' sans entrée paiements (legacy)
   // Évolution vs mois précédent en %.
   (function () {
-    var moisCourant = new Date().toISOString().slice(0, 7);
-    var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1);
-    var moisPrec = d.toISOString().slice(0, 7);
-    function isPaye(l) {
-      var s = l && l.statutPaiement;
-      return s === 'paye' || s === 'payé' || s === 'payee' || s === 'payée';
+    var now = new Date();
+    var moisStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    var moisEnd   = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999);
+    var prevStart = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    var prevEnd   = new Date(now.getFullYear(), now.getMonth(), 0, 23,59,59,999);
+    var paiementsAll = charger('paiements');
+    function isPaieInRange(p, debut, fin) {
+      if (!p || !p.date) return false;
+      if (p.sens && p.sens !== 'in') return false; // exclure paiements charges
+      var d = new Date(p.date);
+      return !isNaN(d.getTime()) && d >= debut && d <= fin;
     }
+    function isPaye(l) { var s = l && l.statutPaiement; return s === 'paye' || s === 'payé' || s === 'payee' || s === 'payée'; }
     function ttc(l) { return parseFloat(l.prixTTC) || parseFloat(l.prix) || 0; }
-    var encMois = livraisons.filter(function (l) { return isPaye(l) && (l.datePaiement || '').startsWith(moisCourant); }).reduce(function (s, l) { return s + ttc(l); }, 0);
-    var encPrec = livraisons.filter(function (l) { return isPaye(l) && (l.datePaiement || '').startsWith(moisPrec); }).reduce(function (s, l) { return s + ttc(l); }, 0);
+    // Source A : paiements réels du mois
+    var encMoisA = paiementsAll.filter(function(p) { return isPaieInRange(p, moisStart, moisEnd); }).reduce(function(s,p){ return s+(parseFloat(p.montant)||0); }, 0);
+    var encPrecA = paiementsAll.filter(function(p) { return isPaieInRange(p, prevStart, prevEnd); }).reduce(function(s,p){ return s+(parseFloat(p.montant)||0); }, 0);
+    // Source B : livraisons marquées payées sans entrée paiements (legacy sans modal-paiement)
+    var paidLivIds = new Set(); paiementsAll.forEach(function(p){ if (p && p.livraisonId) paidLivIds.add(p.livraisonId); if (p && p.livraison_id) paidLivIds.add(p.livraison_id); });
+    var encMoisB = livraisons.filter(function(l){
+      if (!l || !isPaye(l) || paidLivIds.has(l.id)) return false;
+      var dp = l.datePaiement || l.date_paiement; if (!dp) return false;
+      var d = new Date(dp); return !isNaN(d.getTime()) && d >= moisStart && d <= moisEnd;
+    }).reduce(function(s,l){ return s+ttc(l); }, 0);
+    var encPrecB = livraisons.filter(function(l){
+      if (!l || !isPaye(l) || paidLivIds.has(l.id)) return false;
+      var dp = l.datePaiement || l.date_paiement; if (!dp) return false;
+      var d = new Date(dp); return !isNaN(d.getTime()) && d >= prevStart && d <= prevEnd;
+    }).reduce(function(s,l){ return s+ttc(l); }, 0);
+    var encMois = encMoisA + encMoisB;
+    var encPrec = encPrecA + encPrecB;
     var sub = '—';
     if (encPrec > 0) {
       var pct = Math.round(((encMois - encPrec) / encPrec) * 100);
@@ -9591,8 +9613,10 @@ genererRentabilitePDF = function() {
   function getEventsForRange(start, end) {
     const events = [];
     const startT = start.getTime(), endT = end.getTime();
-    // Livraisons
+    // Livraisons — Phase 91.50 : exclut brouillons et annulées (cohérence avec Cal Livraisons)
     load(LS.livraisons).forEach(l => {
+      const st = String(l.statut || '').toLowerCase();
+      if (st === 'brouillon' || st === 'draft' || st === 'annule' || st === 'annulee' || st === 'annulée') return;
       const d = parseISO(l.date); if (!d) return;
       d.setHours(0,0,0,0);
       if (d.getTime() < startT || d.getTime() > endT) return;
@@ -9626,12 +9650,13 @@ genererRentabilitePDF = function() {
       events.push({ type:'relances', date:d, icon:'🔔', label:'Relance N'+r.niveau+' · '+(r.factureNumero||''), color:'#f97316',
         id:r.id, onclick: () => navToRelance(r.factureId) });
     });
-    // Paiements
+    // Paiements — Phase 91.50 : filtre sens:'in' pour exclure les paiements charges (Qonto sens:'out')
     load(LS.paiements).forEach(p => {
+      if (p.sens && p.sens !== 'in') return; // exclure paiements charges/fournisseurs
       const d = parseISO(p.date); if (!d) return;
       d.setHours(0,0,0,0);
       if (d.getTime() < startT || d.getTime() > endT) return;
-      events.push({ type:'paiements', date:d, icon:'💰', label:fmtEur(p.montant||0)+' · '+(p.factureNumero||p.mode||''), color:'#eab308',
+      events.push({ type:'paiements', date:d, icon:'💰', label:fmtEur(p.montant||0)+' · '+(p.client||p.factureNumero||p.mode||p.moyen||''), color:'#eab308',
         id:p.id, onclick: () => navToEncaissements() });
     });
     return events;
@@ -9733,7 +9758,9 @@ genererRentabilitePDF = function() {
     const cntLiv = events.filter(ev => ev.type==='livraisons').length;
     const cntEch = events.filter(ev => ev.type==='echeances').length;
     // KPI Encaissé : somme réelle des paiements du mois affiché
+    // Phase 91.50 : filtre sens:'in' pour exclure paiements charges (Qonto sens:'out')
     const pai = load(LS.paiements).filter(p => {
+      if (p.sens && p.sens !== 'in') return false; // exclure paiements fournisseurs/charges
       const d = parseISO(p.date); if(!d) return false;
       return d >= s && d <= e;
     }).reduce((acc,p)=>acc+Number(p.montant||0),0);
@@ -9747,7 +9774,7 @@ genererRentabilitePDF = function() {
     // Mettre à jour le sub-meta H1 avec les comptages du mois
     const subMeta = document.querySelector('#page-calendrier .sub-meta');
     if (subMeta) {
-      const cntPai = load(LS.paiements).filter(p => { const d = parseISO(p.date); return d && d >= s && d <= e; }).length;
+      const cntPai = load(LS.paiements).filter(p => { if (p.sens && p.sens !== 'in') return false; const d = parseISO(p.date); return d && d >= s && d <= e; }).length;
       subMeta.textContent = cntLiv + ' livraison' + (cntLiv !== 1 ? 's' : '') + ' · '
         + cntEch + ' échéance' + (cntEch !== 1 ? 's' : '') + ' · '
         + cntPai + ' paiement' + (cntPai !== 1 ? 's' : '') + ' · '
@@ -9787,8 +9814,10 @@ genererRentabilitePDF = function() {
       html += '<div class="cal16-day-head">'
         + '<span class="cal16-day-num">'+d.getDate()+'</span>'
         + '</div>';
-      if (ferie) html += '<div class="cal16-day-ferie-row" title="'+escHtml(ferie.nom)+'"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'+escHtml(ferie.nom)+'</div>';
-      const maxShow = 4;
+      if (ferie) html += '<div class="cal16-day-ferie-row" title="'+escHtml(ferie.nom)+'">☆ '+escHtml(ferie.nom)+'</div>';
+      // Phase 91.51 : maxShow réduit (était 4, débordait) ; container cal16-day-events pour clip strict
+      const maxShow = ferie ? 1 : 2;
+      html += '<div class="cal16-day-events">';
       evsJour.slice(0, maxShow).forEach(ev => {
         html += '<div class="cal16-event cal16-event-'+ev.type+'" '
           + (ev.draggable ? 'draggable="true" data-drag-id="'+escHtml(ev.id)+'" data-drag-type="'+ev.type+'"' : '')
@@ -9800,7 +9829,8 @@ genererRentabilitePDF = function() {
       if (evsJour.length > maxShow) {
         html += '<div class="cal16-event-more" data-more-date="'+isoDate(d)+'">+'+(evsJour.length-maxShow)+' autres…</div>';
       }
-      html += '</div>';
+      html += '</div>'; // cal16-day-events
+      html += '</div>'; // cal16-day
     }
     html += '</div></div>';
     grid.innerHTML = html;
@@ -9864,7 +9894,7 @@ genererRentabilitePDF = function() {
     const echJour = events.filter(ev => ev.type === 'echeances');
     const paieJour = events.filter(ev => ev.type === 'paiements');
     const relJour = events.filter(ev => ev.type === 'relances');
-    const totalEncaisse = paieJour.reduce((s, ev) => s + (paieIndex[ev.id]?.montant || 0), 0);
+    const totalEncaisse = paieJour.reduce((s, ev) => s + Number(paieIndex[ev.id]?.montant || 0), 0);
     const totalEcheances = echJour.reduce((s, ev) => {
       const fId = ev.id.replace(/^ech_/, '');
       const f = factIndex[fId];
@@ -9936,7 +9966,7 @@ genererRentabilitePDF = function() {
         } else if (t === 'paiements') {
           const p = paieIndex[ev.id];
           if (p) {
-            subline = (p.client || p.factureNumero || '—') + ' · ' + (p.mode || 'virement');
+            subline = (p.client || p.factureNumero || '—') + ' · ' + (p.mode || p.moyen || 'virement');
             badge = '<span class="cal16-jour-event-badge cal16-jour-event-badge-paye">Encaissé</span>';
           }
         } else if (t === 'relances') {

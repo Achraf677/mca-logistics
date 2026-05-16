@@ -184,12 +184,12 @@
   margin-bottom: var(--ds-sp-2);
 }
 
-/* SIGNATURE ds : valeurs KPI en Syne italic 800 */
+/* Phase 91.51 — italic retiré */
 .ds-kpi-card__value {
   font-family: var(--ds-font-display);
   font-size: var(--ds-fs-kpi);
   font-weight: var(--ds-fw-display);
-  font-style: italic;
+  font-style: normal;
   letter-spacing: -0.03em;
   color: var(--ds-text);
   font-feature-settings: "tnum";

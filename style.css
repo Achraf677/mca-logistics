@@ -7034,6 +7034,8 @@ body.light-mode .s15-palette-item:hover { background: #eef2ff; }
   flex: 1;
   min-height: 0;
 }
+/* Phase 91.51 — clip strict : min-height:0 force la cellule à respecter la ligne 1fr du grid
+   (sans ça les events débordaient, agrandissaient la ligne et déclenchaient un scroll page) */
 .cal16-day {
   background: var(--bg-card, #1f2937);
   border: 1px solid var(--border, rgba(255,255,255,0.06));
@@ -7043,7 +7045,18 @@ body.light-mode .s15-palette-item:hover { background: #eef2ff; }
   flex-direction: column;
   gap: 2px;
   overflow: hidden;
+  min-height: 0;
+  min-width: 0;
   transition: background 0.12s ease, border-color 0.12s ease;
+}
+/* Container events : flex-1 + overflow hidden pour clip strict */
+.cal16-day-events {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .cal16-day:hover {
   border-color: var(--ds-brand, #e63946);

@@ -45,12 +45,12 @@
   font-size: var(--ds-fs-xs);
 }
 
-/* SIGNATURE ds : valeurs KPI planning en Syne italic 800 */
+/* Phase 91.51 — italic retiré (signature jugée "moche" par user) */
 .planning-overview-value {
   font-family: var(--ds-font-display);
   font-size: var(--ds-fs-h2);
   font-weight: var(--ds-fw-display);
-  font-style: italic;
+  font-style: normal;
   letter-spacing: -0.02em;
   color: var(--ds-text);
   font-feature-settings: "tnum";
