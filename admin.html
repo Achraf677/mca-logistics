@@ -1206,7 +1206,7 @@
                 <svg viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel
               </button>
-              <div class="ds-menu-sep" style="height:1px;background:var(--ds-border,var(--border));margin:4px 0"></div>
+              <div class="ds-menu-sep"></div>
               <button class="ds-menu-item" role="menuitem" onclick="(window.envoyerCarburantCabinet||function(){alert('Email cabinet compta : à implémenter via Pennylane API')})();document.getElementById('carb-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 Email cabinet compta
@@ -1839,9 +1839,9 @@
             <div class="form-group">
               <label for="nsal-mdp">Mot de passe de connexion *</label>
               <div class="u-flex-row-tight">
-                <div style="position:relative;flex:1">
-                  <input type="password" id="nsal-mdp" placeholder="8 caracteres min, avec majuscule et chiffre" style="padding-right:58px;width:100%" autocomplete="new-password" oninput="mettreAJourQualiteMdpSalarie('new')" />
-                  <button onclick="toggleParamMdp('nsal-mdp')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:.82rem;color:var(--text-muted)" aria-label="Afficher/masquer le mot de passe">Voir</button>
+                <div class="pw-wrap-flex">
+                  <input type="password" id="nsal-mdp" placeholder="8 caracteres min, avec majuscule et chiffre" style="padding-right:58px" autocomplete="new-password" oninput="mettreAJourQualiteMdpSalarie('new')" />
+                  <button onclick="toggleParamMdp('nsal-mdp')" type="button" class="pw-toggle-btn" aria-label="Afficher/masquer le mot de passe">Voir</button>
                 </div>
                 <button type="button" class="btn-secondary" onclick="genererMotDePasseSalarie('new')">Générer</button>
               </div>
@@ -2515,15 +2515,15 @@
           <div class="params-card-body">
             <div id="param-admin-compte" style="margin-bottom:12px;font-size:12px;color:var(--text-muted)">Compte connecté : —</div>
             <div class="field"><label>Mot de passe actuel</label>
-              <div style="position:relative"><input type="password" id="param-mdp-actuel" placeholder="Actuel" style="padding-right:44px;width:100%"/ aria-label="Actuel" /><button onclick="toggleParamMdp('param-mdp-actuel')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center" aria-label="Afficher/masquer le mot de passe actuel"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+              <div class="pw-wrap"><input type="password" id="param-mdp-actuel" placeholder="Actuel" aria-label="Actuel" /><button onclick="toggleParamMdp('param-mdp-actuel')" type="button" class="pw-toggle-btn" aria-label="Afficher/masquer le mot de passe actuel"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
             </div>
             <div class="field"><label>Nouveau mot de passe</label>
-              <div style="position:relative"><input type="password" id="param-mdp-nouveau" placeholder="8 caractères min, avec majuscule et chiffre" style="padding-right:44px;width:100%"/ aria-label="8 caractères min, avec majuscule et chiffre" /><button onclick="toggleParamMdp('param-mdp-nouveau')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center" aria-label="Afficher/masquer le nouveau mot de passe"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+              <div class="pw-wrap"><input type="password" id="param-mdp-nouveau" placeholder="8 caractères min, avec majuscule et chiffre" aria-label="8 caractères min, avec majuscule et chiffre" /><button onclick="toggleParamMdp('param-mdp-nouveau')" type="button" class="pw-toggle-btn" aria-label="Afficher/masquer le nouveau mot de passe"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
             </div>
             <div class="field"><label>Confirmer</label>
-              <div style="position:relative"><input type="password" id="param-mdp-confirmer" placeholder="Confirmer" style="padding-right:44px;width:100%"/ aria-label="Confirmer" /><button onclick="toggleParamMdp('param-mdp-confirmer')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center" aria-label="Afficher/masquer la confirmation du mot de passe"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+              <div class="pw-wrap"><input type="password" id="param-mdp-confirmer" placeholder="Confirmer" aria-label="Confirmer" /><button onclick="toggleParamMdp('param-mdp-confirmer')" type="button" class="pw-toggle-btn" aria-label="Afficher/masquer la confirmation du mot de passe"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
             </div>
-            <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px" onclick="changerMdpAdmin()">Modifier le mot de passe</button>
+            <button class="btn btn-primary btn-full-center" style="margin-top:4px" onclick="changerMdpAdmin()">Modifier le mot de passe</button>
           </div>
         </div>
 
@@ -2536,7 +2536,7 @@
             <div style="height:1px;background:var(--border);margin:14px 0 10px"></div>
             <div class="field"><label for="param-max-tentatives">Tentatives max avant blocage</label><input type="number" id="param-max-tentatives" value="5" min="1" max="20" /></div>
             <div class="field"><label for="param-session-timeout">Déconnexion auto après inactivité (min)</label><input type="number" id="param-session-timeout" value="30" min="5" max="240" /></div>
-            <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px" onclick="sauvegarderMaxTentatives()">Enregistrer</button>
+            <button class="btn btn-primary btn-full-center" style="margin-top:4px" onclick="sauvegarderMaxTentatives()">Enregistrer</button>
           </div>
         </div>
 
@@ -2552,7 +2552,7 @@
           <div class="params-card-body">
             <div class="field"><label>Company ID</label><input type="text" value="23200904" class="mono" readonly / aria-label="Pennylane company ID" /></div>
             <div style="font-size:12px;color:var(--text-muted);padding:8px 0">Dernier sync : <strong style="color:var(--text)">FEC import auto le 1er du mois</strong></div>
-            <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="typeof testerConnexionPennylane==='function'&&testerConnexionPennylane()">Tester la connexion</button>
+            <button class="btn btn-secondary btn-full-center" onclick="typeof testerConnexionPennylane==='function'&&testerConnexionPennylane()">Tester la connexion</button>
           </div>
         </div>
 
@@ -2561,7 +2561,7 @@
           <div class="params-card-body">
             <div class="field"><label>Organization slug</label><input type="text" value="mca-logistics-3134" class="mono" readonly / aria-label="Qonto org slug" /></div>
             <div style="font-size:12px;color:var(--text-muted);padding:8px 0">Sync : <strong style="color:var(--text)">quotidien 03:00 UTC</strong> · Rapprochement auto seuil 0.7</div>
-            <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="naviguerVers('charges')">Voir les transactions</button>
+            <button class="btn btn-secondary btn-full-center" onclick="naviguerVers('charges')">Voir les transactions</button>
           </div>
         </div>
 
@@ -2578,7 +2578,7 @@
           <div class="card-header"><h3>OpenRouteService (Maps)</h3><span class="badge ok">Actif</span></div>
           <div class="params-card-body">
             <div style="font-size:12px;color:var(--text-muted);padding:0 0 10px">Quota : <strong style="color:var(--text)">2000 req/jour</strong> · Profil : HGV (camion)</div>
-            <button class="btn btn-secondary" style="width:100%;justify-content:center">Voir la consommation</button>
+            <button class="btn btn-secondary btn-full-center">Voir la consommation</button>
           </div>
         </div>
 
@@ -2647,8 +2647,8 @@
               <div class="param-backup-stat"><span style="font-size:12px;color:var(--text-muted)">Dernière sauvegarde</span><strong id="backup-stat-date">Jamais</strong></div>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
-              <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="exporterSauvegardeAdmin()">Télécharger snapshot</button>
-              <label class="btn btn-secondary" style="width:100%;justify-content:center;cursor:pointer;margin:0">
+              <button class="btn btn-secondary btn-full-center" onclick="exporterSauvegardeAdmin()">Télécharger snapshot</button>
+              <label class="btn btn-secondary btn-full-center" style="cursor:pointer;margin:0">
                 Restaurer snapshot
                 <input type="file" id="param-backup-file" accept=".json,application/json" style="display:none" onchange="importerSauvegardeAdmin(this)" aria-label="Importer un fichier de sauvegarde JSON" />
               </label>
@@ -3237,7 +3237,7 @@
                 <svg viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel
               </button>
-              <div class="ds-menu-sep" style="height:1px;background:var(--ds-border,var(--border));margin:4px 0"></div>
+              <div class="ds-menu-sep"></div>
               <button class="ds-menu-item" role="menuitem" onclick="(window.envoyerEntretiensCabinet||function(){alert('Email cabinet compta : à implémenter via Pennylane API')})();document.getElementById('entr-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 Email cabinet compta
@@ -3752,7 +3752,7 @@
             <tbody id="tb-planning-semaine"><tr><td colspan="8" class="empty-row">Aucun planning créé</td></tr></tbody>
           </table>
           <!-- Phase 66 : légende planning (mockup-aligned) -->
-          <div class="cal16-legend" style="padding:10px 16px;border-top:1px solid var(--border)">
+          <div class="cal16-legend">
             <div class="cal16-legend-item"><div class="cal16-legend-dot tournee"></div>Tournée planifiée</div>
             <div class="cal16-legend-item"><div class="cal16-legend-dot absence"></div>Absence / Congé</div>
             <div class="cal16-legend-item"><div class="cal16-legend-dot repos"></div>Repos</div>
@@ -4697,9 +4697,9 @@
         <div class="form-group">
           <label for="reset-mdp-val">Nouveau mot de passe *</label>
           <div class="u-flex-row-tight">
-            <div style="position:relative;flex:1">
-              <input type="password" id="reset-mdp-val" oninput="mettreAJourQualiteMdpSalarie('access')" style="padding-right:58px;width:100%" />
-              <button onclick="toggleParamMdp('reset-mdp-val')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:.82rem;color:var(--text-muted)" aria-label="Afficher/masquer le mot de passe">Voir</button>
+            <div class="pw-wrap-flex">
+              <input type="password" id="reset-mdp-val" oninput="mettreAJourQualiteMdpSalarie('access')" style="padding-right:58px" />
+              <button onclick="toggleParamMdp('reset-mdp-val')" type="button" class="pw-toggle-btn" aria-label="Afficher/masquer le mot de passe">Voir</button>
             </div>
             <button type="button" class="btn-secondary" onclick="genererMotDePasseSalarie('access')">Générer</button>
           </div>

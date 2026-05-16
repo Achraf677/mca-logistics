@@ -424,3 +424,9 @@
 .cal16-legend-dot.tournee { background: var(--brand, #e63946); }
 .cal16-legend-dot.absence { background: var(--ds-warning, #ffd60a); }
 .cal16-legend-dot.repos   { background: var(--text-muted, #7c8299); }
+
+/* Phase 78 : planning-week-table legend wrapper inline styles → CSS */
+.planning-week-table .cal16-legend {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border, rgba(255,255,255,0.08));
+}

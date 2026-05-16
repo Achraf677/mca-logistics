@@ -335,3 +335,37 @@
 
 .kpi-grid-4 { grid-template-columns: repeat(4, 1fr) !important; }
 .kpi-grid-3 { grid-template-columns: repeat(3, 1fr) !important; }
+
+/* Phase 78 : password input wrap pattern → CSS */
+.pw-wrap { position: relative; }
+.pw-wrap-flex { position: relative; flex: 1; }
+
+.pw-wrap input[type=password] {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.pw-toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted, #7c8299);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .82rem;
+}
+
+/* Dropdown menu separator */
+.ds-menu-sep {
+  height: 1px;
+  background: var(--ds-border, var(--border, rgba(255,255,255,0.08)));
+  margin: 4px 0;
+}
+
+/* Full-width centered button (params integrations etc.) */
+.btn-full-center { width: 100%; justify-content: center; }
