@@ -2155,10 +2155,10 @@
 
       <!-- Phase 39 refonte HTML : KPI grid TVA mockup-aligned (4 cols) -->
       <div class="kpi-grid">
-        <div class="kpi"><div class="kpi-lbl">TVA collectée</div><div class="kpi-val" id="tva-collectee">0 €</div><div class="kpi-sub">Sur ventes (CA HT)</div></div>
-        <div class="kpi"><div class="kpi-lbl">TVA déductible</div><div class="kpi-val" id="tva-deductible">0 €</div><div class="kpi-sub">Sur achats (charges)</div></div>
-        <div class="kpi"><div class="kpi-lbl">TVA à payer</div><div class="kpi-val" id="tva-kpi-solde">—</div><div class="kpi-sub">Solde net période</div></div>
-        <div class="kpi"><div class="kpi-lbl">Échéance</div><div class="kpi-val" id="tva-kpi-echeance">15/mois</div><div class="kpi-sub">Déclaration mensuelle</div></div>
+        <div class="kpi"><div class="kpi-lbl">TVA collectée (sortie)</div><div class="kpi-val" id="tva-collectee">0 €</div><div class="kpi-sub" id="tva-collectee-sub">Sur ventes (CA HT)</div></div>
+        <div class="kpi"><div class="kpi-lbl">TVA déductible (entrée)</div><div class="kpi-val" id="tva-deductible">0 €</div><div class="kpi-sub" id="tva-deductible-sub">Sur achats (charges)</div></div>
+        <div class="kpi"><div class="kpi-lbl">TVA à payer</div><div class="kpi-val" id="tva-kpi-solde">—</div><div class="kpi-sub">Solde net mensuel</div></div>
+        <div class="kpi"><div class="kpi-lbl">Échéance</div><div class="kpi-val" id="tva-kpi-echeance">15/mois</div><div class="kpi-sub" id="tva-echeance-sub">Déclaration mensuelle</div></div>
       </div>
 
       <div class="card mt-20">
@@ -5369,6 +5369,7 @@
   <script defer src="script-sidebar-foot.js?v=20260512-1"></script>
   <script defer src="script-dashboard-submeta.js?v=20260512-1"></script>
   <script defer src="script-tva-tabs.js?v=20260512-1"></script>
+  <script defer src="script-tva-counts.js?v=1"></script>
   <script defer src="script-core-periodes.js?v=20260509e-58"></script>
   <script defer src="script-core-navigation.js?v=20260509e-59"></script>
   <script defer src="script-core-edit-locks.js?v=20260509f-184"></script>

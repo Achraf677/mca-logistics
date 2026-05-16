@@ -34,7 +34,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Inspections | 94% | 100% | Phase 85 : kpi-sub semaine "N véhicules contrôlés" + défauts "N véhicules touchés" + conformité "+N% vs S[N-1]". |
 | Charges | 92% | 100% | Phase 59 : exporterChargesExcel vraiment impl (était inexistant) + Phase 48+51 period nav/charts/Parking chip |
 | Encaissement | 92% | 100% | Phase 59 : exporterEncaissementExcel vraiment impl (was stub) + sub-meta 3 parties mockup |
-| TVA | 92% | 100% | Phase 59 : BUG-026 FIXED tabs + 3 exports impl (CA3 PDF + CSV taux + Excel annexes) + sub-meta mockup |
+| TVA | 94% | 100% | Phase 86 : kpi-lbl "(sortie)"/"(entrée)" + échéance "15/MM" dynamique + "N jours restants" + brand solde + CA/charges HT subs. |
 | Rentabilité | 92% | 100% | Phase 59 : CSV+Excel rentabilité vraiment impl + sub-meta mockup + tabs underline + Export 4 items |
 | Statistiques | 92% | 100% | Phase 59 : exporterStatsCSV + exporterStatsExcel vraiment impl (étaient stubs alert). Sub-meta CA mockup. |
 | Calendrier | 91% | 100% | Phase 67 : #cal16-kpi-pai (Encaissé) maintenant calculé depuis livraisons livrées ce mois. |

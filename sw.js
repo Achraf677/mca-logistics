@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v254-phase85-anomalie-heads-checkpoints-nowrap';
+const CACHE_VERSION = 'mca-v2026-05-16-v255-tva-kpi-echeance-solde-ca-ht';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -109,6 +109,8 @@ const CORE_ASSETS = [
   '/script-encaissement-legacy.js',
   // Phase 60 V7 polish — TVA Historique déclarations (tva_declarations)
   '/script-tva-historique.js',
+  // Phase 86 — TVA KPI counts : échéance dynamique + couleur solde + CA HT subs
+  '/script-tva-counts.js',
   // Phase 60 V7 polish — Paramètres Catégories charges custom (charges_categories)
   '/script-charges-categories.js',
   // Phase 60 V7 polish — Fix boutons morts (5 fonctions undefined)
