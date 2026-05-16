@@ -204,20 +204,29 @@
   function polishRows() {
     const tbody = document.getElementById('tb-livraisons');
     if (!tbody) return;
-    tbody.querySelectorAll('tr').forEach(tr => {
-      if (tr.classList.contains('empty-row') || tr.querySelector('td.empty-row')) return;
-      const tds = tr.querySelectorAll('td');
-      if (tds.length < 9) return;
-      const liv = getLivraisonForRow(tr);
-      // ORDER MATTERS : inject extra cells AVANT les transforms car ça change les indices
-      injectExtraCells(tr, liv);
-      // Re-query tds après injection (maintenant 16 tds)
-      const tdsAfter = tr.querySelectorAll('td');
-      // Transform Trajet (col 5 maintenant)
-      if (liv && tdsAfter[4]) transformTrajetCell(tdsAfter[4], liv);
-      // Transform Chauffeur (col 10 maintenant = index 9)
-      if (tdsAfter[9]) transformDriverCell(tdsAfter[9]);
-    });
+    // Phase 91.35 perf : détache tbody du DOM le temps des inserts (1 seul reflow au lieu de 3×N).
+    // Sans : 100 rows × 3 inserts = 300 reflows perceptibles. Avec : 1 reflow final.
+    const parent = tbody.parentNode;
+    const nextSib = tbody.nextSibling;
+    let detached = false;
+    if (parent) { parent.removeChild(tbody); detached = true; }
+    try {
+      tbody.querySelectorAll('tr').forEach(tr => {
+        if (tr.classList.contains('empty-row') || tr.querySelector('td.empty-row')) return;
+        const tds = tr.querySelectorAll('td');
+        if (tds.length < 9) return;
+        const liv = getLivraisonForRow(tr);
+        injectExtraCells(tr, liv);
+        const tdsAfter = tr.querySelectorAll('td');
+        if (liv && tdsAfter[4]) transformTrajetCell(tdsAfter[4], liv);
+        if (tdsAfter[9]) transformDriverCell(tdsAfter[9]);
+      });
+    } finally {
+      if (detached && parent) {
+        if (nextSib) parent.insertBefore(tbody, nextSib);
+        else parent.appendChild(tbody);
+      }
+    }
     renderPaginationFooter();
   }
 
