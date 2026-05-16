@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-16-v322-phase91-57-charges-ergo';
+const CACHE_VERSION = 'mca-v2026-05-16-v323-phase91-58-encaissement-tabs';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -121,6 +121,8 @@ const CORE_ASSETS = [
   '/script-stubs-fns.js',
   // Phase 91.55 Bug D — Handler toggles Notifications Paramètres
   '/script-params-notifications.js',
+  // Phase 91.58 — Tabs internes Encaissement
+  '/script-encaissement-tabs.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts

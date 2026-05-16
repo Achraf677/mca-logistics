@@ -144,6 +144,8 @@
   <script defer src="script-stubs-fns.js?v=1"></script>
   <!-- Phase 91.55 Bug D — Handler toggles Notifications (persistance localStorage + a11y) -->
   <script defer src="script-params-notifications.js?v=1"></script>
+  <!-- Phase 91.58 — Tabs internes Encaissement (Suivi / Détails / Analyse) -->
+  <script defer src="script-encaissement-tabs.js?v=1"></script>
   <!-- Phase 2 HTML refonte Vehicules : counts total + alertes CT/assurance. -->
   <script defer src="script-vehicules-counts.js?v=2"></script>
   <!-- Phase 48 : Véhicules card grid (fleet view, mockup-aligned). -->
@@ -2765,22 +2767,22 @@
         <div class="kpi"><div class="kpi-lbl">Relances en attente</div><div class="kpi-val" id="enc-kpi-relances">—</div><div class="kpi-sub">À envoyer cette semaine</div></div>
       </div>
 
-      <!-- Phase 60 V7 H6 — Charts mockup (Encaissements vs impayés 6m + Vieillissement créances) -->
-      <div class="charts-2col">
-        <div class="card card-padded">
-          <div class="chart-title">Encaissements vs Impayés — 6 derniers mois</div>
-          <div class="chart-canvas"><canvas id="chart-enc-vs-impayes-6m"></canvas></div>
-        </div>
-        <div class="card card-padded">
-          <div class="chart-title">Vieillissement des créances</div>
-          <div class="chart-canvas"><canvas id="chart-enc-vieillissement"></canvas></div>
-        </div>
+      <!-- Phase 91.58 — Tabs internes 3 onglets (avant : 4 tables empilées + charts = 4-5 viewports de scroll). -->
+      <nav class="rent-tabs-bar enc-tabs-bar" role="tablist" aria-label="Sections Encaissement" style="margin-bottom:14px">
+        <button type="button" class="rent-tab-btn active" role="tab" aria-selected="true" data-enc-tab="suivi" onclick="switchEncMainTab('suivi', this)">Suivi factures</button>
+        <button type="button" class="rent-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-enc-tab="details" onclick="switchEncMainTab('details', this)">Détails &amp; relances</button>
+        <button type="button" class="rent-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-enc-tab="analyse" onclick="switchEncMainTab('analyse', this)">Analyse</button>
+      </nav>
+
+      <!-- ===== ENC TAB 1 : Suivi factures (table principale) ===== -->
+      <div class="enc-main-panel" data-enc-panel="suivi">
+        <div id="encaissement-content"></div>
       </div>
 
-      <div id="encaissement-content"></div>
-
+      <!-- ===== ENC TAB 2 : Détails &amp; relances (Factures émises + Avoirs + Acomptes + Relances) ===== -->
+      <div class="enc-main-panel" data-enc-panel="details" hidden>
       <!-- Phase 60 V7 polish — Réintégration legacy localStorage (factures_emises + avoirs_emis + acomptes) -->
-      <div class="card" id="enc-factures-emises-card" style="margin-top:16px">
+      <div class="card" id="enc-factures-emises-card" style="margin-top:0">
         <div class="card-header">
           <div>
             <div class="chart-title-compact">Factures émises</div>
@@ -2838,6 +2840,22 @@
             <thead><tr><th>Date envoi</th><th>Client</th><th>Type</th><th>Canal</th><th>Référence facture</th><th>Statut</th></tr></thead>
             <tbody id="tb-enc-relances"><tr><td colspan="6" class="empty-row">Aucune relance envoyée</td></tr></tbody>
           </table>
+        </div>
+      </div>
+      </div><!-- /enc-main-panel data-enc-panel="details" -->
+
+      <!-- ===== ENC TAB 3 : Analyse (charts) ===== -->
+      <div class="enc-main-panel" data-enc-panel="analyse" hidden>
+        <!-- Phase 60 V7 H6 — Charts mockup (Encaissements vs impayés 6m + Vieillissement créances) -->
+        <div class="charts-2col">
+          <div class="card card-padded">
+            <div class="chart-title">Encaissements vs Impayés — 6 derniers mois</div>
+            <div class="chart-canvas"><canvas id="chart-enc-vs-impayes-6m"></canvas></div>
+          </div>
+          <div class="card card-padded">
+            <div class="chart-title">Vieillissement des créances</div>
+            <div class="chart-canvas"><canvas id="chart-enc-vieillissement"></canvas></div>
+          </div>
         </div>
       </div>
     </section>
