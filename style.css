@@ -251,7 +251,8 @@ body.app-shell.app-booting .main-content {
 .sidebar.collapsed .logo-text,
 .sidebar.collapsed .nav-separator { opacity: 0; pointer-events: none; }
 
-.sidebar-footer { padding: 12px; border-top: 1px solid var(--border); display:flex; flex-direction:column; gap:8px; align-items:flex-start; }
+/* Phase 91.8 — alignement avatar AC à gauche + texte (nom + rôle) à droite, sur la même ligne. */
+.sidebar-footer { padding: 12px; border-top: 1px solid var(--border); display:flex; flex-direction:row; gap:10px; align-items:center; }
 .sidebar-version {
   font-size: 0.65rem;
   color: var(--text-muted, #7c8299);
