@@ -159,14 +159,13 @@
   text-transform: uppercase;
   letter-spacing: 0.07em;
   font-weight: 700;
-  padding: 14px 22px;
+  padding: 14px 32px;
 }
 
-/* Rows : padding réduit pour cibler hauteur mockup ~53px (select natif ~32px + 2×10 + 1 border).
-   Phase 91.2 — padding-horizontal 22px : espace plus généreux entre colonnes
-   (user feedback : "ya largement de la place entre"). */
+/* Rows : Phase 91.7 — padding-horizontal 32px : espace généreux entre colonnes
+   (user feedback : "Espace les colonnes stp, elles sont toutes trop collées"). */
 .livraisons-table tbody td {
-  padding: 10px 22px;
+  padding: 10px 32px;
 }
 
 /* ============ Phase 90.2 — Column widths : shrink-to-content (mockup-aligned) ============
@@ -221,11 +220,8 @@
   border-bottom-right-radius: 12px;
 }
 
-/* Phase 91.6 — Carte container : assure overflow:hidden pour clipper les coins arrondis */
-.card.table-card.vehicules-table-card {
-  overflow: hidden;
-  border-radius: 12px;
-}
+/* Phase 91.7 — radius retiré sur .card.table-card.vehicules-table-card car overflow:hidden
+   coupait le header Montant HT à droite (table > card width). On laisse .card de base gérer. */
 
 .pagination-bar:empty,
 .pagination-bar[data-empty="true"] {
