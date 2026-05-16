@@ -36,7 +36,7 @@ function afficherIncidents() {
   if (!incidents.length) {
     nettoyerPagination('tb-incidents');
     tb.innerHTML = filtreSearch || filtreGravite || filtreStatut
-      ? '<tr><td colspan="7" class="empty-row">Aucun résultat avec ces filtres</td></tr>'
+      ? '<tr><td colspan="8" class="empty-row">Aucun résultat avec ces filtres</td></tr>'
       : emptyState('🚨','Aucun incident','Les réclamations clients et incidents de livraison apparaîtront ici.');
     return;
   }
@@ -65,12 +65,15 @@ function afficherIncidents() {
     return items.map(i => {
       var vehImmat = '';
       if (i.livId) { var liv = livraisons.find(l => l.id === i.livId); vehImmat = (liv && (liv.vehImmat || liv.vehicule)) || ''; }
+      var coutVal = parseFloat(i.cout || i.cost || i.montant || 0);
+      var coutHtml = coutVal > 0 ? '<span class="amount">' + coutVal.toLocaleString('fr-FR', {minimumFractionDigits:0,maximumFractionDigits:0}) + ' €</span>' : '—';
       return `<tr>
     <td>${formatDateExport(i.date)}</td>
     <td>${typeBadgeHtml(i)}</td>
     <td style="font-family:var(--font-mono,monospace);font-size:.82rem">${vehImmat||'—'}</td>
     <td>${i.salNom||i.chaufNom||'—'}</td>
     <td style="font-size:.83rem">${i.description||'—'}</td>
+    <td class="amount">${coutHtml}</td>
     <td>${statBadge[i.statut||'ouvert']||''}</td>
     <td>${buildInlineActionsDropdown('Actions', [
       { icon:'🔴', label:'Marquer ouvert', action:`changerStatutIncident('${i.id}','ouvert')` },
@@ -100,6 +103,7 @@ function ajouterIncident() {
     afficherToast('ℹ️ Caractères dangereux (<script>, on=, etc.) retirés de la description.');
   }
   const gravite  = document.getElementById('inc-gravite')?.value || 'moyen';
+  const cout     = parseFloat(document.getElementById('inc-cout')?.value || 0) || 0;
 
   if (!desc) { afficherToast('⚠️ Description obligatoire','error'); return; }
 
@@ -110,7 +114,7 @@ function ajouterIncident() {
   const finalSalNom = sal?.nom || liv?.chaufNom || '';
 
   const incidents = charger('incidents');
-  const incident  = { id:genId(), date, livId, salId:finalSalId, salNom:finalSalNom, client:liv?.client||'', chaufId:finalSalId, chaufNom:finalSalNom, description:desc, type, gravite, statut:'ouvert', creeLe:new Date().toISOString() };
+  const incident  = { id:genId(), date, livId, salId:finalSalId, salNom:finalSalNom, client:liv?.client||'', chaufId:finalSalId, chaufNom:finalSalNom, description:desc, type, gravite, cout, statut:'ouvert', creeLe:new Date().toISOString() };
   incidents.push(incident);
   sauvegarder('incidents', incidents);
   ajouterEntreeAudit('Création incident', (incident.client || finalSalNom || 'Incident') + ' · ' + gravite);

@@ -3184,7 +3184,7 @@
       <div class="card">
         <div class="table-wrapper">
           <table class="data-table incidents-table">
-            <thead><tr><th>Date</th><th>Type</th><th>Véhicule</th><th>Chauffeur</th><th>Description</th><th>Statut</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Date</th><th>Type</th><th>Véhicule</th><th>Chauffeur</th><th>Description</th><th>Coût</th><th>Statut</th><th>Actions</th></tr></thead>
             <tbody id="tb-incidents"></tbody>
           </table>
         </div>
@@ -4954,6 +4954,7 @@
               <option value="grave">Grave</option>
             </select>
           </div>
+          <div class="form-group"><label for="inc-cout">Coût estimé (€)</label><input type="number" id="inc-cout" placeholder="0.00" step="0.01" min="0" /></div>
           <div class="form-group full-width"><label for="inc-livraison">Livraison concernée</label><select id="inc-livraison"><option value="">— Aucune livraison spécifique —</option></select></div>
           <div class="form-group full-width"><label for="inc-salarie">Salarié concerné</label><select id="inc-salarie"><option value="">— Aucun salarié spécifique —</option></select></div>
           <div class="form-group full-width"><label for="inc-description">Description *</label><textarea id="inc-description" rows="3" placeholder="Décrivez l'incident, la réclamation client ou le problème survenu..." style="width:100%;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:9px 12px;border-radius:8px;font-size:.88rem;font-family:inherit;resize:vertical;outline:none" aria-label="Décrivez l'incident, la réclamation client ou le problème survenu..."></textarea></div>
