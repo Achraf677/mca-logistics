@@ -119,6 +119,15 @@
       } else {
         docs.push(Object.assign({ id: 'doc-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), createdAt: new Date().toISOString() }, doc));
       }
+      // Phase 91.41 — cap rétention à 10 docs par livraison (agent storage P7). Au-delà, drop le plus ancien `html`
+      // (on garde les métadonnées pour régénération via genererXxxLivraison, fallback déjà câblé).
+      if (docs.length > 10) {
+        const sorted = docs.slice().sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+        for (let i = 0; i < sorted.length - 10; i++) {
+          const drop = docs.find(d => d.id === sorted[i].id);
+          if (drop && drop.html) delete drop.html;
+        }
+      }
       const json = JSON.stringify(docs);
       localStorage.setItem(key, json);
       // Phase 91.25 — vérification écriture immédiate (read-after-write) pour détecter QuotaExceeded silencieux
@@ -279,6 +288,27 @@
       const dp = liv.datePaiement || liv.date_paiement;
       events.push({ dotClass: 'ok', date: fmtDateFr(dp), label: 'Paiement reçu' });
     }
+    // Phase 91.41 — lit modifs_liv_<id> + commentaires_liv_<id> (agent drawer historique P5)
+    try {
+      const modifs = JSON.parse(localStorage.getItem('modifs_liv_' + liv.id) || '[]');
+      modifs.forEach(m => {
+        events.push({
+          dotClass: 'muted',
+          date: fmtDateFr(m.date),
+          label: 'Modif ' + (m.champ || '?') + ' : ' + (m.ancienne || '—') + ' → ' + (m.nouvelle || '—')
+        });
+      });
+    } catch (_) {}
+    try {
+      const comms = JSON.parse(localStorage.getItem('commentaires_liv_' + liv.id) || '[]');
+      comms.forEach(c => {
+        events.push({
+          dotClass: 'info',
+          date: fmtDateFr(c.date),
+          label: '💬 ' + (c.texte || '')
+        });
+      });
+    } catch (_) {}
     // Sort par date desc (plus recent en premier)
     events.sort((a, b) => {
       const da = a.date.split('/').reverse().join('');

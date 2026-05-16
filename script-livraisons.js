@@ -854,6 +854,28 @@ function genererBonLivraison(livId) {
         </div>
       </div>` : ''}
 
+      <!-- Phase 91.41 — MARCHANDISE (agent print P6 : BL doit afficher marchandise/poids/volume/colis pour conformité légale) -->
+      ${(() => {
+        const m = l.marchandise || {};
+        const nature = m.nature || l.marchNature || '';
+        const poids = m.poidsKg || l.marchPoids || '';
+        const volume = m.volumeM3 || l.marchVolume || '';
+        const colis = m.nbColis || l.marchColis || '';
+        const adrEst = !!(l.adr?.estADR || l.adrEst);
+        if (!nature && !poids && !volume && !colis && !adrEst) return '';
+        return `
+      <div style="border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:24px">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:10px">Marchandise</div>
+        ${nature ? `<div style="font-size:.95rem;font-weight:600;margin-bottom:8px">${nature}</div>` : ''}
+        <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:.85rem;color:#6b7280">
+          ${poids ? `<div><strong>Poids :</strong> ${poids} kg</div>` : ''}
+          ${volume ? `<div><strong>Volume :</strong> ${volume} m³</div>` : ''}
+          ${colis ? `<div><strong>Colis :</strong> ${colis}</div>` : ''}
+          ${adrEst ? `<div style="color:#e63946;font-weight:700">⚠️ ADR — Matières dangereuses (${l.adr?.codeONU || l.adrOnu || ''} cl.${l.adr?.classe || l.adrClasse || ''})</div>` : ''}
+        </div>
+      </div>`;
+      })()}
+
       <!-- PRIX HT/TVA -->
       <div style="border:2px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:28px">
         <div style="background:#f3f4f6;padding:10px 16px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af">Tarification</div>
