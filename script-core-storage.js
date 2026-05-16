@@ -20,6 +20,9 @@ function sauvegarder(cle, val) {
     const raw = JSON.stringify(val);
     localStorage.setItem(cle, raw);
     STORAGE_CACHE.set(cle, { raw, value: dupliquerValeurStockage(val) });
+    // Phase 91.39 — dispatch event ciblé pour que les widgets rafraîchissent sans setInterval.
+    // Listenable via `document.addEventListener('<cle>:updated', ...)`.
+    try { document.dispatchEvent(new CustomEvent(cle + ':updated', { detail: { key: cle } })); } catch (_) {}
     return true;
   } catch (error) {
     console.error(`[DelivPro] Impossible d'enregistrer "${cle}" dans le stockage local.`, error);

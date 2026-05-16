@@ -12491,13 +12491,22 @@ genererRentabilitePDF = function() {
             ${!lastLiv && !lastFact && !lastPay && !lastRel ? '<div style="color:var(--text-muted);padding:12px;text-align:center">Aucune interaction</div>' : ''}
           </div>
         </div>
+        ${(function(){
+          // Phase 91.39 — Bug 14 : fallback adresse vers livraisons[0].destinataire si c.adresse vide
+          const livRef = (livs && livs.length) ? livs.find(l => l && (l.destAdresse || (l.destinataire && l.destinataire.adresse))) : null;
+          const dest = livRef ? (livRef.destinataire || {}) : {};
+          const adrFallback = c.adresse || dest.adresse || livRef?.destAdresse || '';
+          const cpFallback = c.codePostal || c.cp || dest.cp || livRef?.destCp || '';
+          const villeFallback = c.ville || dest.ville || livRef?.destVille || '';
+          return `
         <div class="s25-section">
           <h4 style="display:flex;align-items:center;gap:6px">${icoInfo}<span>Infos clés</span></h4>
           <div class="s25-infos">
             <div><span>Délai paiement</span><strong>${delai} jours</strong></div>
-            <div><span>Adresse</span><strong>${esc(c.adresse||'—')}</strong></div>
-            <div><span>Code postal</span><strong>${esc(c.codePostal||'—')} ${esc(c.ville||'')}</strong></div>
-            <div><span>Créé le</span><strong>${fmtDate(c.dateCreation)}</strong></div>
+            <div><span>Adresse</span><strong>${esc(adrFallback||'—')}${(!c.adresse && adrFallback) ? ' <span style="opacity:.5;font-size:.72rem">(via livraison)</span>' : ''}</strong></div>
+            <div><span>Code postal</span><strong>${esc(cpFallback||'—')} ${esc(villeFallback||'')}</strong></div>
+            <div><span>Créé le</span><strong>${fmtDate(c.dateCreation)}</strong></div>`;
+        })()}
           </div>
         </div>
       </div>`;

@@ -341,6 +341,15 @@
   function setupHook() {
     renderAll();
     document.addEventListener('alertes:updated', renderAll);
+    // Phase 91.39 — refresh sur événements ciblés au lieu de setInterval 8s (delay perceptible).
+    ['livraisons:updated', 'carburant:updated', 'entretiens:updated', 'inspections:updated',
+     'vehicules:updated', 'salaries:updated', 'charges:updated'].forEach(function (evt) {
+      document.addEventListener(evt, renderAll);
+    });
+    // Storage event : si une autre tab modifie localStorage, on rafraîchit
+    window.addEventListener('storage', function (e) {
+      if (e.key && /^(livraisons|carburant|alertes_admin|vehicules|inspections|entretiens)$/.test(e.key)) renderAll();
+    });
     var page = document.getElementById('page-dashboard');
     if (page && typeof MutationObserver !== 'undefined') {
       var obs = new MutationObserver(function () {
@@ -348,7 +357,8 @@
       });
       obs.observe(page, { attributes: true, attributeFilter: ['class'] });
     }
-    setInterval(renderAll, 8000);
+    // Fallback léger 30s pour rattraper les drifts non couverts par events
+    setInterval(renderAll, 30000);
   }
 
   if (document.readyState === 'loading') {
