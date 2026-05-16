@@ -170,15 +170,19 @@
       });
     }
 
-    // Phase 91.12 — dropdown Générer DÉDIÉ à cette livraison (sans repasser par la toolbar).
-    // Toggle local : on injecte le menu inline ; clic = pick le type → genererXxxLivraison(livId).
+    // Phase 91.13 — dropdown Générer DÉDIÉ au drawer, ouvre EN DESSOUS, icônes SVG stroke (DA site, pas emojis).
+    var _itemStyle = 'display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:transparent;border:none;border-radius:7px;color:var(--ds-text,var(--text));text-align:left;cursor:pointer;font-family:inherit;font-size:13px';
+    var _svgStyle = 'flex-shrink:0;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round';
+    var _icFacture = '<svg viewBox="0 0 24 24" width="14" height="14" style="' + _svgStyle + '" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>';
+    var _icBL = '<svg viewBox="0 0 24 24" width="14" height="14" style="' + _svgStyle + '" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>';
+    var _icCMR = '<svg viewBox="0 0 24 24" width="14" height="14" style="' + _svgStyle + '" aria-hidden="true"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>';
     html += ''
       + '<div class="dr-gen-wrap" style="position:relative;margin-top:14px">'
       +   '<button class="dr-doc-btn" type="button" id="dr-liv-gen-trigger" style="width:100%;padding:10px 14px;justify-content:center" onclick="(function(b){var m=document.getElementById(\'dr-liv-gen-menu\');if(m){var open=m.style.display!==\'block\';m.style.display=open?\'block\':\'none\';b.setAttribute(\'aria-expanded\',String(open));}})(this)" aria-expanded="false" aria-controls="dr-liv-gen-menu">+ Générer un nouveau document</button>'
-      +   '<div class="dr-gen-menu" id="dr-liv-gen-menu" role="menu" style="display:none;position:absolute;left:0;right:0;bottom:calc(100% + 6px);background:var(--ds-bg-card,var(--bg-card));border:1px solid var(--ds-border,var(--border));border-radius:10px;padding:6px;box-shadow:0 16px 40px -8px rgba(0,0,0,0.5);z-index:50">'
-      +     '<button type="button" class="dr-gen-item" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;background:transparent;border:none;border-radius:7px;color:var(--ds-text,var(--text));text-align:left;cursor:pointer;font-family:inherit;font-size:13px" onclick="document.getElementById(\'dr-liv-gen-menu\').style.display=\'none\';if(window.actionGenererLivraisonPour)window.actionGenererLivraisonPour(\'facture\',\'' + liv.id + '\');else if(window.actionGenererLivraison){window._drawerLivIdForce=\'' + liv.id + '\';window.actionGenererLivraison(\'facture\');}">📄 Facture</button>'
-      +     '<button type="button" class="dr-gen-item" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;background:transparent;border:none;border-radius:7px;color:var(--ds-text,var(--text));text-align:left;cursor:pointer;font-family:inherit;font-size:13px" onclick="document.getElementById(\'dr-liv-gen-menu\').style.display=\'none\';if(window.actionGenererLivraisonPour)window.actionGenererLivraisonPour(\'bl\',\'' + liv.id + '\');else if(window.actionGenererLivraison){window._drawerLivIdForce=\'' + liv.id + '\';window.actionGenererLivraison(\'bl\');}">📦 Bon de livraison</button>'
-      +     '<button type="button" class="dr-gen-item" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;background:transparent;border:none;border-radius:7px;color:var(--ds-text,var(--text));text-align:left;cursor:pointer;font-family:inherit;font-size:13px" onclick="document.getElementById(\'dr-liv-gen-menu\').style.display=\'none\';if(window.actionGenererLivraisonPour)window.actionGenererLivraisonPour(\'cmr\',\'' + liv.id + '\');else if(window.actionGenererLivraison){window._drawerLivIdForce=\'' + liv.id + '\';window.actionGenererLivraison(\'cmr\');}">🚚 Lettre de voiture</button>'
+      +   '<div class="dr-gen-menu" id="dr-liv-gen-menu" role="menu" style="display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--ds-bg-card,var(--bg-card));border:1px solid var(--ds-border,var(--border));border-radius:10px;padding:6px;box-shadow:0 16px 40px -8px rgba(0,0,0,0.5);z-index:50">'
+      +     '<button type="button" class="dr-gen-item" style="' + _itemStyle + '" onclick="document.getElementById(\'dr-liv-gen-menu\').style.display=\'none\';if(window.actionGenererLivraisonPour)window.actionGenererLivraisonPour(\'facture\',\'' + liv.id + '\');">' + _icFacture + 'Facture</button>'
+      +     '<button type="button" class="dr-gen-item" style="' + _itemStyle + '" onclick="document.getElementById(\'dr-liv-gen-menu\').style.display=\'none\';if(window.actionGenererLivraisonPour)window.actionGenererLivraisonPour(\'bl\',\'' + liv.id + '\');">' + _icBL + 'Bon de livraison</button>'
+      +     '<button type="button" class="dr-gen-item" style="' + _itemStyle + '" onclick="document.getElementById(\'dr-liv-gen-menu\').style.display=\'none\';if(window.actionGenererLivraisonPour)window.actionGenererLivraisonPour(\'cmr\',\'' + liv.id + '\');">' + _icCMR + 'Lettre de voiture</button>'
       +   '</div>'
       + '</div>';
 
@@ -287,6 +291,16 @@
     if (docs) docs.innerHTML = renderDocumentsPanel(liv);
     if (paie) paie.innerHTML = renderPaiementPanel(liv);
     if (hist) hist.innerHTML = renderHistoriquePanel(liv);
+
+    // Phase 91.13 — expose helper pour refresh la liste après génération doc.
+    window.refreshDrawerDocuments = function (livId) {
+      try {
+        const livs = (window.charger ? window.charger('livraisons') : []) || [];
+        const l = livs.find(x => x && x.id === livId);
+        const panel = document.getElementById('dr-liv-documents-panel');
+        if (l && panel) panel.innerHTML = renderDocumentsPanel(l);
+      } catch (e) { console.warn('[refreshDrawerDocuments]', e); }
+    };
 
     // Show
     const overlay = document.getElementById('dr-liv-overlay');

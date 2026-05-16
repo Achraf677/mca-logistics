@@ -391,6 +391,8 @@
       },
     };
     if (dispatch[type]) dispatch[type]();
+    // Phase 91.13 — refresh la liste "Documents générés" du drawer.
+    if (typeof window.refreshDrawerDocuments === 'function') window.refreshDrawerDocuments(livId);
   };
 
   // ============ Bulk Modifier button (Phase 32) + Supprimer (Phase 90) ============
