@@ -193,13 +193,22 @@
     const docs = getLivDocuments(livId);
     const doc = docs.find(d => d.id === docId);
     if (!doc) { alert('Document introuvable'); return; }
-    if (doc.url) {
-      window.open(doc.url, '_blank');
-    } else if (doc.blob) {
-      const url = URL.createObjectURL(doc.blob);
-      window.open(url, '_blank');
-    } else {
-      alert('Document ' + (doc.name || doc.type) + ' — pas de fichier sauvegardé.\nRégénérez via le bouton Générer.');
+    if (doc.url) { window.open(doc.url, '_blank'); return; }
+    if (doc.blob) { window.open(URL.createObjectURL(doc.blob), '_blank'); return; }
+    // Phase 91.16 — pas de fichier sauvegardé : on régénère à la volée (ouvre la fenêtre d'impression).
+    try {
+      if (doc.type === 'facture' && typeof window.genererFactureLivraison === 'function') {
+        window.genererFactureLivraison(livId);
+      } else if (doc.type === 'bl' && (typeof window.genererBonsLivraison === 'function' || typeof window.genererBonLivraison === 'function')) {
+        (window.genererBonsLivraison || window.genererBonLivraison)(livId);
+      } else if (doc.type === 'cmr' && (typeof window.genererLettreDeVoiture === 'function' || typeof window.genererLettreVoiture === 'function')) {
+        (window.genererLettreDeVoiture || window.genererLettreVoiture)(livId);
+      } else {
+        alert('Document ' + (doc.name || doc.type) + ' — type non géré.');
+      }
+    } catch (e) {
+      console.warn('[voirDocumentLivraison]', e);
+      alert('Erreur lors de la régénération du document.');
     }
   };
 
