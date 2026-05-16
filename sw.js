@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v384-phaseX-BZ-CA-bootstrap-garde-fou';
+const CACHE_VERSION = 'mca-v2026-05-17-v385-phaseX-CB-CD-admin-legacy';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -238,6 +238,10 @@ const CORE_ASSETS = [
   // Phase X.BZ-CA : Bootstrap admin + garde-fou routes
   '/script-core-admin-bootstrap-domcontent.js',
   '/script-core-garde-fou-routes.js',
+  // Phase X.CB-CD : 3 modules admin legacy
+  '/script-core-admin-legacy-rentabilite-stats.js',
+  '/script-core-admin-legacy-planning-semaine.js',
+  '/script-core-admin-final-lock-iife.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts
