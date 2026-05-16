@@ -68,14 +68,15 @@
   <!-- Header compact : brand + back btn + titre + chat IA + Agent IA -->
   <header class="m-header">
     <div class="m-header-brand">
+      <!-- Phase 91.76 : SVG brand logo migré vers tokens var(--ds-*) pour light/dark theme -->
       <svg class="m-header-brand-logo" viewBox="0 0 88 60" aria-hidden="true">
-        <rect x="0" y="14" width="14" height="3" fill="#e63946"/>
-        <rect x="2" y="22" width="12" height="3" fill="#e63946"/>
-        <rect x="4" y="30" width="10" height="3" fill="#e63946"/>
-        <rect x="2" y="38" width="12" height="3" fill="#e63946"/>
-        <rect x="18" y="14" width="60" height="28" rx="4" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1"/>
-        <circle cx="30" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
-        <circle cx="66" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+        <rect x="0" y="14" width="14" height="3" style="fill:var(--ds-brand,#e63946)"/>
+        <rect x="2" y="22" width="12" height="3" style="fill:var(--ds-brand,#e63946)"/>
+        <rect x="4" y="30" width="10" height="3" style="fill:var(--ds-brand,#e63946)"/>
+        <rect x="2" y="38" width="12" height="3" style="fill:var(--ds-brand,#e63946)"/>
+        <rect x="18" y="14" width="60" height="28" rx="4" style="fill:var(--ds-bg,#1a1d22);stroke:var(--ds-text,#f1f3f5);stroke-width:1"/>
+        <circle cx="30" cy="44" r="5" style="fill:var(--ds-bg,#1a1d22);stroke:var(--ds-text,#f1f3f5);stroke-width:1.2"/>
+        <circle cx="66" cy="44" r="5" style="fill:var(--ds-bg,#1a1d22);stroke:var(--ds-text,#f1f3f5);stroke-width:1.2"/>
       </svg>
       <div class="m-header-brand-text">MCA<span class="red">LOGISTICS</span></div>
     </div>
