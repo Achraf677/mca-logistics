@@ -34,6 +34,10 @@
     /* Top brand bar accent (red gradient under header) */
     .m-header{position:relative}
     .m-header::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--ds-brand,#e63946) 0%,transparent 50%);pointer-events:none}
+
+    /* Phase 91.74 : Skip link a11y WCAG 2.4.1 */
+    .a11y-skip-link{position:absolute;top:-100px;left:8px;z-index:10000;padding:10px 16px;background:var(--ds-brand,#e63946);color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:.9rem;box-shadow:0 4px 16px rgba(0,0,0,.3);transition:top .15s ease-out}
+    .a11y-skip-link:focus{top:8px;outline:2px solid #fff;outline-offset:2px}
   </style>
 </head>
 <body class="m-app m-theme-dark">
@@ -57,6 +61,9 @@
 
        script-mobile.js (12k lignes) hydrate #m-content à chaque route change.
        ======================================================================== -->
+
+  <!-- Phase 91.74 : Skip link a11y WCAG 2.4.1 -->
+  <a href="#m-content" class="a11y-skip-link">Aller au contenu principal</a>
 
   <!-- Header compact : brand + back btn + titre + chat IA + Agent IA -->
   <header class="m-header">
@@ -86,7 +93,7 @@
   </header>
 
   <!-- Page content (un seul container, on swap dedans) -->
-  <main class="m-content" id="m-content">
+  <main class="m-content" id="m-content" tabindex="-1">
     <div class="m-loading">
       <div class="m-spinner"></div>
       <p>Chargement…</p>
