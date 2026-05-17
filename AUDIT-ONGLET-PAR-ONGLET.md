@@ -71,7 +71,9 @@ On termine **complètement** un onglet (= tous ses `[ ]` deviennent `[x]` ou `[~
   - Audit log 1 entrée pour le batch, refresh chain complète
 - [x] Génération facture depuis dropdown : try/catch wrapper en place (script-livraisons-polish.js:565-584) + SIRET vide handler (script-livraisons.js:1028-1032 toast + redirect Paramètres)
 - [x] 🆕 Statut "En attente" → "Brouillon" (label visuel dropdown statut, value=en-attente conservée rétro-compat) — 4 renderers mis à jour *(commit 2026-05-17, signalé par user screenshot)*
-- [x] 🆕 Génération facture ne refresh pas le drawer client ouvert (compteur "Factures (0)" figé) — `refreshDrawerClient` défini dans script-core-sprint25-drawer-360.js + appelé depuis `assurerArchiveFactureLivraison` *(commit 2026-05-17, signalé par user screenshot)*
+- [x] 🆕 Génération facture ne refresh pas le drawer client ouvert (compteur "Factures (0)" figé) — `refreshDrawerClient` défini dans script-core-sprint25-drawer-360.js + appelé depuis `assurerArchiveFactureLivraison` *(commit 2026-05-17)*
+- [x] 🆕 Topbar collée sur écrans <1920px : padding-top `.page` harmonisé sur tous breakpoints (24/20/18/16px selon viewport, au lieu de 18/14/12/10px) *(commit 2026-05-17, signalé par user)*
+- [x] 🆕 Facture liée canoniquement au client via clientId (avant : match par nom uniquement, fragile). assurerArchiveFactureLivraison écrit maintenant `facture.clientId` + `facture.clientSiren` + `facture.date` canonique. Migration boot R9 backfill toutes les factures pre-existantes via livraison.clientId puis fallback nom *(commit 2026-05-17)*
 
 ## 2. Dashboard
 

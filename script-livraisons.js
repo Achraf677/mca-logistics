@@ -75,6 +75,70 @@ function migrerSchemasDataPC() {
       }
     }
   } catch (e) { console.warn('[pc] migration FK charges', e); }
+
+  // R9 (Audit 2026-05-17) — Factures sans clientId : backfill via livraison liée OU matching nom client.
+  // But : drawer 360 client filtre factures via f.clientId === c.id. Sans backfill,
+  // les factures pre-Phase 91.59 restent invisibles dans le compteur "Factures (N)".
+  try {
+    const factures = charger('factures_emises');
+    if (!Array.isArray(factures) || factures.length === 0) {
+      // Marquage idempotent stocké en local pour skip rapide
+    } else {
+      const livs = charger('livraisons');
+      const clients = charger('clients');
+      let ch = false;
+      const orphelins = [];
+      factures.forEach(f => {
+        if (!f || f._clientid_migrated_v1) return;
+        // Stratégie 1 : si déjà un clientId, on garde
+        if (f.clientId) {
+          f._clientid_migrated_v1 = true;
+          ch = true;
+          return;
+        }
+        // Stratégie 2 : via livraison liée (f.livId → liv.clientId)
+        if (f.livId) {
+          const liv = livs.find(l => l && l.id === f.livId);
+          if (liv && liv.clientId) {
+            f.clientId = liv.clientId;
+            f._clientid_migrated_v1 = true;
+            ch = true;
+            return;
+          }
+          // Backfill via liv.client (nom)
+          if (liv && liv.client) {
+            const nomClient = liv.client.trim().toLowerCase();
+            const match = clients.find(c => (c.nom || '').trim().toLowerCase() === nomClient);
+            if (match) {
+              f.clientId = match.id;
+              f._clientid_migrated_v1 = true;
+              ch = true;
+              return;
+            }
+          }
+        }
+        // Stratégie 3 : via f.client (nom)
+        if (f.client) {
+          const nomClient = f.client.trim().toLowerCase();
+          const match = clients.find(c => (c.nom || '').trim().toLowerCase() === nomClient);
+          if (match) {
+            f.clientId = match.id;
+            f._clientid_migrated_v1 = true;
+            ch = true;
+            return;
+          }
+        }
+        // Pas matché : on marque quand même pour ne plus retenter à chaque boot
+        f._clientid_migrated_v1 = true;
+        orphelins.push({ id: f.id, client: f.client, livId: f.livId });
+        ch = true;
+      });
+      if (ch) sauvegarder('factures_emises', factures);
+      if (orphelins.length) {
+        console.warn('[pc] ' + orphelins.length + ' facture(s) sans clientId (client/livraison introuvable) :', orphelins);
+      }
+    }
+  } catch (e) { console.warn('[pc] migration clientId factures', e); }
 }
 if (typeof window !== 'undefined') window.migrerSchemasDataPC = migrerSchemasDataPC;
 
@@ -984,7 +1048,13 @@ function assurerArchiveFactureLivraison(livraison) {
     };
     factures.push(facture);
   }
+  // Audit 2026-05-17 : clientId canonique stocké pour matching solide dans le drawer 360.
+  // Avant : match uniquement par nom (fragile sur trim/case/SIREN). Maintenant : clientId direct.
   facture.client = livraison.client || 'Client';
+  facture.clientId = livraison.clientId || facture.clientId || null;
+  facture.clientSiren = livraison.clientSiren || facture.clientSiren || '';
+  // Champ `date` canonique de la facture (utilisé par drawer pour CA12mois et tri).
+  facture.date = facture.date || livraison.date || nowIso.slice(0, 10);
   facture.numLiv = livraison.numLiv || '';
   facture.dateLivraison = livraison.date || '';
   facture.datePaiement = livraison.datePaiement || '';
