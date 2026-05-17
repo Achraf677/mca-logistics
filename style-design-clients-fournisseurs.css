@@ -226,49 +226,45 @@ tr[data-impaye="1"] td {
 /* Clients     : Nom(1) Ville(2) SIREN(3) Tel(4) CA12m(5) Encours(6) Statut(7) Actions(8) */
 /* Fournisseurs: Nom(1) Catégorie(2) Ville(3) Tel(4) Dépenses(5) À régler(6) Actions(7) */
 
-/* Ville — clients col 2 */
-.clients-table th.cli-col-ville,
-.clients-table td:nth-child(2) {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
+/* Phase 91.77 (2026-05-17) — user feedback "fait une détection complète de
+   ce qui n'est pas harmonisé". Audit : 4 blocs CSS forçaient des font-size
+   différents (0.82-0.85rem) ET monospace sur certaines colonnes (SIREN/Tel),
+   créant un mix visuel avec Nom/Statut/Actions hérités de la règle générale
+   .clients-table tbody td (0.88rem DM Sans, ligne 468+).
 
-/* Ville — fournisseurs col 3 */
+   Fix : retire toutes les font-family/font-size hardcodées par colonne.
+   Conserve uniquement les propriétés visuelles utiles (color muted ville,
+   white-space nowrap, text-align right pour montants, tabular-nums pour
+   alignement chiffres). Tout hérite désormais de la règle tbody td. */
+
+/* Ville — clients col 2 / fournisseurs col 3 — color muted */
+.clients-table th.cli-col-ville,
+.clients-table td:nth-child(2),
 .fournisseurs-table th.frn-col-ville,
 .fournisseurs-table td:nth-child(3) {
-  font-size: 0.85rem;
   color: var(--text-muted);
   white-space: nowrap;
 }
 
-/* SIREN — clients col 3 — monospace */
+/* SIREN — clients col 3 — nowrap + tabular-nums pour alignement chiffres */
 .clients-table th.cli-col-siren,
 .clients-table td:nth-child(3) {
-  font-size: 0.82rem;
   white-space: nowrap;
-  font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
 
-/* Téléphone — clients col 4, fournisseurs col 4 */
+/* Téléphone — clients col 4, fournisseurs col 4 — nowrap */
 .clients-table th.cli-col-tel,
 .clients-table td:nth-child(4),
 .fournisseurs-table th.frn-col-tel,
 .fournisseurs-table td:nth-child(4) {
-  font-size: 0.85rem;
   white-space: nowrap;
-  font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
-  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Amount columns — right-aligned, tabular-nums pour alignement chiffres */
-/* clients: CA 12m (5) + Encours (6) */
-/* fournisseurs: Dépenses 12m (5) + À régler (6) */
-/* Phase 91.75 (2026-05-17) — user feedback : police monospace retirée pour
-   cohérence visuelle avec colonne Statut (DM Sans). `tabular-nums` aligne
-   les chiffres même en DM Sans (feature OpenType), pas besoin de monospace. */
+/* Amount columns — right-aligned + tabular-nums pour alignement chiffres */
+/* clients: CA 12m (5) + Encours (6) · fournisseurs: Dépenses (5) + À régler (6) */
 .clients-table th:nth-child(5),
 .clients-table td:nth-child(5),
 .clients-table th:nth-child(6),
@@ -280,16 +276,20 @@ tr[data-impaye="1"] td {
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
-  font-size: 0.85rem;
 }
 
 /* Phase 91.74 (2026-05-17) — Fix bug police HEADER mixte sur Carnet Client.
    Les règles monospace ci-dessus (SIREN/Tel/CA/Encours) ciblaient th + td,
    ce qui forçait JetBrains Mono sur les libellés de header. Le header doit
    rester en DM Sans (cohérence typo). Override final, n'impacte QUE thead. */
+/* Phase 91.76 (2026-05-17) — user feedback : font-size aussi mixte sur les
+   th (0.82-0.85rem sur Ville/SIREN/Tel/CA/Encours vs 0.75rem défaut
+   data-table sur Nom/Statut/Actions). Force toutes les colonnes à 0.75rem
+   pour cohérence header complète. */
 .clients-table thead th,
 .fournisseurs-table thead th {
   font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif) !important;
+  font-size: 0.75rem !important;
 }
 
 /* Actions column — centered + compact */
