@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v431-fournisseur-clic-nom-drawer-360';
+const CACHE_VERSION = 'mca-v2026-05-17-v432-fournisseurs-parite-colonnes-client-plus-email';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

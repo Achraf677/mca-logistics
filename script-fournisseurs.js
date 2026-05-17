@@ -37,11 +37,23 @@ function afficherFournisseursDashboard() {
     const totalDepense = chargesF.reduce((s, c) => s + (parseFloat(c.montant) || 0), 0);
     const impayees = chargesF.filter(c => !c.estPaye && c.statut !== 'payee' && c.statut !== 'payé');
     const aRegler = impayees.reduce((s, c) => s + (parseFloat(c.montant) || 0), 0);
+    // Phase 91.80 (2026-05-17) — parité ordre colonnes client :
+    // Nom | Ville | SIREN | Tél | Email | Dépenses | À régler | Actions
+    // Email cellule = contact en gras + email en sub muted (pattern dépenses).
+    const emailHtml = (function() {
+      const c = (f.contact || '').trim();
+      const e = (f.email || '').trim();
+      if (!c && !e) return '<span style="color:var(--ds-text-muted,#adb5bd)">—</span>';
+      const top = c ? `<strong>${c}</strong>` : `<strong>${e}</strong>`;
+      const sub = (c && e) ? `<div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${e}</div>` : '';
+      return top + sub;
+    })();
     return `<tr>
       <td><button type="button" class="btn-link-inline" onclick="window.ouvrirFiche360Fournisseur && window.ouvrirFiche360Fournisseur('${f.id}')" title="Ouvrir la fiche fournisseur 360°" style="font-weight:700">${f.nom || '—'}</button></td>
-      <td>${_sectBadge(f.secteur)}</td>
       <td>${f.ville || '—'}</td>
+      <td>${f.siren ? f.siren.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') : '—'}</td>
       <td>${f.tel || '—'}</td>
+      <td>${emailHtml}</td>
       <td><strong>${euros(totalDepense)}</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${chargesF.length} charge${chargesF.length > 1 ? 's' : ''}</div></td>
       <td>${aRegler > 0 ? `<span style="color:var(--ds-brand,#e63946);font-weight:700">${euros(aRegler)}</span><div style="font-size:.78rem;color:var(--text-muted)">${impayees.length} en attente</div>` : '<span style="color:var(--ds-text-muted,#adb5bd)">À jour</span>'}</td>
       <td>${buildInlineActionsDropdown('Actions', [
