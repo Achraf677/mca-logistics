@@ -1,7 +1,7 @@
 # Audit Onglet par Onglet — Reste à faire
 
-> **Source unique de vérité** consolidée depuis le plan v9 audit 8 agents (2026-05-16 17h59),
-> TODO-LIVRAISONS-BACKLOG.md, TODO-BACKLOG-CROSS-TAB.md et PLAN-REFONTE.md.
+> **Source unique de vérité** consolidée depuis le plan v9 audit 8 agents (2026-05-16 17h59) +
+> tous les TODO/audits précédents (désormais supprimés — leur contenu est ici).
 >
 > **Règle stricte** : on attaque onglet par onglet, dans l'ordre listé ci-dessous.
 > Aucun ajout en cours de route. Aucune dispersion. Si un item ici est en réalité déjà
@@ -120,7 +120,7 @@ Root causes notables :
 ## 2. Dashboard ⬅ **PROCHAIN ONGLET À ATTAQUER**
 
 - [ ] Topbar `margin-top:20px` global sur `.page > .ds-section-head:first-child` [Agent A] — *à vérifier appliqué*
-- [ ] Sub-meta date "Mai 2026" wired (était vide) [PLAN-REFONTE] — *à vérifier*
+- [ ] Sub-meta date "Mai 2026" wired (était vide) [plan v9] — *à vérifier*
 - [ ] KPI bar mockup-aligned (Livraisons/CA HT/Marge nette/Retards) — *à vérifier*
 - [ ] Indice santé 4 sous-cartes FINANCE/FLOTTE/RH/CONFORMITÉ — *à vérifier*
 
@@ -144,17 +144,17 @@ Root causes notables :
 
 ## 6. Clients
 
-- [ ] Drawer 360 PC clients (mobile PR #33 a livré drawer mobile, PC = modal édition simple) [PLAN-REFONTE H2.4]
+- [ ] Drawer 360 PC clients (mobile PR #33 a livré drawer mobile, PC = modal édition simple) [plan v9 H2.4]
 - [ ] Tables Clients add `class="card table-card"` [Agent A]
 
 ## 7. Fournisseurs
 
-- [ ] Drawer 360 PC fournisseurs (idem clients) [PLAN-REFONTE H2.4]
+- [ ] Drawer 360 PC fournisseurs (idem clients) [plan v9 H2.4]
 - [ ] Tables Fournisseurs add `class="card table-card"` [Agent A]
 
 ## 8. Véhicules
 
-- [ ] Drawer 360 PC véhicules (mobile PR #32 livré, PC = modal édition) [PLAN-REFONTE H2.4]
+- [ ] Drawer 360 PC véhicules (mobile PR #32 livré, PC = modal édition) [plan v9 H2.4]
 
 ## 9. Carburant
 
@@ -171,8 +171,8 @@ Root causes notables :
 
 ## 12. Équipe / Salariés
 
-- [ ] Drawer 360 PC Salariés (PR #29 a livré mobile, PC = modal édition) [PLAN-REFONTE H2.4]
-- [ ] Hub Équipe Sprint 22 : actuellement entrées plates (Planning/Heures/Incidents/Salariés sont 4 entrées plates au lieu d'un hub) [PLAN-REFONTE H2.4]
+- [ ] Drawer 360 PC Salariés (PR #29 a livré mobile, PC = modal édition) [plan v9 H2.4]
+- [ ] Hub Équipe Sprint 22 : actuellement entrées plates (Planning/Heures/Incidents/Salariés sont 4 entrées plates au lieu d'un hub) [plan v9 H2.4]
 
 ## 13. Heures & Km 🚨 BLOQUANT PROD
 
