@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v419-fonts-parite-mobile-salarie-google-fonts';
+const CACHE_VERSION = 'mca-v2026-05-17-v420-supp-admin-final-lock-iife-mort-133l';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -242,7 +242,7 @@ const CORE_ASSETS = [
   // Phase X.CB-CD : 3 modules admin legacy
   '/script-core-admin-legacy-rentabilite-stats.js',
   '/script-core-admin-legacy-planning-semaine.js',
-  '/script-core-admin-final-lock-iife.js',
+  // Phase 91.72 (2026-05-17) — script-core-admin-final-lock-iife.js retiré (mort)
   // Phase X.CE-CG : Top-level BUG fixes IIFEs
   '/script-core-bug-014-double-click-guard.js',
   '/script-core-bug-018-lifecycle-patches.js',
