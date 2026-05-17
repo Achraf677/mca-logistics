@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v397-salarie-esc-login-landmarks';
+const CACHE_VERSION = 'mca-v2026-05-17-v398-buttons-type-explicit';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

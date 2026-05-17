@@ -344,7 +344,7 @@
         <div class="sf-who" id="sf-who">Admin</div>
         <div class="sf-role">Admin</div>
       </div>
-      <button class="btn-hamburger" id="toggleSidebar" aria-label="Ouvrir/fermer le menu latéral">☰</button>
+      <button type="button" class="btn-hamburger" id="toggleSidebar" aria-label="Ouvrir/fermer le menu latéral">☰</button>
       <div class="sf-user-menu" id="sf-user-menu" role="menu" aria-hidden="true">
         <a class="sf-user-item" href="#" onclick="naviguerVers('parametres');document.getElementById('sf-user-menu')?.classList.remove('open');return false">
           <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
@@ -362,7 +362,7 @@
   <main class="main-content" id="mainContent" tabindex="-1">
     <div class="ptr-indicator" id="ptr-indicator"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><polyline points="19 12 12 19 5 12"/></svg> Relâchez pour actualiser...</div>
     <header class="topbar">
-      <button class="btn-menu-mobile" id="menuMobile" aria-label="Ouvrir le menu mobile"><svg viewBox="0 0 24 24" width="18" height="18" class="u-svg-base" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <button type="button" class="btn-menu-mobile" id="menuMobile" aria-label="Ouvrir le menu mobile"><svg viewBox="0 0 24 24" width="18" height="18" class="u-svg-base" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
       <div class="topbar-branding" onclick="naviguerVers('dashboard')" title="Retour Dashboard">
         <span class="topbar-logo-name" id="topbar-brand-name">MCA Logistics</span>
       </div>
@@ -376,7 +376,7 @@
         <span class="topbar-bell-badge" id="topbar-bell-count" style="display:none">0</span>
       </button>
       <button class="btn-secondary" id="btn-install-pwa" type="button" onclick="declencherInstallPWA()" style="display:none" title="Installer l'application sur votre appareil"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Installer</button>
-      <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre" aria-label="Basculer entre mode clair et sombre"><svg viewBox="0 0 24 24" width="16" height="16" class="u-svg-base" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+      <button type="button" class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre" aria-label="Basculer entre mode clair et sombre"><svg viewBox="0 0 24 24" width="16" height="16" class="u-svg-base" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
       <!-- Phase 91 : Agent IA + chatbot intégré (FAB ✨ bas-droite déplacé ici).
            Clic sur la pill = panneau Agent. Clic sur l'icône ✨ = ouvrir le chatbot (déclenche #ai-chat-fab). -->
       <!-- Phase 91.55 Bug H — role="button" + tabindex + keyboard handler (a11y WCAG 4.1.2) -->
@@ -591,9 +591,9 @@
           <div class="card-header">
             <h2>Activité — <span id="dash-area-range-label">14</span> derniers jours</h2>
             <div class="chart-toolbar">
-              <button class="chip-mini active" data-range="14" onclick="window.refonteDashboardCharts && window.refonteDashboardCharts.setRange(14)">14j</button>
-              <button class="chip-mini" data-range="30" onclick="window.refonteDashboardCharts && window.refonteDashboardCharts.setRange(30)">30j</button>
-              <button class="chip-mini" data-range="90" onclick="window.refonteDashboardCharts && window.refonteDashboardCharts.setRange(90)">90j</button>
+              <button type="button" class="chip-mini active" data-range="14" onclick="window.refonteDashboardCharts && window.refonteDashboardCharts.setRange(14)">14j</button>
+              <button type="button" class="chip-mini" data-range="30" onclick="window.refonteDashboardCharts && window.refonteDashboardCharts.setRange(30)">30j</button>
+              <button type="button" class="chip-mini" data-range="90" onclick="window.refonteDashboardCharts && window.refonteDashboardCharts.setRange(90)">90j</button>
             </div>
           </div>
           <div class="chart-body">
@@ -675,13 +675,13 @@
         <div class="page-actions-toolbar ds-section-head__actions">
           <!-- view-toggle deplace dans la period-row (Phase 12), retire ici pour pas doublonner. -->
           <div class="view-toggle" style="display:none !important">
-            <button class="btn-view active" onclick="changerVueLivraisons('tableau')">Tableau</button>
-            <button class="btn-view" onclick="changerVueLivraisons('kanban')">Kanban</button>
-            <button class="btn-view" onclick="changerVueLivraisons('calendrier')">Cal.</button>
+            <button type="button" class="btn-view active" onclick="changerVueLivraisons('tableau')">Tableau</button>
+            <button type="button" class="btn-view" onclick="changerVueLivraisons('kanban')">Kanban</button>
+            <button type="button" class="btn-view" onclick="changerVueLivraisons('calendrier')">Cal.</button>
           </div>
           <div class="density-toggle" style="display:none">
-            <button class="btn-density active" id="btn-density-normal" onclick="if(_vueCompacte)toggleVueCompacte()" aria-label="Vue normale">☰</button>
-            <button class="btn-density" id="btn-density-compact" onclick="if(!_vueCompacte)toggleVueCompacte()" aria-label="Vue compacte">≡</button>
+            <button type="button" class="btn-density active" id="btn-density-normal" onclick="if(_vueCompacte)toggleVueCompacte()" aria-label="Vue normale">☰</button>
+            <button type="button" class="btn-density" id="btn-density-compact" onclick="if(!_vueCompacte)toggleVueCompacte()" aria-label="Vue compacte">≡</button>
           </div>
           <!-- Phase 32 : bouton Modifier (N) apparait quand N >= 1 rows selectionnees (bulk) -->
           <button class="btn-secondary liv-modify-btn" id="liv-modify-btn" type="button" onclick="window.ouvrirBulkEditLivraisons && window.ouvrirBulkEditLivraisons()" style="display:none" title="Modifier les livraisons sélectionnées">
@@ -690,21 +690,21 @@
           </button>
           <!-- Dropdown Générer -->
           <div class="liv-dropdown-wrap">
-            <button class="btn-secondary liv-dropdown-trigger" data-dropdown="gen" title="Générer rapport / factures">
+            <button type="button" class="btn-secondary liv-dropdown-trigger" data-dropdown="gen" title="Générer rapport / factures">
               <svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               Générer
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="liv-dropdown-menu" data-dropdown-menu="gen" role="menu">
-              <button class="liv-dropdown-item" onclick="window.actionGenererLivraison&&window.actionGenererLivraison('facture')">
+              <button type="button" class="liv-dropdown-item" onclick="window.actionGenererLivraison&&window.actionGenererLivraison('facture')">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
                 <div><div class="ld-name">Facture</div><div class="ld-sub">PDF à envoyer au client</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="window.actionGenererLivraison&&window.actionGenererLivraison('bl')">
+              <button type="button" class="liv-dropdown-item" onclick="window.actionGenererLivraison&&window.actionGenererLivraison('bl')">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>
                 <div><div class="ld-name">Bon de livraison</div><div class="ld-sub">Émargement chauffeur + client</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="window.actionGenererLivraison&&window.actionGenererLivraison('cmr')">
+              <button type="button" class="liv-dropdown-item" onclick="window.actionGenererLivraison&&window.actionGenererLivraison('cmr')">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
                 <div><div class="ld-name">Lettre de voiture</div><div class="ld-sub">CMR conforme transport</div></div>
               </button>
@@ -713,56 +713,56 @@
           </div>
           <!-- Dropdown Exporter -->
           <div class="liv-dropdown-wrap">
-            <button class="btn-secondary liv-dropdown-trigger" data-dropdown="export" title="Exporter en PDF/CSV/Excel">
+            <button type="button" class="btn-secondary liv-dropdown-trigger" data-dropdown="export" title="Exporter en PDF/CSV/Excel">
               <svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <!-- Phase 91 — Exporter : 4 items mockup-aligned (XLSX, PDF groupé, PDF classique facture, CSV). -->
             <div class="liv-dropdown-menu" data-dropdown-menu="export" role="menu">
-              <button class="liv-dropdown-item" onclick="if(typeof exporterLivraisonsXLSX==='function')exporterLivraisonsXLSX();else exporterLivraisons()">
+              <button type="button" class="liv-dropdown-item" onclick="if(typeof exporterLivraisonsXLSX==='function')exporterLivraisonsXLSX();else exporterLivraisons()">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 <div><div class="ld-name">Export Excel (.xlsx)</div><div class="ld-sub">Avec onglets par statut</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="if(typeof genererFacturesPeriode==='function')genererFacturesPeriode();else exporterLivraisons()">
+              <button type="button" class="liv-dropdown-item" onclick="if(typeof genererFacturesPeriode==='function')genererFacturesPeriode();else exporterLivraisons()">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M9 9h6v6H9z"/></svg>
                 <div><div class="ld-name">PDF groupé</div><div class="ld-sub">Un PDF par client sélectionné</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="if(typeof exporterLivraisonsPDF==='function')exporterLivraisonsPDF();else exporterLivraisons()">
+              <button type="button" class="liv-dropdown-item" onclick="if(typeof exporterLivraisonsPDF==='function')exporterLivraisonsPDF();else exporterLivraisons()">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
                 <div><div class="ld-name">PDF classique facture</div><div class="ld-sub">Bon imprimable, 1 page</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="exporterLivraisons()">
+              <button type="button" class="liv-dropdown-item" onclick="exporterLivraisons()">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 <div><div class="ld-name">Export CSV</div><div class="ld-sub">Toutes les colonnes, point-virgule</div></div>
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="openModal('modal-livraison')">+ Nouvelle livraison</button>
+          <button type="button" class="btn-primary" onclick="openModal('modal-livraison')">+ Nouvelle livraison</button>
         </div>
       </div>
 
       <!-- Phase 12 refonte HTML : period-row (view-toggle + period chips) align mockup -->
       <div class="period-row">
         <div class="view-toggle">
-          <button class="btn-view active" id="btn-vue-tableau" data-vue="tableau" onclick="changerVueLivraisons('tableau')">
+          <button type="button" class="btn-view active" id="btn-vue-tableau" data-vue="tableau" onclick="changerVueLivraisons('tableau')">
             <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>
             Tableau
           </button>
-          <button class="btn-view" id="btn-vue-kanban" data-vue="kanban" onclick="changerVueLivraisons('kanban')">
+          <button type="button" class="btn-view" id="btn-vue-kanban" data-vue="kanban" onclick="changerVueLivraisons('kanban')">
             <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="9" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/></svg>
             Kanban
           </button>
-          <button class="btn-view" id="btn-vue-calendrier" data-vue="calendrier" onclick="changerVueLivraisons('calendrier')">
+          <button type="button" class="btn-view" id="btn-vue-calendrier" data-vue="calendrier" onclick="changerVueLivraisons('calendrier')">
             <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
             Calendrier
           </button>
         </div>
         <div class="period-chips" data-period-target="liv-periode-mode">
-          <button class="chip-period" data-period="jour">Jour</button>
-          <button class="chip-period" data-period="semaine">Semaine</button>
-          <button class="chip-period active" data-period="mois">Mois</button>
-          <button class="chip-period" data-period="annee">Année</button>
+          <button type="button" class="chip-period" data-period="jour">Jour</button>
+          <button type="button" class="chip-period" data-period="semaine">Semaine</button>
+          <button type="button" class="chip-period active" data-period="mois">Mois</button>
+          <button type="button" class="chip-period" data-period="annee">Année</button>
         </div>
       </div>
 
@@ -794,7 +794,7 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
             <span id="liv-periode-label">Période courante</span>
           </div>
-          <button class="liv-filters-toggle" id="liv-filters-toggle-btn" onclick="window.toggleLivraisonsFilters && window.toggleLivraisonsFilters()" title="Filtres avancés">
+          <button type="button" class="liv-filters-toggle" id="liv-filters-toggle-btn" onclick="window.toggleLivraisonsFilters && window.toggleLivraisonsFilters()" title="Filtres avancés">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>
             Filtres
           </button>
@@ -827,8 +827,8 @@
         <input type="date" id="filtre-date-debut" aria-label="Date de début" />
         <span class="filter-inline-label">Au</span>
         <input type="date" id="filtre-date-fin" aria-label="Date de fin" />
-        <button class="btn-primary" onclick="appliquerFiltresDatesLivraisons()">Appliquer</button>
-        <button class="btn-secondary" onclick="resetFiltres()">Réinitialiser</button>
+        <button type="button" class="btn-primary" onclick="appliquerFiltresDatesLivraisons()">Appliquer</button>
+        <button type="button" class="btn-secondary" onclick="resetFiltres()">Réinitialiser</button>
       </div>
       <!-- VUE TABLEAU -->
       <div id="vue-tableau">
@@ -871,10 +871,10 @@
         <div class="card">
           <div class="card-header card-header-wrap">
             <div class="cal-nav">
-              <button class="cal-nav-btn" onclick="calNaviguer(-1)" aria-label="Mois précédent">‹</button>
+              <button type="button" class="cal-nav-btn" onclick="calNaviguer(-1)" aria-label="Mois précédent">‹</button>
               <span class="cal-mois-label" id="cal-mois-label"></span>
-              <button class="cal-nav-btn" onclick="calNaviguer(1)" aria-label="Mois suivant">›</button>
-              <button class="cal-nav-btn" onclick="_calMois=new Date();afficherCalendrier()">Aujourd'hui</button>
+              <button type="button" class="cal-nav-btn" onclick="calNaviguer(1)" aria-label="Mois suivant">›</button>
+              <button type="button" class="cal-nav-btn" onclick="_calMois=new Date();afficherCalendrier()">Aujourd'hui</button>
             </div>
             <!-- Phase 60 V7 L6 — Légende calendrier mockup-aligned -->
             <div class="cal-legend">
@@ -952,23 +952,23 @@
         </div>
         <div class="ds-section-head__actions u-flex-row">
           <div class="ds-export-wrap">
-            <button class="btn-secondary ds-export-btn" id="cli-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('cli-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+            <button type="button" class="btn-secondary ds-export-btn" id="cli-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('cli-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ds-dropdown-menu" id="cli-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:200px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="exporterHistoriqueClientsCSV();document.getElementById('cli-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterHistoriqueClientsCSV();document.getElementById('cli-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="genererRapportClients();document.getElementById('cli-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="genererRapportClients();document.getElementById('cli-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Rapport PDF
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="openModal('modal-client')">+ Nouveau client</button>
+          <button type="button" class="btn-primary" onclick="openModal('modal-client')">+ Nouveau client</button>
         </div>
       </div>
       <!-- Phase 38 refonte HTML : KPI grid clients (mockup-aligned) -->
@@ -1030,23 +1030,23 @@
         </div>
         <div class="ds-section-head__actions u-flex-row">
           <div class="ds-export-wrap">
-            <button class="btn-secondary ds-export-btn" id="frn-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('frn-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+            <button type="button" class="btn-secondary ds-export-btn" id="frn-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('frn-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ds-dropdown-menu" id="frn-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:200px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="exporterHistoriqueFournisseursCSV();document.getElementById('frn-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterHistoriqueFournisseursCSV();document.getElementById('frn-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="genererRapportFournisseurs();document.getElementById('frn-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="genererRapportFournisseurs();document.getElementById('frn-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Rapport PDF
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="resetFormulaireFournisseur();openModal('modal-fournisseur')">+ Nouveau fournisseur</button>
+          <button type="button" class="btn-primary" onclick="resetFormulaireFournisseur();openModal('modal-fournisseur')">+ Nouveau fournisseur</button>
         </div>
       </div>
       <!-- Phase 38 refonte HTML : KPI grid fournisseurs (mockup-aligned) -->
@@ -1116,27 +1116,27 @@
         </div>
         <div class="ds-section-head__actions">
           <div class="liv-dropdown-wrap">
-            <button class="btn-secondary liv-dropdown-btn" onclick="this.parentElement.classList.toggle('open')" aria-haspopup="true">
+            <button type="button" class="btn-secondary liv-dropdown-btn" onclick="this.parentElement.classList.toggle('open')" aria-haspopup="true">
               <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" class="u-svg-base"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="liv-dropdown-menu">
-              <button class="liv-dropdown-item" onclick="exporterVehiculesPDF();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+              <button type="button" class="liv-dropdown-item" onclick="exporterVehiculesPDF();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
                 <div><div class="ld-name">Export PDF</div><div class="ld-sub">État flotte + échéances</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="window.exporterVehiculesCSV&&window.exporterVehiculesCSV();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+              <button type="button" class="liv-dropdown-item" onclick="window.exporterVehiculesCSV&&window.exporterVehiculesCSV();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
                 <div><div class="ld-name">Export CSV</div><div class="ld-sub">Plaques, km, conso</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="(window.exporterVehiculesExcel||window.exporterVehiculesCSV)();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+              <button type="button" class="liv-dropdown-item" onclick="(window.exporterVehiculesExcel||window.exporterVehiculesCSV)();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 <div><div class="ld-name">Export Excel</div><div class="ld-sub">Onglet par véhicule</div></div>
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="openModal('modal-vehicule')">+ Ajouter</button>
+          <button type="button" class="btn-primary" onclick="openModal('modal-vehicule')">+ Ajouter</button>
         </div>
       </div>
       <div class="filters filters-vehicules">
@@ -1156,7 +1156,7 @@
           <option value="hybride">Hybride</option>
           <option value="hydrogene">Hydrogène</option>
         </select>
-        <button class="btn-secondary" onclick="document.getElementById('filtre-veh-salarie').value='';document.getElementById('filtre-veh-carburant').value='';document.getElementById('filtre-veh-search').value='';afficherVehicules()">Réinitialiser</button>
+        <button type="button" class="btn-secondary" onclick="document.getElementById('filtre-veh-salarie').value='';document.getElementById('filtre-veh-carburant').value='';document.getElementById('filtre-veh-search').value='';afficherVehicules()">Réinitialiser</button>
       </div>
       <!-- Phase 48 : fleet card grid (mockup-aligned) — populated by script-vehicules-cards.js -->
       <div id="fleet-cards-grid" class="fleet-cards-grid" style="margin-bottom:16px"></div>
@@ -1205,45 +1205,45 @@
         </div>
         <div class="ds-section-head__actions u-flex-row">
           <div class="ds-export-wrap">
-            <button class="btn-secondary ds-export-btn" id="carb-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('carb-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+            <button type="button" class="btn-secondary ds-export-btn" id="carb-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('carb-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ds-dropdown-menu" id="carb-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:220px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="exporterCarburantPDF();document.getElementById('carb-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterCarburantPDF();document.getElementById('carb-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export PDF
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterCarburantCSV||function(){(window.afficherToast||alert)('Export CSV : à implémenter, fallback PDF disponible')})();document.getElementById('carb-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="(window.exporterCarburantCSV||function(){(window.afficherToast||alert)('Export CSV : à implémenter, fallback PDF disponible')})();document.getElementById('carb-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterCarburantExcel||window.exporterCarburantCSV||function(){(window.afficherToast||alert)('Export Excel : à implémenter')})();document.getElementById('carb-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="(window.exporterCarburantExcel||window.exporterCarburantCSV||function(){(window.afficherToast||alert)('Export Excel : à implémenter')})();document.getElementById('carb-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel
               </button>
               <div class="ds-menu-sep"></div>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.envoyerCarburantCabinet||function(){(window.afficherToast||alert)('Email cabinet compta : à implémenter via Pennylane API')})();document.getElementById('carb-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="(window.envoyerCarburantCabinet||function(){(window.afficherToast||alert)('Email cabinet compta : à implémenter via Pennylane API')})();document.getElementById('carb-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 Email cabinet compta
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="ouvrirConfigAnomaliesCarburant();document.getElementById('carb-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="ouvrirConfigAnomaliesCarburant();document.getElementById('carb-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                 Configurer anomalies
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="openModal('modal-carburant')">+ Plein</button>
+          <button type="button" class="btn-primary" onclick="openModal('modal-carburant')">+ Plein</button>
         </div>
       </div>
 
       <!-- Phase 49 : période nav mockup-aligned (combined row) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" aria-label="Période précédente" onclick="navCarburantPeriode(-1)">←</button>
-          <button class="btn-secondary" onclick="reinitialiserCarburantPeriode()">Aujourd'hui</button>
-          <button class="btn-secondary" aria-label="Période suivante" onclick="navCarburantPeriode(1)">→</button>
+          <button type="button" class="btn-secondary" aria-label="Période précédente" onclick="navCarburantPeriode(-1)">←</button>
+          <button type="button" class="btn-secondary" onclick="reinitialiserCarburantPeriode()">Aujourd'hui</button>
+          <button type="button" class="btn-secondary" aria-label="Période suivante" onclick="navCarburantPeriode(1)">→</button>
           <div class="period-label" id="carb-mois-label"></div>
           <div class="period-dates" id="carb-mois-dates"></div>
         </div>
@@ -1255,10 +1255,10 @@
             <option value="annee">Par année</option>
           </select>
           <div class="period-chips" data-period-target="vue-carb-select">
-            <button class="chip-period" data-period="jour">Jour</button>
-            <button class="chip-period" data-period="semaine">Semaine</button>
-            <button class="chip-period active" data-period="mois">Mois</button>
-            <button class="chip-period" data-period="annee">Année</button>
+            <button type="button" class="chip-period" data-period="jour">Jour</button>
+            <button type="button" class="chip-period" data-period="semaine">Semaine</button>
+            <button type="button" class="chip-period active" data-period="mois">Mois</button>
+            <button type="button" class="chip-period" data-period="annee">Année</button>
           </div>
         </div>
       </div>
@@ -1267,7 +1267,7 @@
       <div id="carb-anomalie-banner" style="display:none">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--brand, #e63946)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m21.7 18-9-15.4a2 2 0 0 0-3.4 0L.3 18A2 2 0 0 0 2 21h18a2 2 0 0 0 1.7-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
         <span id="carb-anomalie-banner-text">Anomalies détectées</span>
-        <button class="btn-secondary" onclick="ouvrirConfigAnomaliesCarburant()">Configurer</button>
+        <button type="button" class="btn-secondary" onclick="ouvrirConfigAnomaliesCarburant()">Configurer</button>
       </div>
 
       <!-- KPI grid carburant (mockup-aligned) -->
@@ -1312,7 +1312,7 @@
           <option value="hybride">Hybride</option>
           <option value="hydrogene">Hydrogène</option>
         </select>
-        <button class="btn-secondary" onclick="resetFiltresCarburant()">Réinitialiser</button>
+        <button type="button" class="btn-secondary" onclick="resetFiltresCarburant()">Réinitialiser</button>
       </div>
 
       <!-- Pleins table (Registre complet) — cols nettoyées Phase 49 -->
@@ -1356,31 +1356,31 @@
         </div>
         <div class="ds-section-head__actions u-flex-row">
           <!-- Phase 91.60 : CTA Simulateur ouvre drawer (libère un onglet, simulateur est outil ponctuel pas un axe d'analyse) -->
-          <button class="btn-secondary" onclick="window.openSimulateurRentabilite&&window.openSimulateurRentabilite()" title="Ouvrir le simulateur de rentabilité">
+          <button type="button" class="btn-secondary" onclick="window.openSimulateurRentabilite&&window.openSimulateurRentabilite()" title="Ouvrir le simulateur de rentabilité">
             <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="margin-right:4px"><rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="8" y1="7" x2="16" y2="7" stroke="currentColor" stroke-width="2"/><line x1="8" y1="11" x2="10" y2="11" stroke="currentColor" stroke-width="2"/><line x1="12" y1="11" x2="14" y2="11" stroke="currentColor" stroke-width="2"/><line x1="8" y1="15" x2="10" y2="15" stroke="currentColor" stroke-width="2"/><line x1="12" y1="15" x2="14" y2="15" stroke="currentColor" stroke-width="2"/></svg>
             Simulateur
           </button>
-          <button class="btn-secondary" onclick="ouvrirConfigRentabilite()" title="Configurer les paramètres de calcul">Config</button>
+          <button type="button" class="btn-secondary" onclick="ouvrirConfigRentabilite()" title="Configurer les paramètres de calcul">Config</button>
           <div class="ds-export-wrap">
-            <button class="btn-secondary ds-export-btn" id="rent-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('rent-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+            <button type="button" class="btn-secondary ds-export-btn" id="rent-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('rent-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ds-dropdown-menu" id="rent-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:220px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="exporterRapportRentabilitePDF();document.getElementById('rent-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterRapportRentabilitePDF();document.getElementById('rent-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Rapport PDF multi-axes
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="window.exporterRentabiliteCSV&&window.exporterRentabiliteCSV();document.getElementById('rent-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="window.exporterRentabiliteCSV&&window.exporterRentabiliteCSV();document.getElementById('rent-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV (marges par mission)
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterRentabiliteExcel||window.exporterRentabiliteCSV)();document.getElementById('rent-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="(window.exporterRentabiliteExcel||window.exporterRentabiliteCSV)();document.getElementById('rent-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel (avec simulateur)
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="genererRentabilitePDF();document.getElementById('rent-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="genererRentabilitePDF();document.getElementById('rent-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Simulateur PDF
               </button>
@@ -1715,21 +1715,21 @@
           <!-- Phase 91.61 : chips section-head retirés (doublon avec .period-chips de la period-nav en-dessous,
                qui couvre déjà Jour/Semaine/Mois/Trimestre/Année — une seule source de vérité période). -->
           <div class="liv-dropdown-wrap">
-            <button class="btn-secondary liv-dropdown-btn" onclick="this.parentElement.classList.toggle('open')" aria-haspopup="true">
+            <button type="button" class="btn-secondary liv-dropdown-btn" onclick="this.parentElement.classList.toggle('open')" aria-haspopup="true">
               <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" class="u-svg-base"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="liv-dropdown-menu">
-              <button class="liv-dropdown-item" onclick="exporterStatsPDF();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+              <button type="button" class="liv-dropdown-item" onclick="exporterStatsPDF();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
                 <div><div class="liv-di-name">Export PDF</div><div class="liv-di-sub">Rapport mensuel</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="window.exporterStatsCSV&&window.exporterStatsCSV();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+              <button type="button" class="liv-dropdown-item" onclick="window.exporterStatsCSV&&window.exporterStatsCSV();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
                 <div><div class="liv-di-name">Export CSV</div><div class="liv-di-sub">Données brutes</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="(window.exporterStatsExcel||window.exporterStatsCSV)();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+              <button type="button" class="liv-dropdown-item" onclick="(window.exporterStatsExcel||window.exporterStatsCSV)();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 <div><div class="liv-di-name">Export Excel</div><div class="liv-di-sub">Onglets par catégorie</div></div>
               </button>
@@ -1740,22 +1740,22 @@
       <!-- Phase 45 : period nav bar mockup-aligned (prev/today/next + period-chips Jour/Semaine/Mois/Année) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" onclick="navStatsPeriode(-1)" aria-label="Précédent">
+          <button type="button" class="btn-secondary" onclick="navStatsPeriode(-1)" aria-label="Précédent">
             <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
-          <button class="btn-secondary btn-today-brand" onclick="reinitialiserStatsPeriode()">Aujourd'hui</button>
-          <button class="btn-secondary" onclick="navStatsPeriode(1)" aria-label="Suivant">
+          <button type="button" class="btn-secondary btn-today-brand" onclick="reinitialiserStatsPeriode()">Aujourd'hui</button>
+          <button type="button" class="btn-secondary" onclick="navStatsPeriode(1)" aria-label="Suivant">
             <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
           </button>
           <div id="stats-mois-label" class="period-label"></div>
           <div id="stats-mois-dates" class="period-dates"></div>
         </div>
         <div class="period-chips period-right" data-period-target="vue-stats-select">
-          <button class="chip-period" data-period="jour">Jour</button>
-          <button class="chip-period" data-period="semaine">Semaine</button>
-          <button class="chip-period active" data-period="mois">Mois</button>
-          <button class="chip-period" data-period="trimestre">Trimestre</button>
-          <button class="chip-period" data-period="annee">Année</button>
+          <button type="button" class="chip-period" data-period="jour">Jour</button>
+          <button type="button" class="chip-period" data-period="semaine">Semaine</button>
+          <button type="button" class="chip-period active" data-period="mois">Mois</button>
+          <button type="button" class="chip-period" data-period="trimestre">Trimestre</button>
+          <button type="button" class="chip-period" data-period="annee">Année</button>
         </div>
       </div>
       <!-- Hidden select kept for JS compat (changerVueStats reads vue-stats-select) — Phase 91.61 : ajout trimestre -->
@@ -1814,23 +1814,23 @@
         </div>
         <div class="ds-section-head__actions u-flex-row">
           <div class="ds-export-wrap">
-            <button class="btn-secondary ds-export-btn" id="equipe-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('equipe-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+            <button type="button" class="btn-secondary ds-export-btn" id="equipe-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('equipe-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ds-dropdown-menu" id="equipe-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:210px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="window.exporterEquipeCSV&&window.exporterEquipeCSV();document.getElementById('equipe-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="window.exporterEquipeCSV&&window.exporterEquipeCSV();document.getElementById('equipe-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV (équipe)
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterEquipeExcel||window.exporterEquipeCSV)();document.getElementById('equipe-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="(window.exporterEquipeExcel||window.exporterEquipeCSV)();document.getElementById('equipe-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="naviguerVers('salaries');setTimeout(()=>{var b=document.querySelector('#page-salaries .btn-primary');if(b)b.click();},120)">+ Ajouter</button>
+          <button type="button" class="btn-primary" onclick="naviguerVers('salaries');setTimeout(()=>{var b=document.querySelector('#page-salaries .btn-primary');if(b)b.click();},120)">+ Ajouter</button>
         </div>
       </div>
 
@@ -1868,12 +1868,12 @@
           </div>
         </div>
         <div class="ds-section-head__actions">
-          <button class="btn-primary" onclick="toggleFormulaireNewSalarie()">+ Nouveau salarié</button>
+          <button type="button" class="btn-primary" onclick="toggleFormulaireNewSalarie()">+ Nouveau salarié</button>
         </div>
       </div>
 
       <div class="card" id="form-nouveau-salarie" style="display:none;margin-bottom:20px;">
-        <div class="card-header"><h3>Créer un salarié</h3><button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Fermer</button></div>
+        <div class="card-header"><h3>Créer un salarié</h3><button type="button" class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Fermer</button></div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-group"><label for="nsal-nom">Nom *</label><input type="text" id="nsal-nom" placeholder="Nom" /></div>
@@ -1963,8 +1963,8 @@
             </div>
           </details>
           <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:12px;">
-            <button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Annuler</button>
-            <button class="btn-primary" onclick="creerSalarie()">Créer le salarié</button>
+            <button type="button" class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Annuler</button>
+            <button type="button" class="btn-primary" onclick="creerSalarie()">Créer le salarié</button>
           </div>
         </div>
       </div>
@@ -2022,23 +2022,23 @@
         </div>
         <div class="ds-section-head__actions u-flex-row">
           <div class="ds-export-wrap">
-            <button class="btn-secondary ds-export-btn" id="alertes-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('alertes-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+            <button type="button" class="btn-secondary ds-export-btn" id="alertes-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('alertes-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ds-dropdown-menu" id="alertes-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:200px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="window.exporterAlertesCSV&&window.exporterAlertesCSV();document.getElementById('alertes-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="window.exporterAlertesCSV&&window.exporterAlertesCSV();document.getElementById('alertes-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterAlertesExcel||window.exporterAlertesCSV)();document.getElementById('alertes-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="(window.exporterAlertesExcel||window.exporterAlertesCSV)();document.getElementById('alertes-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel
               </button>
             </div>
           </div>
-          <button class="btn-secondary" onclick="marquerToutesAlertesLues()">Tout marquer comme lu</button>
+          <button type="button" class="btn-secondary" onclick="marquerToutesAlertesLues()">Tout marquer comme lu</button>
         </div>
       </div>
 
@@ -2062,8 +2062,8 @@
             <button type="button" class="rent-tab-btn" role="tab" aria-selected="false" tabindex="-1" data-alerte-sevtab="reportees" onclick="filtreAlerteSeverite('reportees',this)">Reportées</button>
           </div>
           <div class="alerte-quick-bar">
-            <button id="btn-alerte-quick-toutes" class="btn-secondary btn-quick-filter" onclick="filtreAlerteQuick('toutes')">Toutes</button>
-            <button id="btn-alerte-quick-actives" class="btn-secondary btn-quick-filter active" onclick="filtreAlerteQuick('actives')">Non lues</button>
+            <button type="button" id="btn-alerte-quick-toutes" class="btn-secondary btn-quick-filter" onclick="filtreAlerteQuick('toutes')">Toutes</button>
+            <button type="button" id="btn-alerte-quick-actives" class="btn-secondary btn-quick-filter active" onclick="filtreAlerteQuick('actives')">Non lues</button>
           </div>
         </div>
         <div class="alertes-card-body">
@@ -2100,7 +2100,7 @@
               <option value="toutes">Toutes</option>
             </select>
             <input type="date" id="filtre-alerte-date" onchange="afficherAlertes()" title="Filtrer par date" aria-label="Filtrer par date" />
-            <button class="btn-secondary" onclick="document.getElementById('filtre-alerte-recherche').value='';document.getElementById('filtre-alerte-type').value='';document.getElementById('filtre-alerte-salarie').value='';document.getElementById('filtre-alerte-statut').value='actives';document.getElementById('filtre-alerte-date').value='';filtreAlerteQuick('actives')">Réinitialiser</button>
+            <button type="button" class="btn-secondary" onclick="document.getElementById('filtre-alerte-recherche').value='';document.getElementById('filtre-alerte-type').value='';document.getElementById('filtre-alerte-salarie').value='';document.getElementById('filtre-alerte-statut').value='actives';document.getElementById('filtre-alerte-date').value='';filtreAlerteQuick('actives')">Réinitialiser</button>
           </div>
           <!-- Alertes actives triées par catégorie (généré dynamiquement) -->
           <div id="alertes-categories"></div>
@@ -2153,21 +2153,21 @@
         <!-- Phase 50 : Exporter dropdown mockup-aligned -->
         <div class="ds-section-head__actions u-flex-row">
           <div class="ds-export-wrap">
-            <button class="btn-secondary ds-export-btn" id="tva-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('tva-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+            <button type="button" class="btn-secondary ds-export-btn" id="tva-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('tva-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ds-dropdown-menu" id="tva-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:240px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="exporterTvaPDF();document.getElementById('tva-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterTvaPDF();document.getElementById('tva-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CA3 (PDF)
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="exporterTvaCSV();document.getElementById('tva-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterTvaCSV();document.getElementById('tva-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV (détail par taux)
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterTvaExcel||window.exporterTvaCSV||function(){(window.afficherToast||alert)('Export Excel : à implémenter, fallback CSV disponible')})();document.getElementById('tva-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="(window.exporterTvaExcel||window.exporterTvaCSV||function(){(window.afficherToast||alert)('Export Excel : à implémenter, fallback CSV disponible')})();document.getElementById('tva-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel (avec annexes)
               </button>
@@ -2193,9 +2193,9 @@
       <!-- Phase 50 : période nav combined row (mockup-aligned) — Phase 91.59 : chips Mois/Trim/An -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" aria-label="Période précédente" onclick="navTvaPeriode(-1)">←</button>
-          <button class="btn-secondary" onclick="reinitialiserTVAPeriode()">Aujourd'hui</button>
-          <button class="btn-secondary" aria-label="Période suivante" onclick="navTvaPeriode(1)">→</button>
+          <button type="button" class="btn-secondary" aria-label="Période précédente" onclick="navTvaPeriode(-1)">←</button>
+          <button type="button" class="btn-secondary" onclick="reinitialiserTVAPeriode()">Aujourd'hui</button>
+          <button type="button" class="btn-secondary" aria-label="Période suivante" onclick="navTvaPeriode(1)">→</button>
           <div class="period-label" id="tva-mois-label"></div>
           <div class="period-dates" id="tva-mois-dates"></div>
         </div>
@@ -2206,9 +2206,9 @@
             <option value="annee">Par année</option>
           </select>
           <div class="period-chips" data-period-target="vue-tva-select">
-            <button class="chip-period active" data-period="mois">Mois</button>
-            <button class="chip-period" data-period="trimestre">Trimestre</button>
-            <button class="chip-period" data-period="annee">Année</button>
+            <button type="button" class="chip-period active" data-period="mois">Mois</button>
+            <button type="button" class="chip-period" data-period="trimestre">Trimestre</button>
+            <button type="button" class="chip-period" data-period="annee">Année</button>
           </div>
         </div>
       </div>
@@ -2297,8 +2297,8 @@
           </div>
         </div>
         <div class="ds-section-head__actions">
-          <button class="btn-secondary" onclick="if(typeof reinitialiserParametres==='function')reinitialiserParametres()">Annuler</button>
-          <button class="btn-primary" onclick="if(typeof sauvegarderParametres==='function')sauvegarderParametres()">Enregistrer modifications</button>
+          <button type="button" class="btn-secondary" onclick="if(typeof reinitialiserParametres==='function')reinitialiserParametres()">Annuler</button>
+          <button type="button" class="btn-primary" onclick="if(typeof sauvegarderParametres==='function')sauvegarderParametres()">Enregistrer modifications</button>
         </div>
       </div>
       <!-- Phase 53 : tabs navigation mockup-aligned (7 tabs) -->
@@ -2397,7 +2397,7 @@
             </div>
             <div class="u-muted-xs-mt">PDF / JPG / PNG, 5 Mo max. Stocké chiffré sur Supabase Storage (admin-only).</div>
 
-            <button class="btn-primary" style="margin-top:18px" onclick="sauvegarderParametres()">Enregistrer</button>
+            <button type="button" class="btn-primary" style="margin-top:18px" onclick="sauvegarderParametres()">Enregistrer</button>
           </div>
         </div>
 
@@ -2411,7 +2411,7 @@
             <div id="liste-postes" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
             <div style="display:flex;gap:8px">
               <input type="text" id="nouveau-poste" placeholder="Ajouter un poste ou une fonction" autocomplete="off" onkeydown="if(event.key==='Enter')ajouterPoste()" aria-label="Ajouter un poste ou une fonction" />
-              <button class="btn-primary" onclick="ajouterPoste()" style="padding:8px 16px">+ Ajouter</button>
+              <button type="button" class="btn-primary" onclick="ajouterPoste()" style="padding:8px 16px">+ Ajouter</button>
             </div>
           </div>
         </div>
@@ -2442,7 +2442,7 @@
             </div>
             <div class="toggle-row"><div class="info"><div class="name">Export FEC mensuel auto</div><div class="desc">Envoie le FEC le 1er de chaque mois</div></div><div class="toggle on" id="param-fec-auto-toggle"></div></div>
             <div class="toggle-row"><div class="info"><div class="name">Synchronisation factures</div><div class="desc">Push automatique vers Pennylane</div></div><div class="toggle on" id="param-sync-factures-toggle"></div></div>
-            <button class="btn-primary" style="margin-top:14px" onclick="(function(){var n=document.getElementById('param-cabinet-nom'),e=document.getElementById('param-cabinet-email'),p=document.getElementById('param-cabinet-plateforme');if(!n||!e)return;try{var d=JSON.parse(localStorage.getItem('app_state')||'{}');d.cabinet={nom:n.value,email:e.value,plateforme:p?p.value:'pennylane'};localStorage.setItem('app_state',JSON.stringify(d));if(typeof afficherToast==='function')afficherToast('Cabinet enregistré','success');}catch(ex){console.warn('cabinet save',ex);}})()">Enregistrer</button>
+            <button type="button" class="btn-primary" style="margin-top:14px" onclick="(function(){var n=document.getElementById('param-cabinet-nom'),e=document.getElementById('param-cabinet-email'),p=document.getElementById('param-cabinet-plateforme');if(!n||!e)return;try{var d=JSON.parse(localStorage.getItem('app_state')||'{}');d.cabinet={nom:n.value,email:e.value,plateforme:p?p.value:'pennylane'};localStorage.setItem('app_state',JSON.stringify(d));if(typeof afficherToast==='function')afficherToast('Cabinet enregistré','success');}catch(ex){console.warn('cabinet save',ex);}})()">Enregistrer</button>
           </div>
         </div>
 
@@ -2493,7 +2493,7 @@
               </div>
             </div>
             <div id="param-tva-helper" style="margin-top:14px;font-size:.82rem;color:var(--text-muted)"></div>
-            <button class="btn-primary" style="margin-top:16px" onclick="sauvegarderConfigurationTVA()">Enregistrer la fiscalité</button>
+            <button type="button" class="btn-primary" style="margin-top:16px" onclick="sauvegarderConfigurationTVA()">Enregistrer la fiscalité</button>
           </div>
         </div>
 
@@ -2512,7 +2512,7 @@
               </div>
             </div>
             <div id="param-treso-helper" style="margin-top:14px;font-size:.82rem;color:var(--text-muted)"></div>
-            <button class="btn-primary" style="margin-top:16px" onclick="sauvegarderConfigurationTresorerie()">Enregistrer la trésorerie</button>
+            <button type="button" class="btn-primary" style="margin-top:16px" onclick="sauvegarderConfigurationTresorerie()">Enregistrer la trésorerie</button>
           </div>
         </div>
 
@@ -2560,7 +2560,7 @@
             <div class="field"><label>Confirmer</label>
               <div class="pw-wrap"><input type="password" id="param-mdp-confirmer" placeholder="Confirmer" aria-label="Confirmer" /><button onclick="toggleParamMdp('param-mdp-confirmer')" type="button" class="pw-toggle-btn" aria-pressed="false" aria-label="Afficher/masquer la confirmation du mot de passe"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
             </div>
-            <button class="btn btn-primary btn-full-center" style="margin-top:4px" onclick="changerMdpAdmin()">Modifier le mot de passe</button>
+            <button type="button" class="btn btn-primary btn-full-center" style="margin-top:4px" onclick="changerMdpAdmin()">Modifier le mot de passe</button>
           </div>
         </div>
 
@@ -2573,7 +2573,7 @@
             <div style="height:1px;background:var(--border);margin:14px 0 10px"></div>
             <div class="field"><label for="param-max-tentatives">Tentatives max avant blocage</label><input type="number" id="param-max-tentatives" value="5" min="1" max="20" /></div>
             <div class="field"><label for="param-session-timeout">Déconnexion auto après inactivité (min)</label><input type="number" id="param-session-timeout" value="30" min="5" max="240" /></div>
-            <button class="btn btn-primary btn-full-center" style="margin-top:4px" onclick="sauvegarderMaxTentatives()">Enregistrer</button>
+            <button type="button" class="btn btn-primary btn-full-center" style="margin-top:4px" onclick="sauvegarderMaxTentatives()">Enregistrer</button>
           </div>
         </div>
 
@@ -2589,7 +2589,7 @@
           <div class="params-card-body">
             <div class="field"><label>Company ID</label><input type="text" value="23200904" class="mono" readonly aria-label="Pennylane company ID" /></div>
             <div class="params-sync-note">Dernier sync : <strong>FEC import auto le 1er du mois</strong></div>
-            <button class="btn btn-secondary btn-full-center" onclick="typeof testerConnexionPennylane==='function'&&testerConnexionPennylane()">Tester la connexion</button>
+            <button type="button" class="btn btn-secondary btn-full-center" onclick="typeof testerConnexionPennylane==='function'&&testerConnexionPennylane()">Tester la connexion</button>
           </div>
         </div>
 
@@ -2598,7 +2598,7 @@
           <div class="params-card-body">
             <div class="field"><label>Organization slug</label><input type="text" value="mca-logistics-3134" class="mono" readonly aria-label="Qonto org slug" /></div>
             <div class="params-sync-note">Sync : <strong>quotidien 03:00 UTC</strong> · Rapprochement auto seuil 0.7</div>
-            <button class="btn btn-secondary btn-full-center" onclick="naviguerVers('charges')">Voir les transactions</button>
+            <button type="button" class="btn btn-secondary btn-full-center" onclick="naviguerVers('charges')">Voir les transactions</button>
           </div>
         </div>
 
@@ -2615,7 +2615,7 @@
           <div class="card-header"><h3>OpenRouteService (Maps)</h3><span class="badge ok">Actif</span></div>
           <div class="params-card-body">
             <div class="params-sync-note pb">Quota : <strong>2000 req/jour</strong> · Profil : HGV (camion)</div>
-            <button class="btn btn-secondary btn-full-center">Voir la consommation</button>
+            <button type="button" class="btn btn-secondary btn-full-center">Voir la consommation</button>
           </div>
         </div>
 
@@ -2638,7 +2638,7 @@
                   Importer
                   <input type="file" id="param-logo-file" accept="image/*" style="display:none" onchange="changerLogoEntreprise(this)" aria-label="Importer un logo entreprise" />
                 </label>
-                <button class="btn-secondary" onclick="supprimerLogoEntreprise()">Supprimer</button>
+                <button type="button" class="btn-secondary" onclick="supprimerLogoEntreprise()">Supprimer</button>
               </div>
             </div>
           </div>
@@ -2653,7 +2653,7 @@
             <div class="field"><label>Couleur d'accent</label>
               <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
                 <input type="color" id="param-accent-color" value="#e63946" style="width:36px;height:36px;border:2px solid var(--border-strong);border-radius:8px;cursor:pointer;background:none;padding:2px" aria-label="Couleur d'accent personnalisée" />
-                <button class="btn btn-primary" onclick="appliquerAccentColor()" style="padding:7px 14px;font-size:12px">Appliquer</button>
+                <button type="button" class="btn btn-primary" onclick="appliquerAccentColor()" style="padding:7px 14px;font-size:12px">Appliquer</button>
               </div>
             </div>
             <div class="field"><label for="param-police-body">Police body</label>
@@ -2683,7 +2683,7 @@
               <select id="param-format-date"><option>JJ/MM/AAAA</option><option>AAAA-MM-JJ</option></select>
             </div>
             <div style="padding-top:4px">
-              <button class="btn-theme-toggle u-icon-btn-inline" onclick="toggleTheme()" id="btn-theme-param" aria-label="Basculer entre mode clair et sombre">
+              <button type="button" class="btn-theme-toggle u-icon-btn-inline" onclick="toggleTheme()" id="btn-theme-param" aria-label="Basculer entre mode clair et sombre">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
                 Mode clair / sombre
               </button>
@@ -2707,7 +2707,7 @@
               <div class="param-backup-stat"><span style="font-size:12px;color:var(--text-muted)">Dernière sauvegarde</span><strong id="backup-stat-date">Jamais</strong></div>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
-              <button class="btn btn-secondary btn-full-center" onclick="exporterSauvegardeAdmin()">Télécharger snapshot</button>
+              <button type="button" class="btn btn-secondary btn-full-center" onclick="exporterSauvegardeAdmin()">Télécharger snapshot</button>
               <label class="btn btn-secondary btn-full-center">
                 Restaurer snapshot
                 <input type="file" id="param-backup-file" accept=".json,application/json" style="display:none" onchange="importerSauvegardeAdmin(this)" aria-label="Importer un fichier de sauvegarde JSON" />
@@ -2721,8 +2721,8 @@
           <div class="params-card-body">
             <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Toutes les modifications admin sont tracées dans <code style="color:var(--brand);background:var(--bg-elevated);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:11px">audit_log</code> (18 tables couvertes).</div>
             <div style="display:flex;gap:8px;margin-bottom:14px">
-              <button class="btn btn-secondary" onclick="exporterJournalAuditCSV()">Export CSV</button>
-              <button class="btn btn-secondary" onclick="viderJournalAudit()">Vider</button>
+              <button type="button" class="btn btn-secondary" onclick="exporterJournalAuditCSV()">Export CSV</button>
+              <button type="button" class="btn btn-secondary" onclick="viderJournalAudit()">Vider</button>
             </div>
             <div class="table-wrapper" style="max-height:260px;overflow:auto">
               <table class="data-table">
@@ -2805,34 +2805,34 @@
           </div>
         </div>
         <div class="ds-section-head__actions u-flex-row">
-          <button class="btn-secondary u-nowrap" onclick="typeof envoyerRelancesEmail==='function'?envoyerRelancesEmail():void 0">Envoyer relances</button>
+          <button type="button" class="btn-secondary u-nowrap" onclick="typeof envoyerRelancesEmail==='function'?envoyerRelancesEmail():void 0">Envoyer relances</button>
           <div class="liv-dropdown-wrap">
-            <button class="btn-secondary liv-dropdown-btn" id="enc-export-btn" aria-haspopup="true" aria-expanded="false" onclick="this.closest('.liv-dropdown-wrap').classList.toggle('open');var o=this.closest('.liv-dropdown-wrap').classList.contains('open');this.setAttribute('aria-expanded',o)">
+            <button type="button" class="btn-secondary liv-dropdown-btn" id="enc-export-btn" aria-haspopup="true" aria-expanded="false" onclick="this.closest('.liv-dropdown-wrap').classList.toggle('open');var o=this.closest('.liv-dropdown-wrap').classList.contains('open');this.setAttribute('aria-expanded',o)">
               <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" class="u-svg-base" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="liv-dropdown-menu" role="menu">
-              <button class="liv-dropdown-item" role="menuitem" onclick="exporterEncaissementRapport();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+              <button type="button" class="liv-dropdown-item" role="menuitem" onclick="exporterEncaissementRapport();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
                 <div><div class="liv-di-name">Export PDF</div><div class="liv-di-sub">Suivi impayés imprimable</div></div>
               </button>
-              <button class="liv-dropdown-item" role="menuitem" onclick="exporterEncaissementCSV();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+              <button type="button" class="liv-dropdown-item" role="menuitem" onclick="exporterEncaissementCSV();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
                 <div><div class="liv-di-name">Export CSV</div><div class="liv-di-sub">Factures + relances</div></div>
               </button>
-              <button class="liv-dropdown-item" role="menuitem" onclick="typeof exporterEncaissementExcel==='function'?exporterEncaissementExcel():void 0;this.closest('.liv-dropdown-wrap').classList.remove('open')">
+              <button type="button" class="liv-dropdown-item" role="menuitem" onclick="typeof exporterEncaissementExcel==='function'?exporterEncaissementExcel():void 0;this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 <div><div class="liv-di-name">Export Excel</div><div class="liv-di-sub">Onglet par statut</div></div>
               </button>
               <div class="liv-dropdown-sep"></div>
-              <button class="liv-dropdown-item" role="menuitem" onclick="typeof envoyerRelancesEmail==='function'?envoyerRelancesEmail():void 0;this.closest('.liv-dropdown-wrap').classList.remove('open')">
+              <button type="button" class="liv-dropdown-item" role="menuitem" onclick="typeof envoyerRelancesEmail==='function'?envoyerRelancesEmail():void 0;this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 <div><div class="liv-di-name">Envoyer relances email</div><div class="liv-di-sub">Sélection multiple</div></div>
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="openModal('modal-paiement')">
+          <button type="button" class="btn-primary" onclick="openModal('modal-paiement')">
             <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
             Enregistrer paiement
           </button>
@@ -2841,21 +2841,21 @@
       <!-- Phase 57 : period nav bar Encaissement (mockup-aligned, même pattern que Statistiques) -->
       <div id="enc-period-nav">
         <div class="enc-period-left">
-          <button class="btn-secondary" onclick="typeof navEncPeriode==='function'&&navEncPeriode(-1)" aria-label="Précédent">
+          <button type="button" class="btn-secondary" onclick="typeof navEncPeriode==='function'&&navEncPeriode(-1)" aria-label="Précédent">
             <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
-          <button class="btn-secondary btn-today-brand" onclick="typeof reinitialiserEncPeriode==='function'&&reinitialiserEncPeriode()">Aujourd'hui</button>
-          <button class="btn-secondary" onclick="typeof navEncPeriode==='function'&&navEncPeriode(1)" aria-label="Suivant">
+          <button type="button" class="btn-secondary btn-today-brand" onclick="typeof reinitialiserEncPeriode==='function'&&reinitialiserEncPeriode()">Aujourd'hui</button>
+          <button type="button" class="btn-secondary" onclick="typeof navEncPeriode==='function'&&navEncPeriode(1)" aria-label="Suivant">
             <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
           </button>
           <div class="enc-period-label" id="enc-mois-label"></div>
           <div class="enc-period-dates" id="enc-mois-dates"></div>
         </div>
         <div class="enc-period-chips" role="tablist" aria-label="Période d'encaissement">
-          <button class="btn-chip" role="tab" aria-selected="false" onclick="setEncVue('jour')">Jour</button>
-          <button class="btn-chip" role="tab" aria-selected="false" onclick="setEncVue('semaine')">Semaine</button>
-          <button class="btn-chip active" role="tab" aria-selected="true" onclick="setEncVue('mois')">Mois</button>
-          <button class="btn-chip" role="tab" aria-selected="false" onclick="setEncVue('annee')">Année</button>
+          <button type="button" class="btn-chip" role="tab" aria-selected="false" onclick="setEncVue('jour')">Jour</button>
+          <button type="button" class="btn-chip" role="tab" aria-selected="false" onclick="setEncVue('semaine')">Semaine</button>
+          <button type="button" class="btn-chip active" role="tab" aria-selected="true" onclick="setEncVue('mois')">Mois</button>
+          <button type="button" class="btn-chip" role="tab" aria-selected="false" onclick="setEncVue('annee')">Année</button>
         </div>
       </div>
       <!-- Phase 40 refonte HTML : KPI grid Encaissement (mockup-matched) -->
@@ -2887,7 +2887,7 @@
             <div class="chart-title-compact">Factures émises</div>
             <div class="card-subtitle"><span id="enc-fact-count">0</span> facture(s) générée(s) — <span id="enc-fact-total">0 €</span> TTC total</div>
           </div>
-          <button class="btn-secondary" onclick="window.exporterFacturesEmisesCSV&&window.exporterFacturesEmisesCSV()" title="Export CSV factures émises" style="font-size:12px;padding:6px 10px">Export CSV</button>
+          <button type="button" class="btn-secondary" onclick="window.exporterFacturesEmisesCSV&&window.exporterFacturesEmisesCSV()" title="Export CSV factures émises" style="font-size:12px;padding:6px 10px">Export CSV</button>
         </div>
         <div class="table-wrapper">
           <table class="data-table">
@@ -2997,49 +2997,49 @@
         </div>
         <div class="ds-section-head__actions">
           <div class="liv-dropdown-wrap">
-            <button class="btn-secondary liv-dropdown-trigger" data-dropdown="export-charges" title="Exporter les charges" aria-haspopup="true">
+            <button type="button" class="btn-secondary liv-dropdown-trigger" data-dropdown="export-charges" title="Exporter les charges" aria-haspopup="true">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="liv-dropdown-menu" data-dropdown-menu="export-charges" role="menu">
-              <button class="liv-dropdown-item" onclick="exporterChargesPDFMois()">
+              <button type="button" class="liv-dropdown-item" onclick="exporterChargesPDFMois()">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
                 <div><div class="liv-di-name">Rapport PDF</div><div class="liv-di-sub">Rapport mensuel imprimable</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="exporterCharges()">
+              <button type="button" class="liv-dropdown-item" onclick="exporterCharges()">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 <div><div class="liv-di-name">Export CSV</div><div class="liv-di-sub">Toutes les charges</div></div>
               </button>
-              <button class="liv-dropdown-item" onclick="typeof exporterChargesExcel==='function'?exporterChargesExcel():void 0">
+              <button type="button" class="liv-dropdown-item" onclick="typeof exporterChargesExcel==='function'?exporterChargesExcel():void 0">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 <div><div class="liv-di-name">Export Excel</div><div class="liv-di-sub">Onglet par catégorie</div></div>
               </button>
               <div class="liv-dropdown-sep"></div>
-              <button class="liv-dropdown-item" onclick="typeof envoyerChargesPennylane==='function'?envoyerChargesPennylane():void 0">
+              <button type="button" class="liv-dropdown-item" onclick="typeof envoyerChargesPennylane==='function'?envoyerChargesPennylane():void 0">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 <div><div class="liv-di-name">Email cabinet compta</div><div class="liv-di-sub">Pennylane via API</div></div>
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="ouvrirModalCharge()">+ Nouvelle charge</button>
+          <button type="button" class="btn-primary" onclick="ouvrirModalCharge()">+ Nouvelle charge</button>
         </div>
       </div>
 
       <!-- Phase 48 : period nav combined bar (mockup-aligned) -->
       <div class="charges-period-bar">
         <div class="charges-period-bar__left">
-          <button class="btn-secondary charges-nav-btn" onclick="navChargesPeriode(-1)" aria-label="Précédent"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
-          <button class="btn-secondary charges-nav-btn charges-nav-today" onclick="reinitialiserChargesPeriode()">Aujourd'hui</button>
-          <button class="btn-secondary charges-nav-btn" onclick="navChargesPeriode(1)" aria-label="Suivant"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
+          <button type="button" class="btn-secondary charges-nav-btn" onclick="navChargesPeriode(-1)" aria-label="Précédent"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <button type="button" class="btn-secondary charges-nav-btn charges-nav-today" onclick="reinitialiserChargesPeriode()">Aujourd'hui</button>
+          <button type="button" class="btn-secondary charges-nav-btn" onclick="navChargesPeriode(1)" aria-label="Suivant"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
           <div id="charges-mois-label" class="charges-period-label u-title-sm"></div>
           <div id="charges-mois-dates" class="charges-period-dates u-muted-sm"></div>
         </div>
         <div class="period-chips" data-period-target="vue-charges-select">
-          <button class="chip-period" data-period="jour">Jour</button>
-          <button class="chip-period" data-period="semaine">Semaine</button>
-          <button class="chip-period active" data-period="mois">Mois</button>
-          <button class="chip-period" data-period="annee">Année</button>
+          <button type="button" class="chip-period" data-period="jour">Jour</button>
+          <button type="button" class="chip-period" data-period="semaine">Semaine</button>
+          <button type="button" class="chip-period active" data-period="mois">Mois</button>
+          <button type="button" class="chip-period" data-period="annee">Année</button>
         </div>
         <select class="period-selector" id="vue-charges-select" onchange="changerVueCharges(this.value)" aria-label="Vue période charges" hidden>
           <option value="jour">Par jour</option>
@@ -3157,7 +3157,7 @@
           <span class="searchbar-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <input type="search" id="filtre-charge-search" placeholder="Rechercher une charge, une catégorie ou un véhicule..." oninput="afficherCharges()" aria-label="Rechercher une charge, une catégorie ou un véhicule..." />
         </div>
-        <button class="btn-secondary" onclick="resetFiltresCharges()">Réinitialiser</button>
+        <button type="button" class="btn-secondary" onclick="resetFiltresCharges()">Réinitialiser</button>
       </div>
       <!-- Phase 91.57 : mini-kpi-bar retirée (KPI Impayé/Retard/Payé promus dans la grille KPI principale en haut) -->
       <div id="charges-mini-kpi-bar" hidden></div>
@@ -3180,7 +3180,7 @@
         <div style="padding-top:14px">
           <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
             <input type="text" id="param-cat-charge-new" placeholder="Nouvelle catégorie (ex : péages)" aria-label="Nouvelle catégorie de charge" style="flex:1;min-width:220px;max-width:340px" />
-            <button class="btn-primary" onclick="window.ajouterCategorieCharge&&window.ajouterCategorieCharge()" style="padding:8px 14px">Ajouter</button>
+            <button type="button" class="btn-primary" onclick="window.ajouterCategorieCharge&&window.ajouterCategorieCharge()" style="padding:8px 14px">Ajouter</button>
           </div>
           <div id="param-cat-charges-list"></div>
         </div>
@@ -3207,35 +3207,35 @@
         </div>
         <div class="ds-section-head__actions u-flex-row">
           <div class="ds-export-wrap">
-            <button class="btn-secondary ds-export-btn" id="inc-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('inc-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+            <button type="button" class="btn-secondary ds-export-btn" id="inc-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('inc-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ds-dropdown-menu" id="inc-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:210px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="exporterIncidentsPDF&&exporterIncidentsPDF();document.getElementById('inc-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterIncidentsPDF&&exporterIncidentsPDF();document.getElementById('inc-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Rapport incidents PDF
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="exporterIncidentsCSV&&exporterIncidentsCSV();document.getElementById('inc-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterIncidentsCSV&&exporterIncidentsCSV();document.getElementById('inc-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterIncidentsExcel||window.exporterIncidentsCSV||function(){(window.afficherToast||alert)('Excel : fallback CSV disponible')})();document.getElementById('inc-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="(window.exporterIncidentsExcel||window.exporterIncidentsCSV||function(){(window.afficherToast||alert)('Excel : fallback CSV disponible')})();document.getElementById('inc-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="openModal('modal-incident')">+ Signaler</button>
+          <button type="button" class="btn-primary" onclick="openModal('modal-incident')">+ Signaler</button>
         </div>
       </div>
       <!-- Phase 65 : période nav incidents (mockup-aligned) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" aria-label="Période précédente" onclick="navIncidentsPeriode(-1)">←</button>
-          <button class="btn-secondary" onclick="reinitialiserIncidentsPeriode()">Aujourd'hui</button>
-          <button class="btn-secondary" aria-label="Période suivante" onclick="navIncidentsPeriode(1)">→</button>
+          <button type="button" class="btn-secondary" aria-label="Période précédente" onclick="navIncidentsPeriode(-1)">←</button>
+          <button type="button" class="btn-secondary" onclick="reinitialiserIncidentsPeriode()">Aujourd'hui</button>
+          <button type="button" class="btn-secondary" aria-label="Période suivante" onclick="navIncidentsPeriode(1)">→</button>
           <div class="period-label" id="inc-periode-label"></div>
           <div class="period-dates" id="inc-periode-dates"></div>
         </div>
@@ -3247,10 +3247,10 @@
             <option value="annee">Par année</option>
           </select>
           <div class="period-chips" data-period-target="filtre-inc-vue">
-            <button class="chip-period" data-period="jour">Jour</button>
-            <button class="chip-period" data-period="semaine">Semaine</button>
-            <button class="chip-period active" data-period="mois">Mois</button>
-            <button class="chip-period" data-period="annee">Année</button>
+            <button type="button" class="chip-period" data-period="jour">Jour</button>
+            <button type="button" class="chip-period" data-period="semaine">Semaine</button>
+            <button type="button" class="chip-period active" data-period="mois">Mois</button>
+            <button type="button" class="chip-period" data-period="annee">Année</button>
           </div>
         </div>
       </div>
@@ -3263,11 +3263,11 @@
       </div>
       <!-- Phase 56 : chips toolbar Incidents (mockup-aligned) -->
       <div id="inc-chips-toolbar" role="tablist" aria-label="Filtres incidents">
-        <button class="inc-chip active" role="tab" aria-selected="true" onclick="incChipFilter(this,'','')">Tous</button>
-        <button class="inc-chip" role="tab" aria-selected="false" onclick="incChipFilter(this,'ouvert','')">Ouverts</button>
-        <button class="inc-chip" role="tab" aria-selected="false" onclick="incChipFilter(this,'encours','')">En cours</button>
-        <button class="inc-chip" role="tab" aria-selected="false" onclick="incChipFilter(this,'traite','')">Traités</button>
-        <button class="inc-chip" role="tab" aria-selected="false" onclick="incChipFilter(this,'','grave')">Graves</button>
+        <button type="button" class="inc-chip active" role="tab" aria-selected="true" onclick="incChipFilter(this,'','')">Tous</button>
+        <button type="button" class="inc-chip" role="tab" aria-selected="false" onclick="incChipFilter(this,'ouvert','')">Ouverts</button>
+        <button type="button" class="inc-chip" role="tab" aria-selected="false" onclick="incChipFilter(this,'encours','')">En cours</button>
+        <button type="button" class="inc-chip" role="tab" aria-selected="false" onclick="incChipFilter(this,'traite','')">Traités</button>
+        <button type="button" class="inc-chip" role="tab" aria-selected="false" onclick="incChipFilter(this,'','grave')">Graves</button>
       </div>
       <div class="filters">
         <div class="searchbar">
@@ -3286,7 +3286,7 @@
           <option value="encours">En cours</option>
           <option value="traite">Traité</option>
         </select>
-        <button class="btn-secondary" onclick="document.getElementById('filtre-inc-search').value='';document.getElementById('filtre-inc-gravite').value='';document.getElementById('filtre-inc-statut').value='';incChipFilter(document.querySelector(\'#inc-chips-toolbar .inc-chip\'),\'\',\'\')">Réinitialiser</button>
+        <button type="button" class="btn-secondary" onclick="document.getElementById('filtre-inc-search').value='';document.getElementById('filtre-inc-gravite').value='';document.getElementById('filtre-inc-statut').value='';incChipFilter(document.querySelector(\'#inc-chips-toolbar .inc-chip\'),\'\',\'\')">Réinitialiser</button>
       </div>
       <div class="card">
         <div class="table-wrapper">
@@ -3334,32 +3334,32 @@
         </div>
         <div class="ds-section-head__actions">
           <div class="ds-export-wrap">
-            <button class="btn-secondary ds-export-btn" id="entr-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('entr-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+            <button type="button" class="btn-secondary ds-export-btn" id="entr-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('entr-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ds-dropdown-menu" id="entr-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:220px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="exporterEntretiensPDF();document.getElementById('entr-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterEntretiensPDF();document.getElementById('entr-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Carnet PDF
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="exporterEntretiens();document.getElementById('entr-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterEntretiens();document.getElementById('entr-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterEntretiensExcel||window.exporterEntretiens||function(){(window.afficherToast||alert)('Excel : fallback CSV disponible')})();document.getElementById('entr-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="(window.exporterEntretiensExcel||window.exporterEntretiens||function(){(window.afficherToast||alert)('Excel : fallback CSV disponible')})();document.getElementById('entr-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel
               </button>
               <div class="ds-menu-sep"></div>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.envoyerEntretiensCabinet||function(){(window.afficherToast||alert)('Email cabinet compta : à implémenter via Pennylane API')})();document.getElementById('entr-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="(window.envoyerEntretiensCabinet||function(){(window.afficherToast||alert)('Email cabinet compta : à implémenter via Pennylane API')})();document.getElementById('entr-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 Email cabinet compta
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="ouvrirModalEntretien()">+ Planifier</button>
+          <button type="button" class="btn-primary" onclick="ouvrirModalEntretien()">+ Planifier</button>
         </div>
       </div>
 
@@ -3367,15 +3367,15 @@
       <div id="entr-alert-banner" style="display:none;background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:10px;padding:14px 18px;margin-bottom:14px;align-items:center;gap:12px">
         <svg viewBox="0 0 24 24" width="20" height="20" style="flex-shrink:0;stroke:var(--brand);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="m21.7 18-9-15.4a2 2 0 0 0-3.4 0L.3 18A2 2 0 0 0 2 21h18a2 2 0 0 0 1.7-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
         <div id="entr-alert-banner-text"></div>
-        <button class="btn-primary" onclick="document.getElementById('filtre-entr-type').value='';afficherEntretiens()">Voir</button>
+        <button type="button" class="btn-primary" onclick="document.getElementById('filtre-entr-type').value='';afficherEntretiens()">Voir</button>
       </div>
 
       <!-- Phase 51 : combined period nav row (mockup-aligned) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" aria-label="Période précédente" onclick="navEntretiensPeriode(-1)">←</button>
-          <button class="btn-secondary" onclick="reinitialiserEntretiensPeriode()">Aujourd'hui</button>
-          <button class="btn-secondary" aria-label="Période suivante" onclick="navEntretiensPeriode(1)">→</button>
+          <button type="button" class="btn-secondary" aria-label="Période précédente" onclick="navEntretiensPeriode(-1)">←</button>
+          <button type="button" class="btn-secondary" onclick="reinitialiserEntretiensPeriode()">Aujourd'hui</button>
+          <button type="button" class="btn-secondary" aria-label="Période suivante" onclick="navEntretiensPeriode(1)">→</button>
           <div class="period-label" id="entr-mois-label"></div>
           <div class="period-dates" id="entr-mois-dates"></div>
         </div>
@@ -3387,10 +3387,10 @@
             <option value="annee">Par année</option>
           </select>
           <div class="period-chips" data-period-target="vue-entr-select">
-            <button class="chip-period" data-period="jour">Jour</button>
-            <button class="chip-period" data-period="semaine">Semaine</button>
-            <button class="chip-period active" data-period="mois">Mois</button>
-            <button class="chip-period" data-period="annee">Année</button>
+            <button type="button" class="chip-period" data-period="jour">Jour</button>
+            <button type="button" class="chip-period" data-period="semaine">Semaine</button>
+            <button type="button" class="chip-period active" data-period="mois">Mois</button>
+            <button type="button" class="chip-period" data-period="annee">Année</button>
           </div>
         </div>
       </div>
@@ -3416,7 +3416,7 @@
           <option value="carrosserie">Carrosserie</option>
           <option value="autre">Autre</option>
         </select>
-        <button class="btn-secondary" onclick="document.getElementById('filtre-entr-vehicule').value='';document.getElementById('filtre-entr-type').value='';entrSyncChips('');afficherEntretiens()">Réinitialiser</button>
+        <button type="button" class="btn-secondary" onclick="document.getElementById('filtre-entr-vehicule').value='';document.getElementById('filtre-entr-type').value='';entrSyncChips('');afficherEntretiens()">Réinitialiser</button>
       </div>
       <!-- H18: Contrôles techniques à venir (peuplé dynamiquement depuis vehicules.dateCT) -->
       <div class="card" id="entr-ct-venir-card" style="margin-bottom:14px;display:none">
@@ -3475,37 +3475,37 @@
           </div>
         </div>
         <div class="ds-section-head__actions">
-          <button class="btn-secondary" onclick="(window.exporterHeuresPaie||window.exporterHeuresExcel||window.exporterRecapHeures||function(){})()">Export paie</button>
+          <button type="button" class="btn-secondary" onclick="(window.exporterHeuresPaie||window.exporterHeuresExcel||window.exporterRecapHeures||function(){})()">Export paie</button>
           <div class="ds-export-wrap">
-            <button class="btn-secondary ds-export-btn" id="heures-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('heures-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+            <button type="button" class="btn-secondary ds-export-btn" id="heures-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('heures-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ds-dropdown-menu" id="heures-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:230px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="exporterRapportHeuresEtKmPDF();document.getElementById('heures-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterRapportHeuresEtKmPDF();document.getElementById('heures-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Rapport heures &amp; km PDF
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="exporterRecapHeuresPDF();document.getElementById('heures-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterRecapHeuresPDF();document.getElementById('heures-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Rapport heures PDF
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="exporterReleveKmPDF();document.getElementById('heures-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterReleveKmPDF();document.getElementById('heures-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Rapport km PDF
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="exporterRecapHeures();document.getElementById('heures-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterRecapHeures();document.getElementById('heures-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterHeuresExcel||window.exporterRecapHeures||function(){(window.afficherToast||alert)('Excel : fallback CSV disponible')})();document.getElementById('heures-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="(window.exporterHeuresExcel||window.exporterRecapHeures||function(){(window.afficherToast||alert)('Excel : fallback CSV disponible')})();document.getElementById('heures-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="ouvrirModalSaisieHeureAdmin()" title="Saisir manuellement les heures d'un chauffeur (ex: chauffeur sans téléphone)">+ Pointer</button>
+          <button type="button" class="btn-primary" onclick="ouvrirModalSaisieHeureAdmin()" title="Saisir manuellement les heures d'un chauffeur (ex: chauffeur sans téléphone)">+ Pointer</button>
         </div>
       </div>
       <div class="kpi-grid" style="margin-bottom:16px">
@@ -3518,9 +3518,9 @@
       <!-- Phase 51 : combined period nav row (mockup-aligned) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" id="heures-prev-btn" aria-label="Période précédente" onclick="naviguerHeuresPeriode(-1)">←</button>
-          <button class="btn-secondary" id="heures-reset-btn" onclick="reinitialiserHeuresPeriode()">Aujourd'hui</button>
-          <button class="btn-secondary" id="heures-next-btn" aria-label="Période suivante" onclick="naviguerHeuresPeriode(1)">→</button>
+          <button type="button" class="btn-secondary" id="heures-prev-btn" aria-label="Période précédente" onclick="naviguerHeuresPeriode(-1)">←</button>
+          <button type="button" class="btn-secondary" id="heures-reset-btn" onclick="reinitialiserHeuresPeriode()">Aujourd'hui</button>
+          <button type="button" class="btn-secondary" id="heures-next-btn" aria-label="Période suivante" onclick="naviguerHeuresPeriode(1)">→</button>
           <div class="period-label" id="heures-semaine-label"></div>
           <div class="period-dates" id="heures-semaine-dates"></div>
         </div>
@@ -3532,10 +3532,10 @@
             <option value="annee">Par année</option>
           </select>
           <div class="period-chips" data-period-target="filtre-heures-vue">
-            <button class="chip-period" data-period="jour">Jour</button>
-            <button class="chip-period active" data-period="semaine">Semaine</button>
-            <button class="chip-period" data-period="mois">Mois</button>
-            <button class="chip-period" data-period="annee">Année</button>
+            <button type="button" class="chip-period" data-period="jour">Jour</button>
+            <button type="button" class="chip-period active" data-period="semaine">Semaine</button>
+            <button type="button" class="chip-period" data-period="mois">Mois</button>
+            <button type="button" class="chip-period" data-period="annee">Année</button>
           </div>
         </div>
       </div>
@@ -3593,18 +3593,18 @@
         <div class="page-actions-toolbar ds-section-head__actions">
           <!-- Phase 91.52 : Imprimer en dropdown (rempli / vierge), CSV retiré (peu utile pour calendrier) -->
           <div class="ds-export-wrap cal16-print-wrap">
-            <button class="btn-secondary ds-export-btn" id="cal16-print-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('cal16-print-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+            <button type="button" class="btn-secondary ds-export-btn" id="cal16-print-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('cal16-print-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
               Imprimer
               <svg viewBox="0 0 24 24" width="11" height="11" class="u-svg-base ds-export-caret" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <!-- Phase 91.52 fix : class ds-dropdown-menu + inline style position:absolute (pattern carb-export-menu qui marche) -->
             <div class="ds-dropdown-menu" id="cal16-print-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:240px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="window.cal16?.imprimer();document.getElementById('cal16-print-menu').classList.remove('open');document.getElementById('cal16-print-btn').setAttribute('aria-expanded','false')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="window.cal16?.imprimer();document.getElementById('cal16-print-menu').classList.remove('open');document.getElementById('cal16-print-btn').setAttribute('aria-expanded','false')">
                 <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
                 <div><div class="ld-name">Calendrier rempli</div><div class="ld-sub">Avec livraisons, échéances, fériés</div></div>
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="window.cal16ImprimerVierge?.();document.getElementById('cal16-print-menu').classList.remove('open');document.getElementById('cal16-print-btn').setAttribute('aria-expanded','false')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="window.cal16ImprimerVierge?.();document.getElementById('cal16-print-menu').classList.remove('open');document.getElementById('cal16-print-btn').setAttribute('aria-expanded','false')">
                 <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
                 <div><div class="ld-name">Calendrier vierge</div><div class="ld-sub">Grille seule pour notes manuscrites</div></div>
               </button>
@@ -3624,11 +3624,11 @@
       <!-- Phase 91.47 : period-nav avec légende inline à droite (parité Cal Livraisons) -->
       <div class="carb-period-nav cal16-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" onclick="window.cal16?.naviguer(-1)" aria-label="Période précédente">
+          <button type="button" class="btn-secondary" onclick="window.cal16?.naviguer(-1)" aria-label="Période précédente">
             <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
-          <button class="btn-secondary btn-today-brand" onclick="window.cal16?.aujourdhui()">Aujourd'hui</button>
-          <button class="btn-secondary" onclick="window.cal16?.naviguer(1)" aria-label="Période suivante">
+          <button type="button" class="btn-secondary btn-today-brand" onclick="window.cal16?.aujourdhui()">Aujourd'hui</button>
+          <button type="button" class="btn-secondary" onclick="window.cal16?.naviguer(1)" aria-label="Période suivante">
             <svg viewBox="0 0 24 24" width="14" height="14" class="u-svg-base" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
           </button>
           <div id="cal16-label" class="period-label"></div>
@@ -3636,10 +3636,10 @@
         </div>
         <div class="period-right">
           <div class="period-chips" data-period-target="cal16-vue">
-            <button class="chip-period" data-period="jour">Jour</button>
-            <button class="chip-period" data-period="semaine">Semaine</button>
-            <button class="chip-period active" data-period="mois">Mois</button>
-            <button class="chip-period" data-period="annee">Année</button>
+            <button type="button" class="chip-period" data-period="jour">Jour</button>
+            <button type="button" class="chip-period" data-period="semaine">Semaine</button>
+            <button type="button" class="chip-period active" data-period="mois">Mois</button>
+            <button type="button" class="chip-period" data-period="annee">Année</button>
           </div>
         </div>
       </div>
@@ -3695,31 +3695,31 @@
         </div>
         <div class="page-actions-toolbar ds-section-head__actions">
           <div class="ds-export-wrap">
-            <button class="btn-secondary ds-export-btn" id="planning-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('planning-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+            <button type="button" class="btn-secondary ds-export-btn" id="planning-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('planning-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ds-dropdown-menu" id="planning-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:240px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="exporterPlanningSemainePDF();document.getElementById('planning-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterPlanningSemainePDF();document.getElementById('planning-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Planning semaine PDF
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="window.exporterPlanningCSV&&window.exporterPlanningCSV();document.getElementById('planning-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="window.exporterPlanningCSV&&window.exporterPlanningCSV();document.getElementById('planning-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV (créneaux)
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterPlanningExcel||window.exporterPlanningCSV)();document.getElementById('planning-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="(window.exporterPlanningExcel||window.exporterPlanningCSV)();document.getElementById('planning-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel (par salarié)
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="window.exporterPlanningIcal&&window.exporterPlanningIcal();document.getElementById('planning-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="window.exporterPlanningIcal&&window.exporterPlanningIcal();document.getElementById('planning-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
                 Export iCal (.ics)
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="ouvrirModalPlanning()">+ Gérer les horaires</button>
+          <button type="button" class="btn-primary" onclick="ouvrirModalPlanning()">+ Gérer les horaires</button>
         </div>
       </div>
 
@@ -3734,12 +3734,12 @@
       <!-- Phase 52 : combined period nav row (mockup-aligned) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" aria-label="Période précédente" onclick="naviguerPlanningPeriode(-1)">←</button>
-          <button class="btn-secondary" onclick="reinitialiserPlanningPeriode()">Aujourd'hui</button>
-          <button class="btn-secondary" aria-label="Période suivante" onclick="naviguerPlanningPeriode(1)">→</button>
+          <button type="button" class="btn-secondary" aria-label="Période précédente" onclick="naviguerPlanningPeriode(-1)">←</button>
+          <button type="button" class="btn-secondary" onclick="reinitialiserPlanningPeriode()">Aujourd'hui</button>
+          <button type="button" class="btn-secondary" aria-label="Période suivante" onclick="naviguerPlanningPeriode(1)">→</button>
           <div class="period-label" id="planning-semaine-label"></div>
           <div class="period-dates" id="planning-semaine-dates"></div>
-          <button class="btn-secondary btn-period-more" onclick="ouvrirMenuCopiesSemainePlanning()" title="Copier/vider semaine" aria-label="Plus d'actions sur le planning">⋯</button>
+          <button type="button" class="btn-secondary btn-period-more" onclick="ouvrirMenuCopiesSemainePlanning()" title="Copier/vider semaine" aria-label="Plus d'actions sur le planning">⋯</button>
         </div>
         <div class="period-right">
           <select class="period-selector" id="vue-planning-select" onchange="changerVuePlanning(this.value)" aria-label="Vue période planning" style="display:none">
@@ -3749,10 +3749,10 @@
             <option value="annee">Par année</option>
           </select>
           <div class="period-chips" data-period-target="vue-planning-select">
-            <button class="chip-period" data-period="jour">Jour</button>
-            <button class="chip-period active" data-period="semaine">Semaine</button>
-            <button class="chip-period" data-period="mois">Mois</button>
-            <button class="chip-period" data-period="annee">Année</button>
+            <button type="button" class="chip-period" data-period="jour">Jour</button>
+            <button type="button" class="chip-period active" data-period="semaine">Semaine</button>
+            <button type="button" class="chip-period" data-period="mois">Mois</button>
+            <button type="button" class="chip-period" data-period="annee">Année</button>
           </div>
         </div>
       </div>
@@ -3762,7 +3762,7 @@
           <h3>Organisation du planning</h3>
           <div class="u-flex-row">
             <button class="btn-secondary" type="button" onclick="ouvrirPlanningRecurrence()">Horaires récurrents</button>
-            <button class="btn-secondary" id="planning-toggle-quick-btn" onclick="togglePlanningQuickPanel()">+ Ajouter une période</button>
+            <button type="button" class="btn-secondary" id="planning-toggle-quick-btn" onclick="togglePlanningQuickPanel()">+ Ajouter une période</button>
           </div>
         </div>
         <div class="modal-body">
@@ -3843,9 +3843,9 @@
                 </div>
               </div>
               <div class="planning-form-actions">
-                <button class="btn-primary" onclick="ajouterPeriodeAbsence()" id="planning-submit-btn">+ Enregistrer</button>
-                <button class="btn-secondary" onclick="ouvrirEditionTravailRapide()" id="planning-edit-work-btn">Modifier les horaires</button>
-                <button class="btn-secondary" onclick="reinitialiserFormulairePlanningRapide()">Réinitialiser</button>
+                <button type="button" class="btn-primary" onclick="ajouterPeriodeAbsence()" id="planning-submit-btn">+ Enregistrer</button>
+                <button type="button" class="btn-secondary" onclick="ouvrirEditionTravailRapide()" id="planning-edit-work-btn">Modifier les horaires</button>
+                <button type="button" class="btn-secondary" onclick="reinitialiserFormulairePlanningRapide()">Réinitialiser</button>
               </div>
             </div>
 
@@ -3907,27 +3907,27 @@
         </div>
         <div class="ds-section-head__actions u-flex-row">
           <div class="ds-export-wrap">
-            <button class="btn-secondary ds-export-btn" id="insp-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('insp-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+            <button type="button" class="btn-secondary ds-export-btn" id="insp-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('insp-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="ds-dropdown-menu" id="insp-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:220px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="exporterInspectionsPDF&&exporterInspectionsPDF();document.getElementById('insp-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterInspectionsPDF&&exporterInspectionsPDF();document.getElementById('insp-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Rapport inspections PDF
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="exporterInspectionsCSV&&exporterInspectionsCSV();document.getElementById('insp-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="exporterInspectionsCSV&&exporterInspectionsCSV();document.getElementById('insp-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterInspectionsExcel||window.exporterInspectionsCSV)();document.getElementById('insp-export-menu').classList.remove('open')">
+              <button type="button" class="ds-menu-item" role="menuitem" onclick="(window.exporterInspectionsExcel||window.exporterInspectionsCSV)();document.getElementById('insp-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                 Export Excel
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="ouvrirModalInspectionAdmin()">+ Nouvelle inspection</button>
+          <button type="button" class="btn-primary" onclick="ouvrirModalInspectionAdmin()">+ Nouvelle inspection</button>
         </div>
       </div>
       <div class="kpi-grid" style="margin-bottom:16px">
@@ -3939,9 +3939,9 @@
       <!-- Phase 52 : combined period nav row (mockup-aligned) -->
       <div class="carb-period-nav">
         <div class="period-left">
-          <button class="btn-secondary" aria-label="Période précédente" onclick="navInspectionsPeriode(-1)">←</button>
-          <button class="btn-secondary" onclick="reinitialiserInspectionsPeriode()">Aujourd'hui</button>
-          <button class="btn-secondary" aria-label="Période suivante" onclick="navInspectionsPeriode(1)">→</button>
+          <button type="button" class="btn-secondary" aria-label="Période précédente" onclick="navInspectionsPeriode(-1)">←</button>
+          <button type="button" class="btn-secondary" onclick="reinitialiserInspectionsPeriode()">Aujourd'hui</button>
+          <button type="button" class="btn-secondary" aria-label="Période suivante" onclick="navInspectionsPeriode(1)">→</button>
           <div class="period-label" id="insp-semaine-label"></div>
           <div class="period-dates" id="insp-semaine-dates"></div>
         </div>
@@ -3953,10 +3953,10 @@
             <option value="annee">Par année</option>
           </select>
           <div class="period-chips" data-period-target="vue-insp-select">
-            <button class="chip-period" data-period="jour">Jour</button>
-            <button class="chip-period active" data-period="semaine">Semaine</button>
-            <button class="chip-period" data-period="mois">Mois</button>
-            <button class="chip-period" data-period="annee">Année</button>
+            <button type="button" class="chip-period" data-period="jour">Jour</button>
+            <button type="button" class="chip-period active" data-period="semaine">Semaine</button>
+            <button type="button" class="chip-period" data-period="mois">Mois</button>
+            <button type="button" class="chip-period" data-period="annee">Année</button>
           </div>
         </div>
       </div>
@@ -3973,7 +3973,7 @@
           <option value="defaut-mineur">Défaut mineur</option>
           <option value="defaut-majeur">Défaut majeur</option>
         </select>
-        <button class="btn-secondary" onclick="document.getElementById('filtre-insp-sal').value='';document.getElementById('filtre-insp-sal-input').value='';var s=document.getElementById('filtre-insp-statut');if(s)s.value='';afficherInspections()">Réinitialiser</button>
+        <button type="button" class="btn-secondary" onclick="document.getElementById('filtre-insp-sal').value='';document.getElementById('filtre-insp-sal-input').value='';var s=document.getElementById('filtre-insp-statut');if(s)s.value='';afficherInspections()">Réinitialiser</button>
       </div>
       <div id="inspections-container">
         <div class="card"><div class="modal-body" style="text-align:center;color:var(--text-muted)">Aucune inspection reçue</div></div>
@@ -4111,7 +4111,7 @@
 
       </div>
       <!-- Phase 91.6 — bouton "Brouillon" : force statut=brouillon puis enregistre (livraison existante avec n°). -->
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-livraison')">Annuler</button><button class="btn-secondary" type="button" onclick="(function(){var s=document.getElementById('liv-statut');if(s)s.value='brouillon';if(typeof ajouterLivraison==='function')ajouterLivraison();})()" title="Enregistrer comme brouillon (livraison existante mais non finalisée)">Brouillon</button><button class="btn-primary" onclick="ajouterLivraison()">Enregistrer la livraison</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-livraison')">Annuler</button><button class="btn-secondary" type="button" onclick="(function(){var s=document.getElementById('liv-statut');if(s)s.value='brouillon';if(typeof ajouterLivraison==='function')ajouterLivraison();})()" title="Enregistrer comme brouillon (livraison existante mais non finalisée)">Brouillon</button><button type="button" class="btn-primary" onclick="ajouterLivraison()">Enregistrer la livraison</button></div>
     </div>
   </div>
 
@@ -4176,7 +4176,7 @@
         <div class="form-group" style="margin-top:14px"><label for="cl-notes">Notes internes</label><textarea id="cl-notes" rows="2" placeholder="Remarques, préférences, historique particulier..."></textarea></div>
         <div id="cl-doublons-warning" class="doublons-warning" style="display:none"></div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-client')">Annuler</button><button class="btn-primary" onclick="ajouterClient()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-client')">Annuler</button><button type="button" class="btn-primary" onclick="ajouterClient()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -4250,7 +4250,7 @@
         </div>
         <div class="form-group" style="margin-top:14px"><label for="edit-cl-notes">Notes internes</label><textarea id="edit-cl-notes" rows="2"></textarea></div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-client')">Annuler</button><button class="btn-primary" onclick="confirmerEditClient()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-edit-client')">Annuler</button><button type="button" class="btn-primary" onclick="confirmerEditClient()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -4261,9 +4261,9 @@
         <div id="client-history-content"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="exporterHistoriqueClientCourant()">Exporter CSV</button>
-        <button class="btn-secondary" onclick="exporterDonneesRGPDClientCourant()" title="Export RGPD portable (art. 20) — toutes les données du client au format JSON">Export RGPD</button>
-        <button class="btn-primary" onclick="closeModal('modal-client-history')">Fermer</button>
+        <button type="button" class="btn-secondary" onclick="exporterHistoriqueClientCourant()">Exporter CSV</button>
+        <button type="button" class="btn-secondary" onclick="exporterDonneesRGPDClientCourant()" title="Export RGPD portable (art. 20) — toutes les données du client au format JSON">Export RGPD</button>
+        <button type="button" class="btn-primary" onclick="closeModal('modal-client-history')">Fermer</button>
       </div>
     </div>
   </div>
@@ -4327,7 +4327,7 @@
         </div>
         <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="frn-notes" rows="2" placeholder="Conditions, particularités, contacts..." aria-label="Conditions, particularités, contacts..."></textarea></div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-fournisseur')">Annuler</button><button class="btn-primary" onclick="ajouterFournisseur()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-fournisseur')">Annuler</button><button type="button" class="btn-primary" onclick="ajouterFournisseur()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -4391,7 +4391,7 @@
         </div>
         <div class="form-group" style="margin-top:14px"><label for="edit-frn-notes">Notes internes</label><textarea id="edit-frn-notes" rows="2"></textarea></div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-fournisseur')">Annuler</button><button class="btn-primary" onclick="confirmerEditFournisseur()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-edit-fournisseur')">Annuler</button><button type="button" class="btn-primary" onclick="confirmerEditFournisseur()">Enregistrer</button></div>
     </div>
   </div>
   <!-- Nouveau véhicule -->
@@ -4544,7 +4544,7 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-vehicule')">Annuler</button><button class="btn-primary" onclick="ajouterVehicule()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-vehicule')">Annuler</button><button type="button" class="btn-primary" onclick="ajouterVehicule()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -4583,7 +4583,7 @@
           <div class="form-group"><label for="carb-date">Date</label><input type="date" id="carb-date" /></div>
         </div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-carburant')">Annuler</button><button class="btn-primary" onclick="ajouterCarburant()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-carburant')">Annuler</button><button type="button" class="btn-primary" onclick="ajouterCarburant()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -4592,7 +4592,7 @@
     <div class="modal" style="max-width:720px">
       <div class="modal-header"><h3 id="detail-tournee-title">Détail tournée</h3><button type="button" class="modal-close" aria-label="Fermer" onclick="closeModal('modal-detail-tournee')">✕</button></div>
       <div class="modal-body" id="detail-tournee-body"></div>
-      <div class="modal-footer"><button class="btn-primary" onclick="closeModal('modal-detail-tournee')">Fermer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-primary" onclick="closeModal('modal-detail-tournee')">Fermer</button></div>
     </div>
   </div>
 
@@ -4616,8 +4616,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-config-rentabilite')">Annuler</button>
-        <button class="btn-primary" onclick="enregistrerConfigRentabilite()">Enregistrer</button>
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-config-rentabilite')">Annuler</button>
+        <button type="button" class="btn-primary" onclick="enregistrerConfigRentabilite()">Enregistrer</button>
       </div>
     </div>
   </div>
@@ -4652,8 +4652,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-config-carburant-anomalies')">Annuler</button>
-        <button class="btn-primary" onclick="enregistrerConfigAnomaliesCarburant()">Enregistrer</button>
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-config-carburant-anomalies')">Annuler</button>
+        <button type="button" class="btn-primary" onclick="enregistrerConfigAnomaliesCarburant()">Enregistrer</button>
       </div>
     </div>
   </div>
@@ -4687,7 +4687,7 @@
         </div>
         <div id="plan-jours-grid" style="display:flex;flex-direction:column;gap:8px"></div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-planning')">Annuler</button><button class="btn-primary" onclick="sauvegarderPlanning()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-planning')">Annuler</button><button type="button" class="btn-primary" onclick="sauvegarderPlanning()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -4697,7 +4697,7 @@
       <div class="modal-body modal-body-scroll">
         <div id="planning-recap-content"></div>
       </div>
-      <div class="modal-footer"><button class="btn-primary" onclick="closeModal('modal-planning-recap')">Fermer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-primary" onclick="closeModal('modal-planning-recap')">Fermer</button></div>
     </div>
   </div>
 
@@ -4709,7 +4709,7 @@
         <p style="color:var(--text-muted);margin-bottom:16px;">Véhicule : <strong id="affect-veh-label"></strong></p>
         <div class="form-group"><label for="affect-salarie-sel">Chauffeur</label><select id="affect-salarie-sel"><option value="">-- Retirer l'affectation --</option></select></div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-affecter-vehicule')">Annuler</button><button class="btn-primary" onclick="confirmerAffectationVehicule()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-affecter-vehicule')">Annuler</button><button type="button" class="btn-primary" onclick="confirmerAffectationVehicule()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -4756,7 +4756,7 @@
           </div>
         </details>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-salarie')">Annuler</button><button class="btn-primary" onclick="confirmerEditSalarie()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-edit-salarie')">Annuler</button><button type="button" class="btn-primary" onclick="confirmerEditSalarie()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -4779,7 +4779,7 @@
           <div id="reset-mdp-hint" class="u-muted-xs-mt">Le mot de passe est stocké localement et peut être modifié par le salarié ensuite.</div>
         </div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-reset-mdp')">Annuler</button><button class="btn-primary" onclick="confirmerResetMdp()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-reset-mdp')">Annuler</button><button type="button" class="btn-primary" onclick="confirmerResetMdp()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -4815,8 +4815,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="copierCredentialsChauffeur('both')">Tout copier</button>
-        <button class="btn-primary" onclick="closeModal('modal-credentials-chauffeur')">J'ai transmis les identifiants</button>
+        <button type="button" class="btn-secondary" onclick="copierCredentialsChauffeur('both')">Tout copier</button>
+        <button type="button" class="btn-primary" onclick="closeModal('modal-credentials-chauffeur')">J'ai transmis les identifiants</button>
       </div>
     </div>
   </div>
@@ -4944,7 +4944,7 @@
         <input type="text" id="commentaire-liv-input" />
       </div>
       <!-- Phase 91.9 — boutons "Bon de livraison" + "Facture" retirés du modal Modifier (accessibles via N° livraison + dropdown Générer dans la toolbar). -->
-      <div class="modal-footer" style="gap:8px;flex-wrap:wrap"><button class="btn-secondary" onclick="closeModal('modal-edit-livraison')">Annuler</button><button class="btn-primary" onclick="confirmerEditLivraison()">Enregistrer</button></div>
+      <div class="modal-footer" style="gap:8px;flex-wrap:wrap"><button type="button" class="btn-secondary" onclick="closeModal('modal-edit-livraison')">Annuler</button><button type="button" class="btn-primary" onclick="confirmerEditLivraison()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -4964,7 +4964,7 @@
           <div class="form-group"><label for="edit-carb-date">Date</label><input type="date" id="edit-carb-date" /></div>
         </div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-carburant')">Annuler</button><button class="btn-primary" onclick="confirmerEditCarburantAdmin()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-edit-carburant')">Annuler</button><button type="button" class="btn-primary" onclick="confirmerEditCarburantAdmin()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -4980,7 +4980,7 @@
           <div class="form-group full-width"><label for="admin-km-date">Date</label><input type="date" id="admin-km-date" /></div>
         </div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-km')">Annuler</button><button class="btn-primary" onclick="confirmerEditKmAdmin()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-edit-km')">Annuler</button><button type="button" class="btn-primary" onclick="confirmerEditKmAdmin()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -5060,7 +5060,7 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-charge')">Annuler</button><button class="btn-primary" onclick="ajouterCharge()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-charge')">Annuler</button><button type="button" class="btn-primary" onclick="ajouterCharge()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -5094,7 +5094,7 @@
           <div class="form-group full-width"><label for="inc-description">Description *</label><textarea id="inc-description" rows="3" placeholder="Décrivez l'incident, la réclamation client ou le problème survenu..." style="width:100%;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:9px 12px;border-radius:8px;font-size:.88rem;font-family:inherit;resize:vertical;outline:none" aria-label="Décrivez l'incident, la réclamation client ou le problème survenu..."></textarea></div>
         </div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-incident')">Annuler</button><button class="btn-primary" onclick="ajouterIncident()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-incident')">Annuler</button><button type="button" class="btn-primary" onclick="ajouterIncident()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -5131,7 +5131,7 @@
           <div class="form-group full-width"><label for="entr-desc">Description</label><input type="text" id="entr-desc" placeholder="Ex : Vidange + filtre huile, changement 4 pneus été..." /></div>
         </div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-entretien')">Annuler</button><button class="btn-primary" onclick="ajouterEntretien()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-entretien')">Annuler</button><button type="button" class="btn-primary" onclick="ajouterEntretien()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -5217,7 +5217,7 @@
       <div class="modal-body" style="padding:0">
         <div id="hist-conducteurs-modal" style="max-height:400px;overflow-y:auto;padding:16px"></div>
       </div>
-      <div class="modal-footer"><button class="btn-primary" onclick="closeModal('modal-hist-conducteurs')">Fermer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-primary" onclick="closeModal('modal-hist-conducteurs')">Fermer</button></div>
     </div>
   </div>
 
@@ -5247,7 +5247,7 @@
         </div>
         <div class="form-group full-width"><label for="admin-insp-commentaire">Commentaire</label><textarea id="admin-insp-commentaire" rows="3" placeholder="Détail des points KO ou observations" aria-label="Commentaire inspection"></textarea></div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-inspection-admin')">Annuler</button><button class="btn-primary" onclick="ajouterInspectionAdmin()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-inspection-admin')">Annuler</button><button type="button" class="btn-primary" onclick="ajouterInspectionAdmin()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -5289,7 +5289,7 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-paiement')">Annuler</button><button class="btn-primary" onclick="window.enregistrerPaiement&&window.enregistrerPaiement()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-paiement')">Annuler</button><button type="button" class="btn-primary" onclick="window.enregistrerPaiement&&window.enregistrerPaiement()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -5301,7 +5301,7 @@
         <div id="tco-detail"></div>
         <p style="font-size:.75rem;color:var(--text-muted);margin-top:12px">Cumul depuis la création du véhicule dans MCA Logistics.</p>
       </div>
-      <div class="modal-footer"><button class="btn-primary" onclick="closeModal('modal-tco')">Fermer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-primary" onclick="closeModal('modal-tco')">Fermer</button></div>
     </div>
   </div>
 
@@ -5317,7 +5317,7 @@
           <textarea id="note-interne-texte" rows="5" placeholder="Ex : Bon chauffeur mais souvent en retard le lundi matin. À surveiller sur la ponctualité..." style="width:100%;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:9px 12px;border-radius:8px;font-size:.88rem;font-family:inherit;resize:vertical;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" aria-label="Ex : Bon chauffeur mais souvent en retard le lundi matin. À surveiller sur la ponctualité..."></textarea>
         </div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-note-interne')">Annuler</button><button class="btn-primary" onclick="confirmerNoteInterne()">Enregistrer</button></div>
+      <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-note-interne')">Annuler</button><button type="button" class="btn-primary" onclick="confirmerNoteInterne()">Enregistrer</button></div>
     </div>
   </div>
 
@@ -5336,8 +5336,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-recurrence')">Annuler</button>
-        <button class="btn-primary" onclick="confirmerRecurrence()">Créer</button>
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-recurrence')">Annuler</button>
+        <button type="button" class="btn-primary" onclick="confirmerRecurrence()">Créer</button>
       </div>
     </div>
   </div>
@@ -5416,8 +5416,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-reset-compteur')">Annuler</button>
-        <button class="btn-primary" id="btn-reset-compteur-confirm" onclick="executerResetCompteur()" disabled style="background:var(--red)">Réinitialiser</button>
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-reset-compteur')">Annuler</button>
+        <button type="button" class="btn-primary" id="btn-reset-compteur-confirm" onclick="executerResetCompteur()" disabled style="background:var(--red)">Réinitialiser</button>
       </div>
     </div>
   </div>
@@ -5442,7 +5442,7 @@
   </div>
 
   <!-- Bouton scroll to top -->
-  <button id="btn-scroll-top" onclick="mainContent.scrollTo({top:0,behavior:'smooth'})" title="Haut de page" aria-label="Remonter en haut de la page">↑</button>
+  <button type="button" id="btn-scroll-top" onclick="mainContent.scrollTo({top:0,behavior:'smooth'})" title="Haut de page" aria-label="Remonter en haut de la page">↑</button>
 
   <!-- Sidebar overlay mobile -->
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="fermerMenuMobile()"></div>
@@ -5464,11 +5464,11 @@
         <div class="panneau-agent__title" id="panneau-agent-title">MCA Agent</div>
         <div class="panneau-agent__sub" id="agent-last-check">En attente d'activation...</div>
       </div>
-      <button onclick="togglePanneauAgent()" title="Fermer" class="panneau-agent__close" aria-label="Fermer le panneau agent">✕</button>
+      <button type="button" onclick="togglePanneauAgent()" title="Fermer" class="panneau-agent__close" aria-label="Fermer le panneau agent">✕</button>
     </div>
     <div class="panneau-agent__actions">
-      <button id="agent-refresh-btn" onclick="rafraichirBriefAgent()" title="Rafraichir le brief IA" class="panneau-agent__btn panneau-agent__btn--primary">Rafraichir</button>
-      <button id="agent-clear-btn" onclick="effacerToutesDecisions()" title="Effacer toutes les decisions" class="panneau-agent__btn panneau-agent__btn--ghost">Effacer</button>
+      <button type="button" id="agent-refresh-btn" onclick="rafraichirBriefAgent()" title="Rafraichir le brief IA" class="panneau-agent__btn panneau-agent__btn--primary">Rafraichir</button>
+      <button type="button" id="agent-clear-btn" onclick="effacerToutesDecisions()" title="Effacer toutes les decisions" class="panneau-agent__btn panneau-agent__btn--ghost">Effacer</button>
     </div>
     <div id="agent-decisions-list" class="panneau-agent__list">
       <div class="panneau-agent__empty">
@@ -5478,7 +5478,7 @@
       </div>
     </div>
     <div class="panneau-agent__foot">
-      <button onclick="marquerToutesDecisionsLues()" class="panneau-agent__cta">Tout marquer lu</button>
+      <button type="button" onclick="marquerToutesDecisionsLues()" class="panneau-agent__cta">Tout marquer lu</button>
     </div>
   </div>
 

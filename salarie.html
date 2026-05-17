@@ -881,7 +881,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
     <div class="topbar-right">
       <span id="online-dot" title="État réseau" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--green,#06d6a0);margin-right:6px" aria-label="État réseau" role="status"></span>
       <span id="offline-queue-badge" style="display:none" title="Saisies en attente de synchronisation"></span>
-      <button class="btn-profil" onclick="changerOnglet('profil',null)" title="Mon profil" aria-label="Mon profil">
+      <button type="button" class="btn-profil" onclick="changerOnglet('profil',null)" title="Mon profil" aria-label="Mon profil">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
         <span class="notif-dot" id="notif-dot"></span>
       </button>
@@ -891,16 +891,16 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
   <!-- ONGLETS DESKTOP -->
   <div class="tabs-wrapper" role="tablist" aria-label="Navigation principale">
     <div class="tabs">
-      <button class="tab active" id="tab-accueil" role="tab" aria-selected="true" aria-controls="panneau-accueil" onclick="changerOnglet('accueil',this)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Accueil <span id="badge-accueil" hidden></span></button>
-      <button class="tab" id="tab-livraisons" role="tab" aria-selected="false" aria-controls="panneau-livraisons" onclick="changerOnglet('livraisons',this)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg> Livraisons</button>
-      <button class="tab" id="tab-planning" role="tab" aria-selected="false" aria-controls="panneau-planning" onclick="changerOnglet('planning',this)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg> Planning</button>
-      <button class="tab" id="tab-carburant" role="tab" aria-selected="false" aria-controls="panneau-carburant" onclick="changerOnglet('carburant',this)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg> Carburant</button>
-      <button class="tab" id="tab-inspection" role="tab" aria-selected="false" aria-controls="panneau-inspection" onclick="changerOnglet('inspection',this)">
+      <button type="button" class="tab active" id="tab-accueil" role="tab" aria-selected="true" aria-controls="panneau-accueil" onclick="changerOnglet('accueil',this)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Accueil <span id="badge-accueil" hidden></span></button>
+      <button type="button" class="tab" id="tab-livraisons" role="tab" aria-selected="false" aria-controls="panneau-livraisons" onclick="changerOnglet('livraisons',this)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg> Livraisons</button>
+      <button type="button" class="tab" id="tab-planning" role="tab" aria-selected="false" aria-controls="panneau-planning" onclick="changerOnglet('planning',this)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg> Planning</button>
+      <button type="button" class="tab" id="tab-carburant" role="tab" aria-selected="false" aria-controls="panneau-carburant" onclick="changerOnglet('carburant',this)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg> Carburant</button>
+      <button type="button" class="tab" id="tab-inspection" role="tab" aria-selected="false" aria-controls="panneau-inspection" onclick="changerOnglet('inspection',this)">
         <span class="tab-label-long"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg> Inspection & Km</span>
         <span class="tab-label-court" style="display:none"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg> Insp.</span>
       </button>
-      <button class="tab" id="tab-messages" role="tab" aria-selected="false" aria-controls="panneau-messages" onclick="changerOnglet('messages',this)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Messages <span id="badge-msg-sal" hidden></span></button>
-      <button class="tab" id="tab-profil" role="tab" aria-selected="false" aria-controls="panneau-profil" onclick="changerOnglet('profil',this)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Profil</button>
+      <button type="button" class="tab" id="tab-messages" role="tab" aria-selected="false" aria-controls="panneau-messages" onclick="changerOnglet('messages',this)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Messages <span id="badge-msg-sal" hidden></span></button>
+      <button type="button" class="tab" id="tab-profil" role="tab" aria-selected="false" aria-controls="panneau-profil" onclick="changerOnglet('profil',this)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Profil</button>
     </div>
   </div>
 
@@ -922,19 +922,19 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
         </div>
 
         <div class="actions-grid">
-          <button class="action-btn primary" onclick="changerOnglet('livraisons',document.getElementById('tab-livraisons'))">
+          <button type="button" class="action-btn primary" onclick="changerOnglet('livraisons',document.getElementById('tab-livraisons'))">
             <span class="ab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span>
             <span class="ab-label">Mes livraisons</span>
           </button>
-          <button class="action-btn primary" onclick="changerOnglet('inspection',document.getElementById('tab-inspection'))">
+          <button type="button" class="action-btn primary" onclick="changerOnglet('inspection',document.getElementById('tab-inspection'))">
             <span class="ab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19c2-5 6-9 10-9s8 4 10 9"/><circle cx="12" cy="19" r="1.5"/></svg></span>
             <span class="ab-label">Km & Inspection</span>
           </button>
-          <button class="action-btn" onclick="changerOnglet('carburant',document.getElementById('tab-carburant'))">
+          <button type="button" class="action-btn" onclick="changerOnglet('carburant',document.getElementById('tab-carburant'))">
             <span class="ab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg></span>
             <span class="ab-label">Carburant</span>
           </button>
-          <button class="action-btn" onclick="changerOnglet('messages',document.getElementById('tab-messages'))">
+          <button type="button" class="action-btn" onclick="changerOnglet('messages',document.getElementById('tab-messages'))">
             <span class="ab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
             <span class="ab-label">Messages <span id="badge-msg-action" style="display:none"></span></span>
           </button>
@@ -1283,7 +1283,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
             <div style="margin-bottom:10px;display:inline-flex;color:var(--accent)"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></div>
             <div style="font-weight:700;margin-bottom:6px">Installer l'app</div>
             <div style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Sur iPhone : appuyez sur <strong>Partager</strong> puis <strong>"Sur l'écran d'accueil"</strong></div>
-            <button class="btn-secondary" id="btn-pwa-install" style="width:100%">Installer MCA Logistics</button>
+            <button type="button" class="btn-secondary" id="btn-pwa-install" style="width:100%">Installer MCA Logistics</button>
           </div>
         </div>
       </div>
@@ -1302,40 +1302,40 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
       height: var(--bottom-nav-h);
       padding: 0 4px;
     ">
-      <button class="bn-item active" id="bn-accueil" role="tab" aria-selected="true" aria-controls="panneau-accueil" aria-label="Accueil"
+      <button type="button" class="bn-item active" id="bn-accueil" role="tab" aria-selected="true" aria-controls="panneau-accueil" aria-label="Accueil"
         onclick="changerOngletMobile('accueil',this)">
         <span class="bn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
         <span class="bn-label">Accueil</span>
         <span class="bn-badge" id="bn-badge-accueil"></span>
       </button>
-      <button class="bn-item" id="bn-livraisons" role="tab" aria-selected="false" aria-controls="panneau-livraisons" aria-label="Livraisons"
+      <button type="button" class="bn-item" id="bn-livraisons" role="tab" aria-selected="false" aria-controls="panneau-livraisons" aria-label="Livraisons"
         onclick="changerOngletMobile('livraisons',this)">
         <span class="bn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span>
         <span class="bn-label">Livraisons</span>
         <span class="bn-badge" id="bn-badge-livraisons"></span>
       </button>
-      <button class="bn-item" id="bn-inspection" role="tab" aria-selected="false" aria-controls="panneau-inspection" aria-label="Kilométrage et inspection"
+      <button type="button" class="bn-item" id="bn-inspection" role="tab" aria-selected="false" aria-controls="panneau-inspection" aria-label="Kilométrage et inspection"
         onclick="changerOngletMobile('inspection',this)">
         <span class="bn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></span>
         <span class="bn-label">Km & Insp.</span>
       </button>
-      <button class="bn-item" id="bn-carburant" role="tab" aria-selected="false" aria-controls="panneau-carburant" aria-label="Carburant"
+      <button type="button" class="bn-item" id="bn-carburant" role="tab" aria-selected="false" aria-controls="panneau-carburant" aria-label="Carburant"
         onclick="changerOngletMobile('carburant',this)">
         <span class="bn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg></span>
         <span class="bn-label">Carburant</span>
       </button>
-      <button class="bn-item" id="bn-messages" role="tab" aria-selected="false" aria-controls="panneau-messages" aria-label="Messages"
+      <button type="button" class="bn-item" id="bn-messages" role="tab" aria-selected="false" aria-controls="panneau-messages" aria-label="Messages"
         onclick="changerOngletMobile('messages',this)">
         <span class="bn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
         <span class="bn-label">Messages</span>
         <span class="bn-badge" id="bn-badge-messages"></span>
       </button>
-      <button class="bn-item" id="bn-planning" role="tab" aria-selected="false" aria-controls="panneau-planning" aria-label="Planning"
+      <button type="button" class="bn-item" id="bn-planning" role="tab" aria-selected="false" aria-controls="panneau-planning" aria-label="Planning"
         onclick="changerOngletMobile('planning',this)">
         <span class="bn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></span>
         <span class="bn-label">Planning</span>
       </button>
-      <button class="bn-item" id="bn-profil" role="tab" aria-selected="false" aria-controls="panneau-profil" aria-label="Mon profil"
+      <button type="button" class="bn-item" id="bn-profil" role="tab" aria-selected="false" aria-controls="panneau-profil" aria-label="Mon profil"
         onclick="changerOngletMobile('profil',this)">
         <span class="bn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
         <span class="bn-label">Profil</span>
@@ -1356,7 +1356,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
       <div class="form-group"><label for="modif-date">Date</label><input type="date" id="modif-date" /></div>
     </div>
     <div class="modal-footer">
-      <button class="btn-sm" onclick="fermerModal('modal-modif-plein')">Annuler</button>
+      <button type="button" class="btn-sm" onclick="fermerModal('modal-modif-plein')">Annuler</button>
       <button class="btn-primary" onclick="confirmerModifPlein()" type="button">Enregistrer</button>
     </div>
   </div>
@@ -1372,7 +1372,7 @@ body.online-with-queue #offline-banner { background: var(--ds-warning, #ffd60a);
       <div class="form-group"><label for="edit-km-date">Date</label><input type="date" id="edit-km-date" /></div>
     </div>
     <div class="modal-footer">
-      <button class="btn-sm" onclick="fermerModal('modal-edit-km-sal')">Annuler</button>
+      <button type="button" class="btn-sm" onclick="fermerModal('modal-edit-km-sal')">Annuler</button>
       <button class="btn-primary" onclick="confirmerEditKmSal()" type="button">Enregistrer</button>
     </div>
   </div>
