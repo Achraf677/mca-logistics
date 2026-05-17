@@ -15,7 +15,7 @@
 ## 🚀 État courant (mise à jour 2026-05-17 — fin session)
 
 - **Branche** : `claude/html-refonte-cleanup`
-- **CACHE_VERSION en cours** : `v414` (voir `sw.js` ligne 8)
+- **CACHE_VERSION en cours** : `v415` (voir `sw.js` ligne 8)
 - **Onglets terminés** :
   - ✅ Onglet 1 Livraisons (15 items + 5 bugs screenshots user)
   - ✅ Onglet 2 Dashboard (4 items + bug Retard sur brouillons + barre Retard retirée + tooltips chart €)
@@ -27,7 +27,8 @@
   - ✅ Onglet 8 Véhicules (1 item déjà résolu en Sprint 21, vérification faite)
   - ✅ Onglet 9 Carburant (0 item, checklist cross-tab OK)
   - ✅ Onglet 10 Entretiens (0 item, checklist cross-tab OK)
-- **Prochain onglet** : 11. Inspections
+  - ✅ Onglet 11 Inspections (drawer 360 inspection livré + filtre véhicule + exports respectent filtres actifs)
+- **Prochain onglet** : 12. Équipe / Salariés
 - **Tests** : 436 pass · 0 fail (`npm test`)
 - **Sentry** : aucune erreur 24h (vérifié via MCP)
 
@@ -212,10 +213,17 @@ Tests : 436 pass · 0 fail (étaient 426 avant, +10 nouveaux).
 - [x] Aucun item d'audit dédié.
 - [x] Checklist cross-tab : **A** topbar OK (même pattern `hub-subnav:first-child`). **B** chip↔select OK. **C** drawer auto-refresh : N/A.
 
-## 11. Inspections
+## 11. Inspections ✅ TERMINÉ (2026-05-17)
 
-- [ ] Drawer 360 PC Inspections (modal édition uniquement aujourd'hui) [TODO-BACKLOG #1]
-- [ ] Filtre période + drilldown véhicule + export PDF (Sprint H3, low prio) [Audit Agent 5 LOW]
+- [x] Drawer 360 PC Inspections livré : `script-inspections-drawer-360.js` (nouveau fichier). 3 onglets (Vue / Photos / Historique véhicule), KPI row (Statut/KO/Photos/Km), liens cross-drawer vers fiche véhicule (Sprint 21) et fiche chauffeur (Sprint 20 RH si dispo). Réutilise les classes CSS `.s25-*` existantes (zéro nouveau CSS). Lignes du tableau Inspections cliquables (ouverture drawer au clic, sauf boutons photo/🗑️ avec `event.stopPropagation`). Auto-fermeture sur suppression. *(commit 2026-05-17)*
+- [x] Filtre période : déjà présent (chips Jour/Semaine/Mois/Année + `getInspectionsPeriodeRange`). Drilldown véhicule ajouté : nouveau `<select id="filtre-insp-veh">` peuplé dynamiquement depuis `charger('vehicules')`, branché dans `afficherInspections()` (match `vehId` + fallback `vehImmat`). Export PDF/CSV/Excel : `applyActiveFilters()` ajouté à `getRows()` pour que les exports respectent les filtres actifs (sal/véh/statut/période), bug majeur : avant on exportait toutes les inspections au lieu de celles affichées. *(commit 2026-05-17)*
+- [x] Checklist cross-tab : **A** topbar OK (`hub-subnav:first-child` couvert ligne 23 style-refonte-utilities.css). **B** chip↔select OK (chips période sync via `data-period-target`, selects sal/véh/statut indépendants). **C** drawer auto-refresh OK (`refreshDrawerInspection` exposé + `fermerFiche360Inspection` appelé sur suppression).
+
+### Bilan Onglet 11 (✅ clôt 2026-05-17)
+
+2 items résolus. Touchés : `script-inspections-drawer-360.js` (nouveau, 250 lignes) · `script-inspections.js` (filtre véhicule + clic ligne + fermeture drawer suppression) · `script-exports-inspections.js` (applyActiveFilters) · `admin.html` (`<select filtre-insp-veh>` + script tag) · `sw.js` (precache + v414→v415).
+
+Tests : 436 pass (inchangé, pas de couverture unitaire ajoutée — drawer = pur DOM, exports = filtres déjà couverts indirectement par tests).
 
 ## 12. Équipe / Salariés
 

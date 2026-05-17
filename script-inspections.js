@@ -201,6 +201,7 @@ async function nettoyerPhotosInspectionsAnciennes(forceRun) {
 function afficherInspections() {
   let inspections = loadSafe('inspections', []);
   const salaries  = charger('salaries');
+  const vehicules = charger('vehicules');
   const container = document.getElementById('inspections-container');
   const filtreSal = document.getElementById('filtre-insp-sal')?.value || '';
   const range = getInspectionsPeriodeRange();
@@ -214,7 +215,36 @@ function afficherInspections() {
     salaries.forEach(s => { const opt = document.createElement('option'); opt.value = s.nom; opt.dataset.id = s.id; datalist.appendChild(opt); });
   }
 
+  // Onglet 11 (2026-05-17) : peupler select véhicules (drilldown)
+  const selVeh = document.getElementById('filtre-insp-veh');
+  if (selVeh && selVeh.options.length <= 1) {
+    const current = selVeh.value;
+    vehicules
+      .filter(v => v && v.immat)
+      .sort((a, b) => String(a.immat).localeCompare(String(b.immat), 'fr'))
+      .forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.id;
+        opt.textContent = v.immat + (v.modele ? ' — ' + v.modele : '');
+        selVeh.appendChild(opt);
+      });
+    if (current) selVeh.value = current;
+  }
+
   if (filtreSal)  inspections = inspections.filter(i => i.salId === filtreSal);
+
+  // Onglet 11 (2026-05-17) : filtre véhicule (par vehId ou fallback immat)
+  const filtreVeh = selVeh?.value || '';
+  if (filtreVeh) {
+    const vehTarget = vehicules.find(v => v.id === filtreVeh);
+    inspections = inspections.filter(i => {
+      if (i.vehId === filtreVeh) return true;
+      if (vehTarget && i.vehImmat && vehTarget.immat) {
+        return String(i.vehImmat).trim().toUpperCase() === String(vehTarget.immat).trim().toUpperCase();
+      }
+      return false;
+    });
+  }
 
   // Phase 58 polish (BUG-024) — filtre statut conforme / anomalies
   const filtreStatut = document.getElementById('filtre-insp-statut')?.value || '';
@@ -253,21 +283,23 @@ function afficherInspections() {
     if (ko.length <= 2) return ko.join(', ');
     return ko.slice(0, 2).join(', ') + ' +' + (ko.length - 2);
   }
+  // Onglet 11 (2026-05-17) — clic sur ligne ouvre drawer 360 inspection
+  // (bouton photo + bouton 🗑️ stop-propagation pour preserver leur action propre).
   const rows = inspections.map(insp => {
     const photos = getInspectionPhotoList(insp);
     const photoCount = photos.length;
     const sourceBadge = insp.source === 'admin' ? ' <span class="inspection-source-badge admin">Admin</span>' : '';
     return `
-      <tr class="row-hover" data-insp-id="${insp.id}">
+      <tr class="row-hover" data-insp-id="${insp.id}" style="cursor:pointer" onclick="window.ouvrirFiche360Inspection&&window.ouvrirFiche360Inspection('${insp.id}')">
         <td class="mono" style="white-space:nowrap">${formatDateExport(insp.date)}${insp.km ? ' · ' + parseInt(insp.km, 10).toLocaleString('fr-FR') + ' km' : ''}</td>
         <td>${insp.vehImmat || '—'}</td>
         <td>${insp.salNom || '—'}${sourceBadge}</td>
         <td>${photoCount > 0
-          ? `<button type="button" class="btn-link" style="background:none;border:none;color:var(--brand);cursor:pointer;font-size:.85rem;padding:0;text-decoration:underline" onclick="voirPhotoAdmin('${insp.id}',0)">${photoCount} photo${photoCount > 1 ? 's' : ''}</button>`
+          ? `<button type="button" class="btn-link" style="background:none;border:none;color:var(--brand);cursor:pointer;font-size:.85rem;padding:0;text-decoration:underline" onclick="event.stopPropagation();voirPhotoAdmin('${insp.id}',0)">${photoCount} photo${photoCount > 1 ? 's' : ''}</button>`
           : '<span style="color:var(--text-muted)">—</span>'}</td>
         <td>${defautsList(insp)}</td>
         <td>${statutBadge(insp)}</td>
-        <td style="text-align:right"><button class="btn-icon danger" onclick="supprimerInspectionAdmin('${insp.id}')" title="Supprimer">🗑️</button></td>
+        <td style="text-align:right"><button class="btn-icon danger" onclick="event.stopPropagation();supprimerInspectionAdmin('${insp.id}')" title="Supprimer">🗑️</button></td>
       </tr>`;
   }).join('');
 
@@ -424,6 +456,8 @@ async function supprimerInspectionAdmin(id) {
   const toutes = inspections.filter(i => i.id !== id);
   localStorage.setItem('inspections', JSON.stringify(toutes));
   ajouterEntreeAudit('Suppression inspection', (inspection.vehImmat || 'Inspection') + ' · ' + (inspection.date || ''));
+  // Onglet 11 — ferme drawer 360 inspection si ouvert (no-op si fermé)
+  try { if (typeof window.fermerFiche360Inspection === 'function') window.fermerFiche360Inspection(); } catch (_) {}
   afficherInspections();
   afficherToast('Inspection supprimée');
 }

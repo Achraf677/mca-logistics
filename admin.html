@@ -3984,7 +3984,11 @@
           <option value="defaut-mineur">Défaut mineur</option>
           <option value="defaut-majeur">Défaut majeur</option>
         </select>
-        <button type="button" class="btn-secondary" onclick="document.getElementById('filtre-insp-sal').value='';document.getElementById('filtre-insp-sal-input').value='';var s=document.getElementById('filtre-insp-statut');if(s)s.value='';afficherInspections()">Réinitialiser</button>
+        <!-- Onglet 11 (2026-05-17) : drilldown véhicule -->
+        <select id="filtre-insp-veh" onchange="if(typeof window.afficherInspections==='function')window.afficherInspections()" aria-label="Filtrer par véhicule">
+          <option value="">Tous véhicules</option>
+        </select>
+        <button type="button" class="btn-secondary" onclick="document.getElementById('filtre-insp-sal').value='';document.getElementById('filtre-insp-sal-input').value='';var s=document.getElementById('filtre-insp-statut');if(s)s.value='';var v=document.getElementById('filtre-insp-veh');if(v)v.value='';afficherInspections()">Réinitialiser</button>
       </div>
       <div id="inspections-container">
         <div class="card"><div class="modal-body" style="text-align:center;color:var(--text-muted)">Aucune inspection reçue</div></div>
@@ -5742,6 +5746,7 @@
   <script defer src="lazy-loader.js?v=20260509e-58"></script>
   <script defer src="lazy-stubs.js?v=20260509e-58"></script>
   <script defer src="script-inspections.js?v=20260509e-58"></script>
+  <script defer src="script-inspections-drawer-360.js?v=1"></script>
   <script defer src="script-incidents.js?v=20260516a-1"></script>
   <!-- Hub Equipe (Sprint 22 / H2.4) — wrapper qui agrege les 4 sous-domaines RH
        derriere une seule entree sidebar. Doit etre charge APRES

@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v414-planning-cle-canonique-plannings-normalize-absence';
+const CACHE_VERSION = 'mca-v2026-05-17-v415-inspections-drawer-360-filtre-vehicule-exports-filtres';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -309,6 +309,7 @@ const CORE_ASSETS = [
   '/supabase-storage-sync.js',
   '/repo.js',
   '/script-inspections.js',
+  '/script-inspections-drawer-360.js',
   '/script-incidents.js',
   '/script-equipe-hub.js',
   '/script-rentabilite.js',

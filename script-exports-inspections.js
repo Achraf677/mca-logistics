@@ -18,8 +18,41 @@
     } catch (_) { return d; }
   }
 
+  // Onglet 11 (2026-05-17) — applique les memes filtres que afficherInspections()
+  // pour que les exports PDF/CSV/Excel reflètent l'ecran (au lieu d'exporter
+  // toutes les inspections). isDateInRange et getInspectionsPeriodeRange sont
+  // exposes globalement par script-inspections.js / script-core-utils.
+  function applyActiveFilters(rows) {
+    if (typeof document === 'undefined') return rows;
+    var filtreSal = document.getElementById('filtre-insp-sal')?.value || '';
+    var filtreVeh = document.getElementById('filtre-insp-veh')?.value || '';
+    var filtreStatut = document.getElementById('filtre-insp-statut')?.value || '';
+    var vehs = lire('vehicules');
+    var vehTarget = filtreVeh ? vehs.find(function (v) { return v.id === filtreVeh; }) : null;
+    var range = (typeof window.getInspectionsPeriodeRange === 'function')
+      ? window.getInspectionsPeriodeRange()
+      : null;
+    return rows.filter(function (i) {
+      if (filtreSal && i.salId !== filtreSal) return false;
+      if (filtreVeh) {
+        var matchId = i.vehId === filtreVeh;
+        var matchImmat = vehTarget && i.vehImmat && vehTarget.immat
+          && String(i.vehImmat).trim().toUpperCase() === String(vehTarget.immat).trim().toUpperCase();
+        if (!matchId && !matchImmat) return false;
+      }
+      if (filtreStatut === 'conforme' && i.statut !== 'conforme') return false;
+      if (filtreStatut === 'defaut-mineur' || filtreStatut === 'defaut-majeur') {
+        if (i.statut !== 'avec_anomalies') return false;
+        var ko = Array.isArray(i.pointsKO) ? i.pointsKO.length : 0;
+        if (filtreStatut === 'defaut-majeur' ? ko < 3 : !(ko > 0 && ko < 3)) return false;
+      }
+      if (range && typeof window.isDateInRange === 'function' && !window.isDateInRange(i.date, range)) return false;
+      return true;
+    });
+  }
+
   function getRows() {
-    var inspections = lire('inspections');
+    var inspections = applyActiveFilters(lire('inspections'));
     return inspections.map(function (i) {
       var koCount = Array.isArray(i.pointsKO) ? i.pointsKO.length : 0;
       var statutLabel = i.statut === 'conforme' ? 'Conforme'
