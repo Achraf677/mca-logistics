@@ -4470,7 +4470,7 @@ kbd {
 }
 .filters-vehicules .btn-secondary {
   padding: 0 16px;
-  text-align: center;
+  text-align: left;
   font-weight: 500;
 }
 .filters-vehicules select:hover,
