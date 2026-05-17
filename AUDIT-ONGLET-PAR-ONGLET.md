@@ -22,7 +22,12 @@
   - ✅ Onglet 3 Calendrier (3 items + couleurs légende alignées + police Syne→DM Sans + topbar bas alignée logo sidebar)
   - ✅ Onglet 4 Planning (4 items : clé canonique `plannings`, migration boot R10, normalizeAbsence + migration boot R11, 10 tests unitaires ajoutés)
   - ✅ Onglet 5 Alertes (2 items déjà résolus en Phase 91.42 + 91.85, vérifications faites)
-- **Prochain onglet** : 6. Clients
+  - ✅ Onglet 6 Clients (2 items déjà résolus en Sprint 25, vérifications faites)
+  - ✅ Onglet 7 Fournisseurs (2 items déjà résolus en Sprint 25, vérifications faites)
+  - ✅ Onglet 8 Véhicules (1 item déjà résolu en Sprint 21, vérification faite)
+  - ✅ Onglet 9 Carburant (0 item, checklist cross-tab OK)
+  - ✅ Onglet 10 Entretiens (0 item, checklist cross-tab OK)
+- **Prochain onglet** : 11. Inspections
 - **Tests** : 436 pass · 0 fail (`npm test`)
 - **Sentry** : aucune erreur 24h (vérifié via MCP)
 
@@ -168,27 +173,44 @@ Tests : 436 pass · 0 fail (étaient 426 avant, +10 nouveaux).
 
 0 commit code (les 2 items étaient déjà résolus dans des phases antérieures, MD non mis à jour). Vérifications faites : `script-alertes.js:49`, `script-dashboard-attention.js:38-53`, `script-alertes-counts.js:8-67`. Tests inchangés (436 pass).
 
-## 6. Clients
+## 6. Clients ✅ TERMINÉ (2026-05-17)
 
-- [ ] Drawer 360 PC clients (mobile PR #33 a livré drawer mobile, PC = modal édition simple) [plan v9 H2.4]
-- [ ] Tables Clients add `class="card table-card"` [Agent A]
+- [x] Drawer 360 PC clients existe depuis Sprint 25 (`script-core-sprint25-drawer-360.js`, 5 onglets : Vue, Factures/Commandes, Livraisons/Charges, Paiements, Historique). `ouvrirFiche360Client(id)` + `refreshDrawerClient()` opérationnels (c'est même ce drawer qu'on a fait refresher correctement en Onglet 1 R8). L'audit MD était obsolète.
+- [x] Table Clients a déjà `class="card table-card"` (admin.html:1003).
+- [x] Checklist cross-tab : **A** topbar OK (`.title-row` premier enfant). **B** chip↔select OK (chips Tous/Actifs/Risque/Inactifs sync via `cliChipFilter`, pas de select correspondant). **C** drawer auto-refresh OK (`refreshDrawerClient` appelé après ajout/edit livraison + génération facture).
 
-## 7. Fournisseurs
+### Bilan Onglet 6 (✅ clôt 2026-05-17)
 
-- [ ] Drawer 360 PC fournisseurs (idem clients) [plan v9 H2.4]
-- [ ] Tables Fournisseurs add `class="card table-card"` [Agent A]
+0 commit code (2 items déjà résolus dans Sprint 25 + refonte HTML). Vérifications : `script-core-sprint25-drawer-360.js:57-61` + `admin.html:1003`. Tests inchangés (436 pass).
 
-## 8. Véhicules
+## 7. Fournisseurs ✅ TERMINÉ (2026-05-17)
 
-- [ ] Drawer 360 PC véhicules (mobile PR #32 livré, PC = modal édition) [plan v9 H2.4]
+- [x] Drawer 360 PC fournisseurs existe depuis Sprint 25 (`script-core-sprint25-drawer-360.js:337` `ouvrirFiche360Fournisseur(id)` + `refreshDrawerFournisseur()`). L'audit MD était obsolète.
+- [x] Table Fournisseurs a déjà `class="card table-card"` (admin.html:1081).
+- [x] Checklist cross-tab : **A** topbar OK (`.title-row` premier enfant). **B** chip↔select OK. **C** drawer auto-refresh OK.
 
-## 9. Carburant
+### Bilan Onglet 7 (✅ clôt 2026-05-17)
 
-- [ ] (rien d'identifié hier hors items transverses)
+0 commit code. Vérifications : `script-core-sprint25-drawer-360.js:337` + `admin.html:1081`. Tests inchangés (436 pass).
 
-## 10. Entretiens
+## 8. Véhicules ✅ TERMINÉ (2026-05-17)
 
-- [ ] (rien d'identifié hier hors items transverses)
+- [x] Drawer 360 PC véhicules existe depuis Sprint 21 (`script-core-sprint21-parc360.js:167` `ouvrirFiche360Vehicule(vehId)`). Réutilise l'infrastructure drawer #s20-drawer (RH 360). L'audit MD était obsolète.
+- [x] Checklist cross-tab : **A** topbar OK (`.title-row` premier enfant, admin.html:1107). **B** chip↔select OK. **C** drawer auto-refresh OK (auto-alertes Parc rejouent les badges).
+
+### Bilan Onglet 8 (✅ clôt 2026-05-17)
+
+0 commit code. Vérification : `script-core-sprint21-parc360.js:167`. Tests inchangés.
+
+## 9. Carburant ✅ TERMINÉ (2026-05-17)
+
+- [x] Aucun item d'audit dédié (sera couvert par transverse 24.B IDB + 24.E A11y).
+- [x] Checklist cross-tab : **A** topbar OK (`hub-subnav:first-child` couvert ligne 23 `style-refonte-utilities.css`). **B** chip↔select OK. **C** drawer auto-refresh : N/A (pas de drawer dédié, KPIs rafraîchis par mutateurs).
+
+## 10. Entretiens ✅ TERMINÉ (2026-05-17)
+
+- [x] Aucun item d'audit dédié.
+- [x] Checklist cross-tab : **A** topbar OK (même pattern `hub-subnav:first-child`). **B** chip↔select OK. **C** drawer auto-refresh : N/A.
 
 ## 11. Inspections
 
