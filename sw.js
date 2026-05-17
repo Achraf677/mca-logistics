@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v421-boutons-exporter-svg-blanc-fix';
+const CACHE_VERSION = 'mca-v2026-05-17-v422-harmonisation-polices-mono-design-system';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

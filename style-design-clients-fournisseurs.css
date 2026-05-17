@@ -247,7 +247,7 @@ tr[data-impaye="1"] td {
 .clients-table td:nth-child(3) {
   font-size: 0.82rem;
   white-space: nowrap;
-  font-family: var(--font-mono, 'DM Mono', monospace);
+  font-family: var(--ds-font-mono, var(--font-mono, 'JetBrains Mono', ui-monospace, monospace));
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
@@ -259,7 +259,7 @@ tr[data-impaye="1"] td {
 .fournisseurs-table td:nth-child(4) {
   font-size: 0.85rem;
   white-space: nowrap;
-  font-family: var(--font-mono, 'DM Mono', monospace);
+  font-family: var(--ds-font-mono, var(--font-mono, 'JetBrains Mono', ui-monospace, monospace));
   letter-spacing: 0.01em;
 }
 
@@ -275,7 +275,7 @@ tr[data-impaye="1"] td {
 .fournisseurs-table th:nth-child(6),
 .fournisseurs-table td:nth-child(6) {
   text-align: right;
-  font-family: var(--font-mono, 'DM Mono', monospace);
+  font-family: var(--ds-font-mono, var(--font-mono, 'JetBrains Mono', ui-monospace, monospace));
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
   font-size: 0.85rem;

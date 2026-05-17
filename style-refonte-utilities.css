@@ -324,7 +324,7 @@
   transition: width 0.6s cubic-bezier(.22,1,.36,1);
 }
 .stat-row .val {
-  font-family: var(--font-mono, "DM Mono", monospace);
+  font-family: var(--ds-font-mono, var(--font-mono, 'JetBrains Mono', ui-monospace, monospace));
   font-size: 12px;
   font-weight: 700;
   color: var(--text);

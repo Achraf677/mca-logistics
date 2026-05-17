@@ -374,7 +374,7 @@ td.km {
   border-radius: 6px;
 }
 
-#creds-chauffeur-mdp { font-family: monospace; }
+#creds-chauffeur-mdp { font-family: var(--ds-font-mono, var(--font-mono, monospace)); }
 
 .creds-warning-box {
   font-size: .78rem;
