@@ -38,7 +38,7 @@ function afficherFournisseursDashboard() {
     const impayees = chargesF.filter(c => !c.estPaye && c.statut !== 'payee' && c.statut !== 'payé');
     const aRegler = impayees.reduce((s, c) => s + (parseFloat(c.montant) || 0), 0);
     return `<tr>
-      <td><strong>${f.nom || '—'}</strong></td>
+      <td><button type="button" class="btn-link-inline" onclick="window.ouvrirFiche360Fournisseur && window.ouvrirFiche360Fournisseur('${f.id}')" title="Ouvrir la fiche fournisseur 360°" style="font-weight:700">${f.nom || '—'}</button></td>
       <td>${_sectBadge(f.secteur)}</td>
       <td>${f.ville || '—'}</td>
       <td>${f.tel || '—'}</td>
