@@ -2231,6 +2231,12 @@ function mettreAJourBadgeMsgSal() {
 /* ===== MODALS & TOAST ===== */
 function fermerModal(id){document.getElementById(id).classList.remove('open');}
 document.addEventListener('click',e=>{if(e.target.classList.contains('modal-overlay'))fermerModal(e.target.id);});
+// WCAG 2.1.1 : modal closable au clavier (Escape)
+document.addEventListener('keydown', function(e){
+  if (e.key !== 'Escape') return;
+  var openModal = document.querySelector('.modal-overlay.open');
+  if (openModal && openModal.id) fermerModal(openModal.id);
+});
 
 function toast(msg, type='success') {
   const el=document.getElementById('toast-sal');
