@@ -12,13 +12,16 @@
 
 ---
 
-## 🚀 État courant (mise à jour 2026-05-17)
+## 🚀 État courant (mise à jour 2026-05-17 — fin session)
 
 - **Branche** : `claude/html-refonte-cleanup`
-- **Dernier commit** : voir `git log` (le plus récent traite Onglet 1)
-- **CACHE_VERSION en cours** : voir `sw.js` ligne 8
-- **Onglet 1 Livraisons** : ✅ TERMINÉ (15 items cochés, dont 5 bugs trouvés via screenshots user du 2026-05-17)
-- **Prochain onglet** : 2. Dashboard
+- **Dernier commit** : `5d93701` (fix calendrier font Syne → DM Sans)
+- **CACHE_VERSION en cours** : `v413` (voir `sw.js` ligne 8)
+- **Onglets terminés** :
+  - ✅ Onglet 1 Livraisons (15 items + 5 bugs screenshots user)
+  - ✅ Onglet 2 Dashboard (4 items + bug Retard sur brouillons + barre Retard retirée + tooltips chart €)
+  - ✅ Onglet 3 Calendrier (3 items + couleurs légende alignées + police Syne→DM Sans + topbar bas alignée logo sidebar)
+- **Prochain onglet** : 4. Planning
 - **Tests** : 426 pass · 0 fail (`npm test`)
 - **Sentry** : aucune erreur 24h (vérifié via MCP)
 
@@ -27,7 +30,7 @@
 Si tu lances claude.ai/code ou une nouvelle session Claude Code, colle CE prompt :
 
 ```
-On reprend la refonte HTML MCA Logistics. Lis AUDIT-ONGLET-PAR-ONGLET.md (à la racine du repo) — c'est la source UNIQUE de vérité. Onglet 1 Livraisons est terminé. Continue à partir de l'Onglet 2 Dashboard, en respectant la règle d'engagement (un onglet à la fois, finir avant de passer au suivant, transverse seulement à la fin, aucun ajout hors MD). Vérifie aussi à chaque onglet la Checklist cross-tab A/B/C en tête de MD. Branche : claude/html-refonte-cleanup. Commit + push à chaque item, bump sw.js CACHE_VERSION à chaque release. Tests : `npm test` doit rester vert (426 pass minimum).
+On reprend la refonte HTML MCA Logistics. Lis AUDIT-ONGLET-PAR-ONGLET.md (à la racine du repo) — c'est la source UNIQUE de vérité. Onglets 1 (Livraisons), 2 (Dashboard) et 3 (Calendrier) sont terminés. Continue à partir de l'Onglet 4 Planning, en respectant la règle d'engagement (un onglet à la fois, finir avant de passer au suivant, transverse seulement à la fin, aucun ajout hors MD). Vérifie aussi à chaque onglet la Checklist cross-tab A/B/C en tête de MD. Avant d'attaquer, présente-moi le plan onglet par onglet en français simple et attends ma validation. Branche : claude/html-refonte-cleanup (déjà pushée à v413). Commit + push à chaque item, bump sw.js CACHE_VERSION à chaque release. Tests : `npm test` doit rester vert (426 pass minimum).
 ```
 
 ---
