@@ -263,7 +263,7 @@ tr[data-impaye="1"] td {
   font-variant-numeric: tabular-nums;
 }
 
-/* Amount columns — right-aligned + tabular-nums pour alignement chiffres */
+/* Amount columns — tabular-nums pour alignement chiffres */
 /* clients: CA 12m (5) + Encours (6) · fournisseurs: Dépenses (5) + À régler (6) */
 .clients-table th:nth-child(5),
 .clients-table td:nth-child(5),
@@ -273,9 +273,19 @@ tr[data-impaye="1"] td {
 .fournisseurs-table td:nth-child(5),
 .fournisseurs-table th:nth-child(6),
 .fournisseurs-table td:nth-child(6) {
-  text-align: right;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+}
+
+/* Phase 91.78 (2026-05-17) — user feedback : centre toutes les colonnes
+   (headers + cellules) pour cohérence visuelle complète. Avant : mix
+   gauche/droite (Nom gauche, CA/Encours droite, Statut gauche, Actions
+   centré) cassait la lisibilité par scanner vertical. */
+.clients-table th,
+.clients-table td,
+.fournisseurs-table th,
+.fournisseurs-table td {
+  text-align: center !important;
 }
 
 /* Phase 91.74 (2026-05-17) — Fix bug police HEADER mixte sur Carnet Client.
