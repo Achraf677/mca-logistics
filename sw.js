@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v435-vehicules-filtres-option-A-searchbar-large-3btn-uniformes';
+const CACHE_VERSION = 'mca-v2026-05-17-v436-vehicules-filtres-searchbar-collee-aux-boutons-1920px';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

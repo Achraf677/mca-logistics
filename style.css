@@ -4432,18 +4432,23 @@ kbd {
 /* Phase 91.85 (2026-05-17) — user feedback Option A : searchbar plus large
    (700px max), 3 boutons TOUS même taille (160-180px) et même style. Plus
    simple, lisible, sans complexifier l'UI. */
+/* Phase 91.86 (2026-05-17) — user feedback : sur 1920px la searchbar
+   n'était pas collée aux boutons (espace vide entre). Cause : 1fr étirait
+   la colonne grid à tout l'espace dispo, mais max-width:700px plafonnait
+   la searchbar dans cette colonne. Fix : minmax(320px, 700px) sur la
+   1ère colonne → la colonne s'auto-limite à 700px, les boutons collent. */
 .filters-vehicules {
   display: grid;
-  grid-template-columns: minmax(320px, 1fr) minmax(160px, 180px) minmax(160px, 180px) minmax(160px, 180px);
+  grid-template-columns: minmax(320px, 700px) minmax(160px, 180px) minmax(160px, 180px) minmax(160px, 180px);
   gap: 10px;
   align-items: center;
   margin-top: 14px;
   margin-bottom: 14px;
+  justify-content: start;
 }
 .filters-vehicules .searchbar {
   min-width: 0;
   width: 100%;
-  max-width: 700px;
   height: 38px;
 }
 .filters-vehicules .searchbar input {
