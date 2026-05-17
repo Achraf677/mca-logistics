@@ -404,3 +404,53 @@ tr[data-impaye="1"] td {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ============================================================
+   Fix dropdown Actions tronqué (Onglet 6/7 re-vérification 2026-05-17)
+   ============================================================
+   Sans `overflow: visible` sur le card + table-wrapper + dernière td,
+   le menu `.inline-dropdown-menu` (position: absolute) était clipé par
+   le wrapper → effet "fausse sidebar scrollable bugée".
+   Même pattern que `.vehicules-table-card` (style.css:4506-4538). */
+#page-clients .card.table-card,
+#page-fournisseurs .card.table-card {
+  overflow: visible;
+}
+#page-clients .card.table-card .table-wrapper,
+#page-fournisseurs .card.table-card .table-wrapper {
+  overflow: visible;
+}
+.clients-table td:last-child,
+.clients-table th:last-child,
+.fournisseurs-table td:last-child,
+.fournisseurs-table th:last-child {
+  overflow: visible;
+  position: relative;
+}
+.clients-table .inline-dropdown-menu,
+.fournisseurs-table .inline-dropdown-menu {
+  min-width: 220px;
+  max-width: 260px;
+  z-index: 160;
+}
+
+/* ============================================================
+   Alignement typo headers sur le tableau Livraisons (user feedback)
+   ============================================================
+   Le tableau Clients héritait de .data-table mais avait une teinte
+   plus douce sur les headers + le tri actif passait en rouge brand.
+   On aligne sur le style Livraisons : headers blanc-muted lisibles. */
+.clients-table thead th,
+.fournisseurs-table thead th {
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.clients-table tbody td,
+.fournisseurs-table tbody td {
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
+  font-size: 0.88rem;
+}

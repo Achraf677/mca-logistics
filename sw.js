@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v417-stats-source-salaries-supabase-priorite';
+const CACHE_VERSION = 'mca-v2026-05-17-v418-clients-dropdown-overflow-fix-typo-aligne-livraisons';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
