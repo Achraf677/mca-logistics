@@ -277,16 +277,26 @@
       .map(f => {
         const s = soldeFact(f);
         const pillCls = f.statut === 'payée' || s <= 0.01 ? 'pill-ok' : (s > 0 ? 'pill-due' : 'pill-neutral');
-        // Audit 2026-05-17 — dropdown documents liés (BL + LDV) par facture, sans changer de page.
+        // Audit 2026-05-17 — dropdown documents liés (BL + CMR + réimprimer facture) par facture.
+        // Utilise les classes design system .ds-dropdown-menu + .ds-menu-item + .ds-export-btn
+        // pour rester visuellement cohérent avec les autres dropdowns (Exporter, Générer).
         const livId = f.livId || '';
         const dropdownId = 's25-fact-menu-' + esc(f.id || '');
+        const _ic = function(d){ return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+d+'</svg>'; };
+        const _icBL = _ic('<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>');
+        const _icCMR = _ic('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/>');
+        const _icFact = _ic('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>');
+        const _icCaret = _ic('<polyline points="6 9 12 15 18 9"/>');
         const docMenu = livId
-          ? '<div class="s25-doc-dd" style="position:relative;display:inline-block">'
-            + '<button type="button" class="s25-btn-sm" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById(\''+dropdownId+'\');var o=m.style.display!==\'block\';m.style.display=o?\'block\':\'none\';b.setAttribute(\'aria-expanded\',o);document.addEventListener(\'click\',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.style.display=\'none\';b.setAttribute(\'aria-expanded\',\'false\');document.removeEventListener(\'click\',h)}},{once:true});})(this)" title="Documents liés">📎 ▾</button>'
-            + '<div id="'+dropdownId+'" class="s25-doc-menu" style="display:none;position:absolute;right:0;top:100%;z-index:10;background:var(--bg-elevated,#22262d);border:1px solid var(--border,#3a4150);border-radius:8px;padding:6px;min-width:200px;box-shadow:0 6px 20px rgba(0,0,0,.4)">'
-            + '<button type="button" class="s25-doc-item" style="display:block;width:100%;text-align:left;padding:8px 10px;background:transparent;border:0;color:inherit;cursor:pointer;border-radius:4px" onclick="window.s25OuvrirDocFacture(\''+livId+'\',\'bl\')">📦 Bon de livraison</button>'
-            + '<button type="button" class="s25-doc-item" style="display:block;width:100%;text-align:left;padding:8px 10px;background:transparent;border:0;color:inherit;cursor:pointer;border-radius:4px" onclick="window.s25OuvrirDocFacture(\''+livId+'\',\'cmr\')">📋 Lettre de voiture (CMR)</button>'
-            + '<button type="button" class="s25-doc-item" style="display:block;width:100%;text-align:left;padding:8px 10px;background:transparent;border:0;color:inherit;cursor:pointer;border-radius:4px;border-top:1px solid var(--border,#3a4150);margin-top:4px;padding-top:10px" onclick="window.s25OuvrirDocFacture(\''+livId+'\',\'facture\')">🧾 Facture (réimprimer)</button>'
+          ? '<div class="ds-export-wrap" style="position:relative;display:inline-block">'
+            + '<button type="button" class="btn-secondary ds-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById(\''+dropdownId+'\');var o=m.classList.toggle(\'open\');b.setAttribute(\'aria-expanded\',o);document.addEventListener(\'click\',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove(\'open\');b.setAttribute(\'aria-expanded\',\'false\');document.removeEventListener(\'click\',h)}},{once:true});})(this)" title="Documents liés à cette facture" style="padding:6px 10px;font-size:.78rem">'
+              + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>'
+              + '<span class="ds-export-caret">' + _icCaret + '</span>'
+            + '</button>'
+            + '<div id="'+dropdownId+'" class="ds-dropdown-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:50">'
+              + '<button type="button" class="ds-menu-item" role="menuitem" onclick="document.getElementById(\''+dropdownId+'\').classList.remove(\'open\');window.s25OuvrirDocFacture(\''+livId+'\',\'bl\')">' + _icBL + '<span>Bon de livraison</span></button>'
+              + '<button type="button" class="ds-menu-item" role="menuitem" onclick="document.getElementById(\''+dropdownId+'\').classList.remove(\'open\');window.s25OuvrirDocFacture(\''+livId+'\',\'cmr\')">' + _icCMR + '<span>Lettre de voiture (CMR)</span></button>'
+              + '<button type="button" class="ds-menu-item" role="menuitem" onclick="document.getElementById(\''+dropdownId+'\').classList.remove(\'open\');window.s25OuvrirDocFacture(\''+livId+'\',\'facture\')">' + _icFact + '<span>Facture (réimprimer)</span></button>'
             + '</div></div>'
           : '<span style="color:var(--text-muted)">—</span>';
         return '<tr><td>'+fmtDate(f.dateFacture||f.date)+'</td><td><strong>'+esc(f.numero||'—')+'</strong></td><td>'+fmtEur(f.montantTTC||f.totalTTC||0)+'</td><td style="color:'+(s>0?'#ef4444':'inherit')+'">'+fmtEur(s)+'</td><td><span class="s25-pill '+pillCls+'">'+esc(labelStatutFacture(f.statut))+'</span></td><td style="text-align:right">'+docMenu+'</td></tr>';
