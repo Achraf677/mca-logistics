@@ -326,7 +326,7 @@ td.km {
 
 .member-stats .stat-value {
   font-weight: 600;
-  font-family: var(--font-mono, var(--ds-font-mono));
+  font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
   font-size: 12px;
 }
 
@@ -374,7 +374,7 @@ td.km {
   border-radius: 6px;
 }
 
-#creds-chauffeur-mdp { font-family: monospace; }
+#creds-chauffeur-mdp { font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace); }
 
 .creds-warning-box {
   font-size: .78rem;

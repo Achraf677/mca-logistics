@@ -13,6 +13,10 @@
   <meta name="robots" content="noindex, nofollow" />
   <title>MCA Logistics — Espace Salarié</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
+  <!-- Phase 91.71 (2026-05-17) — Polices Google Fonts (parité admin.html + m.html, fix bypass DS salarie.html utilisait -apple-system hardcodé) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Phase 91.78 : import design tokens (purement additif, ne casse pas les --bg/--accent existants) -->
   <link rel="stylesheet" href="/style-tokens.css?v=3" />
   <style>
@@ -43,7 +47,8 @@
 html, body {
   height: 100%;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  /* Phase 91.71 (2026-05-17) — fix bypass DS : utilise --ds-font-body (DM Sans) au lieu de hardcode Apple/Segoe */
+  font-family: var(--ds-font-body, 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;

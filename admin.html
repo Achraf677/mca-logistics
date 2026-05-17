@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://browser.sentry-cdn.com" crossorigin>
   <link rel="dns-prefetch" href="https://o4511305319907328.ingest.de.sentry.io">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="preload" as="style" href="style.css?v=20260516e-91-54-1">
+  <link rel="preload" as="style" href="style.css?v=20260517a-91-86">
   <link rel="preload" as="script" href="script.js?v=20260516c-91-50">
   <!-- Phase 91.54 I.3 : ajout JetBrains Mono (était dans tokens mais non chargée → fallback Courier ressenti "police robot") -->
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -53,7 +53,7 @@
   </style>
   <!-- Design system tokens (Phase 4 / PR-1) — prefixe --ds-* purement additif. N'ecrase aucun token existant (--accent, --bg-card, etc.). Inerte tant qu'aucun selecteur ne consomme --ds-*. -->
   <link rel="stylesheet" href="style-tokens.css?v=3" />
-  <link rel="stylesheet" href="style.css?v=20260516e-91-54-1" />
+  <link rel="stylesheet" href="style.css?v=20260517a-91-86" />
   <!-- Design shell (Phase 4 / PR-2) — restyle sidebar + topbar avec --ds-*. CSS-only, aucun changement HTML. Charge APRES style.css pour gagner la cascade. -->
   <link rel="stylesheet" href="style-design-shell.css?v=1" />
   <!-- Design dashboard (Phase 4 / PR-4) — restyle KPIs + hero-sante + cards + tables + buttons avec --ds-*. CSS-only. -->
@@ -1080,10 +1080,10 @@
       </div>
       <div class="card table-card">
         <div class="table-wrapper">
-          <!-- H11 mockup-aligned : NOM / CATÉGORIE / VILLE / TEL / DÉPENSES 12M / À RÉGLER / ACTIONS -->
+          <!-- Phase 91.80 (2026-05-17) — parité ordre colonnes client : NOM / VILLE / SIREN / TEL / EMAIL / DÉPENSES 12M / À RÉGLER / ACTIONS. Email = petite colonne contact+email muted. Catégorie retirée (peu utilisée, faisait redondance avec secteur en gras nom). -->
           <table class="data-table fournisseurs-table">
-            <thead><tr><th>Nom</th><th>Catégorie</th><th class="frn-col-ville">Ville</th><th class="frn-col-tel">Téléphone</th><th>Dépenses 12m</th><th>À régler</th><th class="frn-col-actions">Actions</th></tr></thead>
-            <tbody id="tb-fournisseurs"><tr><td colspan="7" class="empty-row">Aucun fournisseur enregistré</td></tr></tbody>
+            <thead><tr><th>Nom</th><th class="frn-col-ville">Ville</th><th class="frn-col-siren">SIREN</th><th class="frn-col-tel">Téléphone</th><th class="frn-col-email">Email</th><th>Dépenses 12m</th><th>À régler</th><th class="frn-col-actions">Actions</th></tr></thead>
+            <tbody id="tb-fournisseurs"><tr><td colspan="8" class="empty-row">Aucun fournisseur enregistré</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1093,13 +1093,7 @@
          VÉHICULES                                : Flotte : immatriculation, CT, kms, finances par véhicule
          ============================================================ -->
     <section class="page" id="page-vehicules">
-      <!-- Phase 91.70 : sub-nav Parc auto (passe à une page sœur sans rouvrir la sidebar) -->
-      <nav class="hub-subnav" aria-label="Sous-navigation Parc auto">
-        <a href="#" class="hub-subnav__tab" data-page="vehicules">Véhicules</a>
-        <a href="#" class="hub-subnav__tab" data-page="carburant">Carburant</a>
-        <a href="#" class="hub-subnav__tab" data-page="entretiens">Entretiens</a>
-        <a href="#" class="hub-subnav__tab" data-page="inspections">Inspections</a>
-      </nav>
+      <!-- Phase 91.81 (2026-05-17) — hub-subnav retiré : doublon avec la card "PARC AUTO" Sprint 22 injectée dynamiquement en haut (4 boutons Véhicules/Carburant/Entretiens/Inspections). -->
 
       <!-- Phase 91.54 I.10 : breadcrumb retiré (page niveau 1 sidebar, le retour n'a pas de sens) -->
 
@@ -1186,13 +1180,7 @@
          CARBURANT                                : Suivi pleins, anomalies, prix moyen, TVA déductible
          ============================================================ -->
     <section class="page" id="page-carburant">
-      <!-- Phase 91.70 : sub-nav Parc auto (passe à une page sœur sans rouvrir la sidebar) -->
-      <nav class="hub-subnav" aria-label="Sous-navigation Parc auto">
-        <a href="#" class="hub-subnav__tab" data-page="vehicules">Véhicules</a>
-        <a href="#" class="hub-subnav__tab" data-page="carburant">Carburant</a>
-        <a href="#" class="hub-subnav__tab" data-page="entretiens">Entretiens</a>
-        <a href="#" class="hub-subnav__tab" data-page="inspections">Inspections</a>
-      </nav>
+      <!-- Phase 91.81 (2026-05-17) — hub-subnav retiré : doublon avec la card "PARC AUTO" Sprint 22 injectée dynamiquement en haut (4 boutons Véhicules/Carburant/Entretiens/Inspections). -->
 
       <!-- Phase 7 refonte HTML : title-row -->
       <div class="title-row">
@@ -3313,13 +3301,7 @@
          ENTRETIENS                               : Carnet d'entretien véhicules
          ============================================================ -->
     <section class="page" id="page-entretiens">
-      <!-- Phase 91.70 : sub-nav Parc auto (passe à une page sœur sans rouvrir la sidebar) -->
-      <nav class="hub-subnav" aria-label="Sous-navigation Parc auto">
-        <a href="#" class="hub-subnav__tab" data-page="vehicules">Véhicules</a>
-        <a href="#" class="hub-subnav__tab" data-page="carburant">Carburant</a>
-        <a href="#" class="hub-subnav__tab" data-page="entretiens">Entretiens</a>
-        <a href="#" class="hub-subnav__tab" data-page="inspections">Inspections</a>
-      </nav>
+      <!-- Phase 91.81 (2026-05-17) — hub-subnav retiré : doublon avec la card "PARC AUTO" Sprint 22 injectée dynamiquement en haut (4 boutons Véhicules/Carburant/Entretiens/Inspections). -->
 
       <!-- Phase 7 refonte HTML : title-row -->
       <div class="title-row">
@@ -3894,13 +3876,7 @@
       </div>
     </section>
     <section class="page" id="page-inspections">
-      <!-- Phase 91.70 : sub-nav Parc auto (passe à une page sœur sans rouvrir la sidebar) -->
-      <nav class="hub-subnav" aria-label="Sous-navigation Parc auto">
-        <a href="#" class="hub-subnav__tab" data-page="vehicules">Véhicules</a>
-        <a href="#" class="hub-subnav__tab" data-page="carburant">Carburant</a>
-        <a href="#" class="hub-subnav__tab" data-page="entretiens">Entretiens</a>
-        <a href="#" class="hub-subnav__tab" data-page="inspections">Inspections</a>
-      </nav>
+      <!-- Phase 91.81 (2026-05-17) — hub-subnav retiré : doublon avec la card "PARC AUTO" Sprint 22 injectée dynamiquement en haut (4 boutons Véhicules/Carburant/Entretiens/Inspections). -->
 
       <!-- Phase 91.66 : title-row supprimé (h1 statique doublon de la section-head h2 ci-dessous) -->
 
@@ -5688,7 +5664,7 @@
   <!-- Phase X.CB-CD : 3 modules admin legacy -->
   <script defer src="script-core-admin-legacy-rentabilite-stats.js?v=1"></script>
   <script defer src="script-core-admin-legacy-planning-semaine.js?v=1"></script>
-  <script defer src="script-core-admin-final-lock-iife.js?v=1"></script>
+  <!-- Phase 91.72 (2026-05-17) — script-core-admin-final-lock-iife.js supprimé : __adminFinalLock défini mais jamais appelé, lock.js définit les fonctions au scope global directement (133 lignes mortes éliminées) -->
   <!-- Phase X.CE-CG : Top-level BUG fixes IIFEs (double-click guard + lifecycle + storage patches) -->
   <script defer src="script-core-bug-014-double-click-guard.js?v=1"></script>
   <script defer src="script-core-bug-018-lifecycle-patches.js?v=1"></script>

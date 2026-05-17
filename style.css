@@ -260,7 +260,7 @@ body.app-shell.app-booting .main-content {
   color: var(--text-muted, #7c8299);
   opacity: 0.55;
   letter-spacing: 0.02em;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
   user-select: text;
   user-select: text;
   user-select: text;
@@ -549,6 +549,12 @@ body.role-salarie-unified .page:not(.active) {
 .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .data-table thead { background: rgba(255,255,255,0.03); }
 .data-table th { padding: 11px 14px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+/* Phase 91.74 (2026-05-17) — fix bordures non arrondies en haut des tables :
+   .table-card a overflow:visible (pour dropdowns Actions), donc le thead
+   sort des coins arrondis du .card parent. On force les coins du premier
+   et dernier th à matcher le radius parent. */
+.card.table-card .data-table thead tr:first-child th:first-child { border-top-left-radius: calc(var(--radius) - 1px); }
+.card.table-card .data-table thead tr:first-child th:last-child { border-top-right-radius: calc(var(--radius) - 1px); }
 .data-table td { padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
 .data-table td:last-child { overflow: visible; position: relative; }
 .data-table tbody tr:hover { background: rgba(255,255,255,0.02); }
@@ -578,7 +584,7 @@ body.role-salarie-unified .page:not(.active) {
 .badge.warn  { background: var(--ds-warning-soft, rgba(255,214,10,0.16)); color: var(--ds-warning, #ffd60a); }
 .badge.alert { background: rgba(230,57,70,0.15);  color: var(--brand, #e63946); }
 /* Utility classes : .mono (chiffres tabulaires N°/montants/dates) — slashed-zero pour distinguer 0/O */
-td.mono, .mono { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-variant-numeric: tabular-nums slashed-zero; }
+td.mono, .mono { font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace); font-variant-numeric: tabular-nums slashed-zero; }
 .badge-attente  { background: rgba(230,57,70,0.15); color: var(--accent); }
 .badge-cours    { background: rgba(52,152,219,0.15); color: var(--blue); }
 .badge-livre    { background: rgba(46,204,113,0.15); color: var(--green); }
@@ -809,7 +815,7 @@ body.light-mode .searchbar-clear:hover {
   color: var(--text-primary);
   border-bottom: 1px solid rgba(255,255,255,0.03);
 }
-.cr-ligne span:last-child { font-weight: 600; font-family: monospace; font-size: 0.92rem; }
+.cr-ligne span:last-child { font-weight: 600; font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace); font-size: 0.92rem; }
 
 .cr-ligne.sub-charge {
   padding-left: 16px;
@@ -826,7 +832,7 @@ body.light-mode .searchbar-clear:hover {
   border-top: 1px solid var(--border);
   margin-top: 8px;
 }
-.cr-total span:last-child { font-family: monospace; font-size: 0.95rem; }
+.cr-total span:last-child { font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace); font-size: 0.95rem; }
 
 .cr-section.resultat {
   background: rgba(230,57,70,0.04);
@@ -840,7 +846,7 @@ body.light-mode .searchbar-clear:hover {
   padding: 8px 0 6px;
   letter-spacing: 0.5px;
 }
-.cr-resultat-line span:last-child { font-family: monospace; }
+.cr-resultat-line span:last-child { font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace); }
 
 .cr-marge-line {
   display: flex;
@@ -2471,7 +2477,7 @@ body.light-mode .stat-pill { background: #fff; border-color: rgba(0,0,0,0.08); }
   letter-spacing: .5px;
 }
 .cmd-action-hint {
-  font-family: var(--font-mono, ui-monospace, Menlo, monospace);
+  font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
   font-size: .72rem;
   color: var(--text-muted, var(--muted, #9ca3af));
   padding: 2px 6px;
@@ -2731,7 +2737,7 @@ kbd {
   border-radius: 4px;
   padding: 1px 6px;
   font-size: .72rem;
-  font-family: monospace;
+  font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
   color: var(--text-muted);
 }
 
@@ -4423,15 +4429,54 @@ kbd {
   font-size: .82rem;
   color: var(--text-muted);
 }
+/* Phase 91.85 (2026-05-17) — user feedback Option A : searchbar plus large
+   (700px max), 3 boutons TOUS même taille (160-180px) et même style. Plus
+   simple, lisible, sans complexifier l'UI. */
+/* Phase 91.86 (2026-05-17) — user feedback : sur 1920px la searchbar
+   n'était pas collée aux boutons (espace vide entre). Cause : 1fr étirait
+   la colonne grid à tout l'espace dispo, mais max-width:700px plafonnait
+   la searchbar dans cette colonne. Fix : minmax(320px, 700px) sur la
+   1ère colonne → la colonne s'auto-limite à 700px, les boutons collent. */
 .filters-vehicules {
   display: grid;
-  grid-template-columns: minmax(300px, 1fr) minmax(220px, 260px) auto;
-  gap: 12px;
+  grid-template-columns: minmax(320px, 700px) minmax(160px, 180px) minmax(160px, 180px) minmax(160px, 180px);
+  gap: 10px;
   align-items: center;
+  margin-top: 14px;
+  margin-bottom: 14px;
+  justify-content: start;
 }
 .filters-vehicules .searchbar {
   min-width: 0;
   width: 100%;
+  height: 38px;
+}
+.filters-vehicules .searchbar input {
+  font-size: 0.86rem;
+}
+.filters-vehicules select,
+.filters-vehicules .btn-secondary {
+  height: 38px;
+  font-size: 0.86rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.filters-vehicules select {
+  padding: 0 32px 0 12px;
+}
+.filters-vehicules .btn-secondary {
+  padding: 0 16px;
+  text-align: left;
+  font-weight: 500;
+}
+.filters-vehicules select:hover,
+.filters-vehicules .btn-secondary:hover {
+  border-color: var(--ds-border-strong, var(--text-muted));
+  background-color: rgba(255,255,255,0.03);
 }
 #tb-budget-encaissements td:last-child,
 #tb-budget-decaissements td:last-child {
@@ -4440,8 +4485,11 @@ kbd {
 
 @media (width <= 1180px) {
   .filters-vehicules {
-    grid-template-columns: 1fr 240px auto;
+    /* Phase 91.85 — responsive : searchbar pleine 1ère ligne, 3 boutons même taille 2ème ligne */
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-areas: "search search search" "sel1 sel2 reset";
   }
+  .filters-vehicules .searchbar { grid-area: search; max-width: none; }
 }
 
 @media (width <= 900px) {
@@ -6858,7 +6906,7 @@ body.light-mode .s15-modal-info-box {
   background: rgba(255,255,255,0.08);
   border-radius: 4px;
   font-size: 0.75rem;
-  font-family: monospace;
+  font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
   color: var(--text-muted);
 }
 .s15-palette-results {
@@ -6930,7 +6978,7 @@ body.light-mode .s15-modal-info-box {
   padding: 1px 6px;
   background: rgba(255,255,255,0.08);
   border-radius: 3px;
-  font-family: monospace;
+  font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
   font-size: 0.72rem;
   margin: 0 3px;
 }
@@ -8366,7 +8414,7 @@ body.light-mode .s24-toggle-switch { background: #d1d5db; }
 .s25-rule-card { padding: 14px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; transition: border-color .15s ease; }
 .s25-rule-card.on { border-color: rgba(99,102,241,0.4); }
 .s25-rule-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.s25-rule-meta { font-size: .8rem; color: var(--text-muted); margin-top: 3px; font-family: monospace; }
+.s25-rule-meta { font-size: .8rem; color: var(--text-muted); margin-top: 3px; font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace); }
 .s25-rule-actions { display: flex; align-items: center; gap: 10px; }
 .s25-rule-toggle { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
 .s25-rule-toggle input { position: absolute; opacity: 0; pointer-events: none; }
@@ -8420,7 +8468,7 @@ body.light-mode .s25-tl-item, body.light-mode .s25-infos > div { background: #f8
 .s26-tl-evt-acteur { font-size: .82rem; color: var(--text-muted); }
 .s26-tl-evt-statut { font-size: .72rem; padding: 2px 8px; border-radius: 999px; background: rgba(99,102,241,0.1); color: var(--primary, #6366f1); font-weight: 600; }
 .s26-tl-evt-details { font-size: .84rem; color: var(--text-muted); }
-.s26-tl-evt-ref { font-size: .74rem; color: #94a3b8; font-family: monospace; margin-top: 3px; }
+.s26-tl-evt-ref { font-size: .74rem; color: #94a3b8; font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace); margin-top: 3px; }
 .s26-tl-evt-time { font-size: .76rem; color: var(--text-muted); white-space: nowrap; }
 .s26-tl-empty { text-align: center; padding: 40px 20px; color: var(--text-muted); font-style: italic; }
 

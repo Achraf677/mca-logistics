@@ -226,77 +226,110 @@ tr[data-impaye="1"] td {
 /* Clients     : Nom(1) Ville(2) SIREN(3) Tel(4) CA12m(5) Encours(6) Statut(7) Actions(8) */
 /* Fournisseurs: Nom(1) Catégorie(2) Ville(3) Tel(4) Dépenses(5) À régler(6) Actions(7) */
 
-/* Ville — clients col 2 */
+/* Phase 91.77 (2026-05-17) — user feedback "fait une détection complète de
+   ce qui n'est pas harmonisé". Audit : 4 blocs CSS forçaient des font-size
+   différents (0.82-0.85rem) ET monospace sur certaines colonnes (SIREN/Tel),
+   créant un mix visuel avec Nom/Statut/Actions hérités de la règle générale
+   .clients-table tbody td (0.88rem DM Sans, ligne 468+).
+
+   Fix : retire toutes les font-family/font-size hardcodées par colonne.
+   Conserve uniquement les propriétés visuelles utiles (color muted ville,
+   white-space nowrap, text-align right pour montants, tabular-nums pour
+   alignement chiffres). Tout hérite désormais de la règle tbody td. */
+
+/* Phase 91.80 (2026-05-17) — Parité ordre colonnes fournisseurs ↔ clients :
+   Nom(1) Ville(2) SIREN(3) Tel(4) Email(5) Montant1(6) Montant2(7) Actions(8). */
+
+/* Ville — col 2 (clients + fournisseurs) — color muted */
 .clients-table th.cli-col-ville,
-.clients-table td:nth-child(2) {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-/* Ville — fournisseurs col 3 */
+.clients-table td:nth-child(2),
 .fournisseurs-table th.frn-col-ville,
-.fournisseurs-table td:nth-child(3) {
-  font-size: 0.85rem;
+.fournisseurs-table td:nth-child(2) {
   color: var(--text-muted);
   white-space: nowrap;
 }
 
-/* SIREN — clients col 3 — monospace */
+/* SIREN — col 3 (clients + fournisseurs) — nowrap + tabular-nums */
 .clients-table th.cli-col-siren,
-.clients-table td:nth-child(3) {
-  font-size: 0.82rem;
+.clients-table td:nth-child(3),
+.fournisseurs-table th.frn-col-siren,
+.fournisseurs-table td:nth-child(3) {
   white-space: nowrap;
-  font-family: var(--font-mono, 'DM Mono', monospace);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
 
-/* Téléphone — clients col 4, fournisseurs col 4 */
+/* Téléphone — col 4 (clients + fournisseurs) — nowrap */
 .clients-table th.cli-col-tel,
 .clients-table td:nth-child(4),
 .fournisseurs-table th.frn-col-tel,
 .fournisseurs-table td:nth-child(4) {
-  font-size: 0.85rem;
   white-space: nowrap;
-  font-family: var(--font-mono, 'DM Mono', monospace);
-  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Amount columns — right-aligned monospace */
-/* clients: CA 12m (5) + Encours (6) */
-/* fournisseurs: Dépenses 12m (5) + À régler (6) */
+/* Email — col 5 fournisseurs seul (clients pas d'email visible) — wrap allowed */
+.fournisseurs-table th.frn-col-email,
+.fournisseurs-table td:nth-child(5) {
+  word-break: break-all;
+  max-width: 220px;
+}
+
+/* Amount columns — tabular-nums pour alignement chiffres */
+/* clients: CA 12m (5) + Encours (6) · fournisseurs: Dépenses (6) + À régler (7) */
 .clients-table th:nth-child(5),
 .clients-table td:nth-child(5),
 .clients-table th:nth-child(6),
 .clients-table td:nth-child(6),
-.fournisseurs-table th:nth-child(5),
-.fournisseurs-table td:nth-child(5),
 .fournisseurs-table th:nth-child(6),
-.fournisseurs-table td:nth-child(6) {
-  text-align: right;
-  font-family: var(--font-mono, 'DM Mono', monospace);
+.fournisseurs-table td:nth-child(6),
+.fournisseurs-table th:nth-child(7),
+.fournisseurs-table td:nth-child(7) {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
-  font-size: 0.85rem;
 }
 
-/* Actions column — centered + compact */
+/* Phase 91.79 (2026-05-17) — user feedback : aligne tout à gauche (au lieu
+   du centre v429) pour scan vertical naturel lecture FR. Les largeurs de
+   colonnes restent inchangées (text-align n'affecte pas la largeur). */
+.clients-table th,
+.clients-table td,
+.fournisseurs-table th,
+.fournisseurs-table td {
+  text-align: left !important;
+}
+
+/* Phase 91.74 (2026-05-17) — Fix bug police HEADER mixte sur Carnet Client.
+   Les règles monospace ci-dessus (SIREN/Tel/CA/Encours) ciblaient th + td,
+   ce qui forçait JetBrains Mono sur les libellés de header. Le header doit
+   rester en DM Sans (cohérence typo). Override final, n'impacte QUE thead. */
+/* Phase 91.76 (2026-05-17) — user feedback : font-size aussi mixte sur les
+   th (0.82-0.85rem sur Ville/SIREN/Tel/CA/Encours vs 0.75rem défaut
+   data-table sur Nom/Statut/Actions). Force toutes les colonnes à 0.75rem
+   pour cohérence header complète. */
+.clients-table thead th,
+.fournisseurs-table thead th {
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif) !important;
+  font-size: 0.75rem !important;
+}
+
+/* Actions column — clients col 8, fournisseurs col 8 (parité v91.80) — compact */
 .clients-table th.cli-col-actions,
 .clients-table td:nth-child(8),
 .fournisseurs-table th.frn-col-actions,
-.fournisseurs-table td:nth-child(7) {
-  text-align: center;
+.fournisseurs-table td:nth-child(8) {
   width: 80px;
 }
 
-/* Responsive: hide Ville + SIREN on narrow screens */
+/* Responsive: hide Ville + SIREN on narrow screens (clients + fournisseurs col 2/3) */
 @media (max-width: 900px) {
   .clients-table th.cli-col-ville,
   .clients-table td:nth-child(2),
   .clients-table th.cli-col-siren,
   .clients-table td:nth-child(3),
   .fournisseurs-table th.frn-col-ville,
+  .fournisseurs-table td:nth-child(2),
+  .fournisseurs-table th.frn-col-siren,
   .fournisseurs-table td:nth-child(3) {
     display: none !important;
   }
@@ -403,4 +436,54 @@ tr[data-impaye="1"] td {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ============================================================
+   Fix dropdown Actions tronqué (Onglet 6/7 re-vérification 2026-05-17)
+   ============================================================
+   Sans `overflow: visible` sur le card + table-wrapper + dernière td,
+   le menu `.inline-dropdown-menu` (position: absolute) était clipé par
+   le wrapper → effet "fausse sidebar scrollable bugée".
+   Même pattern que `.vehicules-table-card` (style.css:4506-4538). */
+#page-clients .card.table-card,
+#page-fournisseurs .card.table-card {
+  overflow: visible;
+}
+#page-clients .card.table-card .table-wrapper,
+#page-fournisseurs .card.table-card .table-wrapper {
+  overflow: visible;
+}
+.clients-table td:last-child,
+.clients-table th:last-child,
+.fournisseurs-table td:last-child,
+.fournisseurs-table th:last-child {
+  overflow: visible;
+  position: relative;
+}
+.clients-table .inline-dropdown-menu,
+.fournisseurs-table .inline-dropdown-menu {
+  min-width: 220px;
+  max-width: 260px;
+  z-index: 160;
+}
+
+/* ============================================================
+   Alignement typo headers sur le tableau Livraisons (user feedback)
+   ============================================================
+   Le tableau Clients héritait de .data-table mais avait une teinte
+   plus douce sur les headers + le tri actif passait en rouge brand.
+   On aligne sur le style Livraisons : headers blanc-muted lisibles. */
+.clients-table thead th,
+.fournisseurs-table thead th {
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.clients-table tbody td,
+.fournisseurs-table tbody td {
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif);
+  font-size: 0.88rem;
 }

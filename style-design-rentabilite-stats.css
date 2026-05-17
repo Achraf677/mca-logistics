@@ -260,7 +260,7 @@
   text-align: right;
   font-feature-settings: "tnum";
   font-size: 13px;
-  font-family: var(--font-mono, var(--ds-font-mono));
+  font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
 }
 
 .bar-track {

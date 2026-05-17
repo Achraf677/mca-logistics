@@ -321,7 +321,7 @@
 
 /* Work time display */
 .planning-week-grid .planning-week-time {
-  font-family: var(--font-mono, monospace);
+  font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
   font-size: 9px;
   color: var(--text, #e8eaf0);
   font-weight: 600;

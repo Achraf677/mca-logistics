@@ -20,7 +20,9 @@
     rh: {
       alias: 'rh',
       title: 'Équipe',
-      icon: '👥',
+      // Phase 91.81 (2026-05-17) — Emoji 👥 → SVG line-art cohérent avec
+      // toutes les autres nav-icon de la sidebar (parité visuelle).
+      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="3"/></svg>',
       label: 'Équipe',
       section: 'equipe',
       // Note : 'messagerie' retirée temporairement (page HTML supprimée par
@@ -33,18 +35,24 @@
     parc: {
       alias: 'parc',
       title: 'Parc auto',
-      icon: '🚐',
+      // Phase 91.81 (2026-05-17) — Emoji 🚐 → SVG camion line-art (même SVG
+      // que nav-item Véhicules pour cohérence, le hub Parc Auto contient
+      // Véhicules/Carburant/Entretiens/Inspections).
+      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 16H9m10 0h2v-3.34a2 2 0 0 0-.59-1.41L17 8H3v8h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>',
       label: 'Parc auto',
       section: 'flotte',
       pages: ['vehicules', 'carburant', 'entretiens', 'inspections'],
-      labels: { vehicules: 'Véhicules', carburant: '⛽ Carburant', entretiens: 'Entretiens', inspections: 'Inspections' },
+      // Phase 91.84 (2026-05-17) — retiré emoji ⛽ devant Carburant (cohérence
+      // avec Véhicules / Entretiens / Inspections sans emoji, user feedback).
+      labels: { vehicules: 'Véhicules', carburant: 'Carburant', entretiens: 'Entretiens', inspections: 'Inspections' },
       defaultPage: 'vehicules',
       storageKey: 's22_last_parc',
     },
     compta: {
       alias: 'compta',
       title: 'Comptabilité',
-      icon: '💼',
+      // Phase 91.81 (2026-05-17) — Emoji 💼 → SVG dossier line-art cohérent.
+      icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
       label: 'Finances',
       section: 'finances',
       pages: ['charges', 'encaissement', 'tva', 'rentabilite', 'statistiques'],

@@ -70,6 +70,24 @@
   transform: rotate(180deg);
 }
 
+/* Fix icônes SVG du bouton Exporter + items dropdown (2026-05-17, user feedback)
+   Le HTML des SVG <path> sans `fill="none"` apparaissait noir (fill par défaut)
+   alors que sur les boutons style ".liv-dropdown-trigger" il était bien blanc
+   grâce à `fill="none" stroke="currentColor"` posés en attributs HTML.
+   Plutôt que de patcher les 13 occurrences HTML, on force la couleur en CSS
+   pour tous les SVG dans le contexte des boutons Export.
+   `!important` requis car certains SVG ont `fill` posé inline. */
+.ds-export-btn svg,
+.ds-export-wrap .ds-menu-item svg,
+.ds-dropdown-menu .ds-menu-item svg {
+  fill: none !important;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: inherit;
+}
+
 /* Phase 91.54.1 — Alignement visuel `.liv-dropdown-trigger` et `.liv-dropdown-btn`
    sur `.ds-export-btn` (Livraisons Générer/Exporter, Véhicules, Stats, Encaissement, Charges).
    Cumul classes safe : on garde leur JS intact, on harmonise le rendu visuel. */
@@ -306,7 +324,7 @@
   transition: width 0.6s cubic-bezier(.22,1,.36,1);
 }
 .stat-row .val {
-  font-family: var(--font-mono, "DM Mono", monospace);
+  font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
   font-size: 12px;
   font-weight: 700;
   color: var(--text);

@@ -26,6 +26,26 @@ Dernière mise à jour : 2026-05-09
   justification explicite. *Rappel utilisateur : "Systématiquement tout ce que tu
   changes sur mobile change le sur pc aussi" — répété 60+ fois sur 6 mois.*
 
+### Audit doublons systématique (priorité 1 — ajouté 2026-05-17)
+- **Avant TOUTE modification ou vérification d'un fichier/composant/style/fonction**,
+  toujours `grep -rn` les patterns voisins pour détecter les doublons préexistants.
+  Le site est en refonte HTML active : il y a très souvent une ancienne version
+  qui coexiste avec la nouvelle. *Rappel utilisateur 2026-05-17 : "chaque fois
+  que jte demande de vérifier qq chose, regarde si ya pas un code doublon de
+  ce que tu changes."*
+- **Patterns à grepper systématiquement** : nom de fonction, nom de variable CSS
+  (`--ds-*` ET `--font-*` ET `--text-*`), nom de classe CSS, sélecteur ID,
+  attribut HTML. Si doublon trouvé : noter dans `AUDIT-ONGLET-PAR-ONGLET.md`
+  section "Doublons détectés en cours de session" + soit consolider tout de suite
+  (si trivial), soit reporter en sprint dédié dette tech (24.F).
+- **Sources connues de doublons** :
+  - `previews/*`, `design-handoff/*` : copies pour Figma handoff, peuvent dériver
+    des vrais tokens (`style-tokens.css`)
+  - Fichiers `*-legacy.js` ou `*-refonte.css` qui coexistent avec leur version v2
+  - Variables CSS doublées (`--font` vs `--font-body` vs `--ds-font-body`)
+  - Fonctions globales avec wrappers (`naviguerVers`, `afficherToast`,
+    `fermerFiche360`, voir H2.1 dans CLAUDE.md)
+
 ### Architecture & code
 - **Pas de migration framework JS** : vanilla JS only, zéro dépendance npm front.
 - **Un fichier = un domaine métier** : chaque table métier (livraisons, charges,
