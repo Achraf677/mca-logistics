@@ -21,7 +21,8 @@
   - ✅ Onglet 2 Dashboard (4 items + bug Retard sur brouillons + barre Retard retirée + tooltips chart €)
   - ✅ Onglet 3 Calendrier (3 items + couleurs légende alignées + police Syne→DM Sans + topbar bas alignée logo sidebar)
   - ✅ Onglet 4 Planning (4 items : clé canonique `plannings`, migration boot R10, normalizeAbsence + migration boot R11, 10 tests unitaires ajoutés)
-- **Prochain onglet** : 5. Alertes
+  - ✅ Onglet 5 Alertes (2 items déjà résolus en Phase 91.42 + 91.85, vérifications faites)
+- **Prochain onglet** : 6. Clients
 - **Tests** : 436 pass · 0 fail (`npm test`)
 - **Sentry** : aucune erreur 24h (vérifié via MCP)
 
@@ -157,10 +158,15 @@ Root cause : confusion entre nom de TABLE Supabase (`plannings_hebdo`) et clé l
 
 Tests : 436 pass · 0 fail (étaient 426 avant, +10 nouveaux).
 
-## 5. Alertes
+## 5. Alertes ✅ TERMINÉ (2026-05-17)
 
-- [ ] Topbar bell badge non rafraîchi : élément `topbar-bell-count` jamais ciblé par le code [Audit Agent 3 HIGH]
-- [ ] `niveau` field optionnel mais `dashboard-attention` assume sa présence → ajouter SEVERITY_MAP fallback [Audit Agent 3 MED]
+- [x] Topbar bell badge `topbar-bell-count` est ciblé par `afficherBadgeAlertes` (`script-alertes.js:49` — liste `['badge-alertes', 'badge-alertes-mbn', 'topbar-bell-count']`). `aria-label` du bouton bell mis à jour aussi (a11y count screen reader). Déjà résolu en Phase 91.85.
+- [x] `SEVERITY_MAP` + `effectiveNiveau(a)` fallback existent dans `script-dashboard-attention.js:38-53` (Phase 91.42). Heuristique en cascade : `a.niveau` → `SEVERITY_MAP[a.type]` → match substring (`urgent`/`critique`/`warn`) → défaut `warn`. Idem `script-alertes-counts.js:8-67`.
+- [x] Checklist cross-tab : **A** topbar OK (pattern `.title-row` + `.ds-section-head`, identique à Livraisons validé). **B** chip↔select↔badge OK (chips niveau Critique/Avertissement/Info sync via `effectiveNiveau` + `niveauToColor`). **C** drawer auto-refresh N/A (pas de drawer dédié alertes ; `afficherBadgeAlertes()` rappelé par tous les mutateurs).
+
+### Bilan Onglet 5 (✅ clôt 2026-05-17)
+
+0 commit code (les 2 items étaient déjà résolus dans des phases antérieures, MD non mis à jour). Vérifications faites : `script-alertes.js:49`, `script-dashboard-attention.js:38-53`, `script-alertes-counts.js:8-67`. Tests inchangés (436 pass).
 
 ## 6. Clients
 
