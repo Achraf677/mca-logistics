@@ -15,14 +15,14 @@
 ## 🚀 État courant (mise à jour 2026-05-17 — fin session)
 
 - **Branche** : `claude/html-refonte-cleanup`
-- **Dernier commit** : `5d93701` (fix calendrier font Syne → DM Sans)
-- **CACHE_VERSION en cours** : `v413` (voir `sw.js` ligne 8)
+- **CACHE_VERSION en cours** : `v414` (voir `sw.js` ligne 8)
 - **Onglets terminés** :
   - ✅ Onglet 1 Livraisons (15 items + 5 bugs screenshots user)
   - ✅ Onglet 2 Dashboard (4 items + bug Retard sur brouillons + barre Retard retirée + tooltips chart €)
   - ✅ Onglet 3 Calendrier (3 items + couleurs légende alignées + police Syne→DM Sans + topbar bas alignée logo sidebar)
-- **Prochain onglet** : 4. Planning
-- **Tests** : 426 pass · 0 fail (`npm test`)
+  - ✅ Onglet 4 Planning (4 items : clé canonique `plannings`, migration boot R10, normalizeAbsence + migration boot R11, 10 tests unitaires ajoutés)
+- **Prochain onglet** : 5. Alertes
+- **Tests** : 436 pass · 0 fail (`npm test`)
 - **Sentry** : aucune erreur 24h (vérifié via MCP)
 
 ### Bootstrap d'une nouvelle session (web/local)
@@ -141,12 +141,21 @@ Root causes notables :
 - [x] 🆕 **Police KPI italic supprimée** (user feedback "police italic grave bizarre, enlève-moi ça") : ajout `font-style: normal` + `font-feature-settings: "tnum"` sur `#page-calendrier .cal16-kpi-val` qui n'héritait pas de la règle 258 (override de spécificité).
 - [x] 🆕 **Topbar alignée bas du logo "MCA LOGISTICS"** : hauteur topbar 52px → 61px desktop / 56px mobile (impact transverse toutes pages) pour matcher `.sidebar-header` (padding 18px × 2 + logo 24px + border 1px = 61px).
 
-## 4. Planning
+## 4. Planning ✅ TERMINÉ (2026-05-17)
 
-- [ ] `script-dev-seed.js:666` écrit `plannings_hebdo` au lieu de `plannings` (orphelin) [TODO-BACKLOG #2]
-- [ ] Helper `migrerCleLegacy('plannings_hebdo', 'plannings')` au boot [TODO-BACKLOG #2]
-- [ ] Vérifier qu'aucun adapter Supabase ne référence l'ancien nom `plannings_hebdo` [TODO-BACKLOG #2]
-- [ ] `absences_periodes` divergence schéma : `dateDebut/dateFin` (local) vs `date_debut/date_fin` (Supabase) vs `debut/fin` (UI). Helper `normalizeAbsence` dans `script-core-utils.js` + migration boot idempotente [TODO-BACKLOG #3]
+- [x] `script-dev-seed.js:661` écrivait `plannings_hebdo` (orphelin) → corrigé en `plannings`. Idem ligne 155 (`summary()`). *(commit 2026-05-17)*
+- [x] Helper `migrerCleLegacy(oldKey, newKey)` ajouté dans `script-core-utils.js` (rapatrie source → cible, conserve cible si déjà peuplée). Appelé au boot dans `migrerSchemasDataPC` (R10). *(commit 2026-05-17)*
+- [x] Vérification adapters/usages localStorage : aucun adapter Supabase ne lit `plannings_hebdo` en localStorage (cf. `plannings-supabase-adapter.js:28` STORAGE_KEY = `plannings`, TABLE = `plannings_hebdo`). Front corrigé : `script-titlerow.js:159`, `script-exports.js:160/197/221`, `repo.js:187`. Côté Supabase, la TABLE reste `plannings_hebdo` (intacte). *(commit 2026-05-17)*
+- [x] `absences_periodes` : helper `normalizeAbsence` dans `script-core-utils.js` qui mirror les 3 schémas (admin `debut/fin/salId`, mobile `dateDebut/dateFin`, DB `date_debut/date_fin/salarie_id`). Migration boot idempotente (`_absence_migrated_v1` par item) appelée dans `migrerSchemasDataPC` (R11). 10 tests unitaires ajoutés (5 normalizeAbsence + 5 migrerCleLegacy). *(commit 2026-05-17)*
+- [x] Checklist cross-tab : **A** topbar OK (pattern `.ds-section-head` identique à Dashboard/Calendrier validés). **B** chip↔select↔badge OK (pas de drift "Brouillon vs En attente" dans Planning). **C** drawer auto-refresh N/A (drawer 360 salarié PC = Onglet 12).
+
+### Bilan Onglet 4 (✅ clôt 2026-05-17)
+
+4 items résolus. Touchés : `script-core-utils.js` (+ `normalizeAbsence` + `migrerCleLegacy`) · `script-livraisons.js` (migration boot R10+R11) · `script-dev-seed.js` · `script-titlerow.js` · `script-exports.js` · `repo.js` · `tests/data-schema-normalization.test.js` (10 nouveaux tests) · `sw.js` (v413→v414).
+
+Root cause : confusion entre nom de TABLE Supabase (`plannings_hebdo`) et clé localStorage canonique (`plannings`). 5 fichiers front avaient adopté le nom de la table comme clé localStorage → données orphelines (jamais relues par l'adapter Supabase). Idem `absences_periodes` avec 3 schémas concurrents non normalisés au boot.
+
+Tests : 436 pass · 0 fail (étaient 426 avant, +10 nouveaux).
 
 ## 5. Alertes
 

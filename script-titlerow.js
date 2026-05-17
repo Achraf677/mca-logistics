@@ -156,7 +156,9 @@
 
   // ============ PLANNING ============
   function updatePlanning() {
-    var pl = readArr('plannings_hebdo');
+    // Phase 92 — clé canonique 'plannings' (l'adapter Supabase mappe
+    // 'plannings' (localStorage) <-> 'plannings_hebdo' (table Supabase)).
+    var pl = readArr('plannings');
     // Compter salariés planifiés cette semaine
     var salaries = readArr('salaries');
     setText('planning-titlerow-total', pl.length);

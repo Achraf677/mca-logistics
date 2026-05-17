@@ -586,6 +586,83 @@ function normalizeVehicule(v) {
 }
 
 /**
+ * Normalise une absence vers le schema CANONIQUE (debut/fin/salId/heureDebut/heureFin).
+ *
+ * Contexte : 3 schemas coexistent historiquement :
+ *   - Admin local (canonique adapter Supabase) : `debut`, `fin`, `salId`,
+ *     `heureDebut`, `heureFin` (cf. legacy-entity-adapters.js absenceDbToJs)
+ *   - Mobile local (script-mobile.js) : `dateDebut`, `dateFin`
+ *   - Supabase brut (public.absences_periodes) : `date_debut`, `date_fin`,
+ *     `salarie_id`, `heure_debut`, `heure_fin` (mappe par l'adapter au pull)
+ *
+ * Sans ce helper, les drawers PC affichaient parfois une absence vide pour
+ * une absence saisie cote mobile (et inversement). Pattern dual-read :
+ * on lit l'une des 3 variantes et on mirror dans toutes pendant la phase
+ * de transition.
+ *
+ * Idempotent : rerun safe.
+ *
+ * @param {Object} a - Une absence (mutable).
+ * @returns {Object} La meme absence, mutee pour exposer toutes les variantes.
+ */
+function normalizeAbsence(a) {
+  if (!a || typeof a !== 'object') return a;
+  // debut / fin canoniques
+  if (!a.debut) a.debut = a.dateDebut || a.date_debut || '';
+  if (!a.fin) a.fin = a.dateFin || a.date_fin || '';
+  // Mirror inverse (lecture mobile + DB)
+  if (a.debut && !a.dateDebut) a.dateDebut = a.debut;
+  if (a.fin && !a.dateFin) a.dateFin = a.fin;
+  // salId canonique
+  if (!a.salId) a.salId = a.sal_id || a.salarie_id || '';
+  // Heures (creneaux partiels conge demi-journee)
+  if (!a.heureDebut) a.heureDebut = a.heure_debut || '';
+  if (!a.heureFin) a.heureFin = a.heure_fin || '';
+  return a;
+}
+
+/**
+ * Renomme une cle localStorage legacy vers la cle canonique.
+ * - Si la cle cible existe deja et n'est pas vide : on garde la cible,
+ *   on supprime juste la source legacy (pour ne pas detruire des donnees
+ *   plus recentes).
+ * - Sinon : on copie la source vers la cible puis on supprime la source.
+ *
+ * Idempotent : si la source n'existe plus, no-op.
+ *
+ * Use case : nettoyage des anciennes installations qui avaient une
+ * mauvaise cle (ex : 'plannings_hebdo' au lieu de 'plannings').
+ *
+ * @param {string} oldKey - Cle legacy a migrer.
+ * @param {string} newKey - Cle canonique cible.
+ * @returns {boolean} true si une migration a eu lieu, false sinon.
+ */
+function migrerCleLegacy(oldKey, newKey) {
+  try {
+    if (typeof localStorage === 'undefined') return false;
+    var oldRaw = localStorage.getItem(oldKey);
+    if (oldRaw === null) return false;
+    var newRaw = localStorage.getItem(newKey);
+    var hasNewData = false;
+    if (newRaw) {
+      try {
+        var parsed = JSON.parse(newRaw);
+        hasNewData = Array.isArray(parsed) ? parsed.length > 0 : (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0);
+      } catch (_) { hasNewData = false; }
+    }
+    if (!hasNewData) {
+      localStorage.setItem(newKey, oldRaw);
+    }
+    localStorage.removeItem(oldKey);
+    console.info('[migrerCleLegacy]', oldKey, '->', newKey, hasNewData ? '(cible conservee, source legacy supprimee)' : '(source legacy migree)');
+    return true;
+  } catch (e) {
+    console.warn('[migrerCleLegacy] erreur', oldKey, '->', newKey, e);
+    return false;
+  }
+}
+
+/**
  * Trouve un fournisseur par nom (insensible a la casse + trim).
  * Helper partage entre PC et mobile pour la resolution FK des charges.
  * @param {string} nom - Nom recherche.
@@ -639,6 +716,8 @@ function dateLocalISO(date) {
 if (typeof window !== 'undefined') {
   window.normalizeLDV = normalizeLDV;
   window.normalizeVehicule = normalizeVehicule;
+  window.normalizeAbsence = normalizeAbsence;
+  window.migrerCleLegacy = migrerCleLegacy;
   window.findFournisseurByNom = findFournisseurByNom;
   window.findLivraisonByRef = findLivraisonByRef;
   window.todayLocalISO = todayLocalISO;
@@ -650,6 +729,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     normalizeLDV: normalizeLDV,
     normalizeVehicule: normalizeVehicule,
+    normalizeAbsence: normalizeAbsence,
+    migrerCleLegacy: migrerCleLegacy,
     findFournisseurByNom: findFournisseurByNom,
     findLivraisonByRef: findLivraisonByRef,
     calculerDureeJour: calculerDureeJour

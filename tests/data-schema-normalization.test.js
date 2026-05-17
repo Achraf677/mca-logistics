@@ -13,9 +13,24 @@ const assert = require('node:assert/strict');
 const {
   normalizeLDV,
   normalizeVehicule,
+  normalizeAbsence,
+  migrerCleLegacy,
   findFournisseurByNom,
   findLivraisonByRef
 } = require('../script-core-utils.js');
+
+// localStorage stub pour tester migrerCleLegacy (Node n'a pas localStorage)
+function setupLocalStorageStub() {
+  const store = {};
+  global.localStorage = {
+    getItem: k => (k in store ? store[k] : null),
+    setItem: (k, v) => { store[k] = String(v); },
+    removeItem: k => { delete store[k]; },
+    clear: () => { Object.keys(store).forEach(k => delete store[k]); },
+    _dump: () => Object.assign({}, store)
+  };
+  return store;
+}
 
 // ============================================================
 // normalizeLDV
@@ -267,4 +282,104 @@ test('findLivraisonByRef : fallback par nom client', () => {
 
 test('findLivraisonByRef : null si rien ne matche', () => {
   assert.equal(findLivraisonByRef('XYZ', [{ id: 'l1', numLiv: 'X', client: 'Y' }]), null);
+});
+
+// ============================================================
+// normalizeAbsence (R11 — Onglet 4 Planning, 2026-05-17)
+// ============================================================
+
+test('normalizeAbsence : admin (debut/fin) -> mirror mobile/DB', () => {
+  const a = { id: 'a1', salId: 'sal-1', debut: '2026-06-01', fin: '2026-06-15', type: 'conge' };
+  normalizeAbsence(a);
+  assert.equal(a.dateDebut, '2026-06-01');
+  assert.equal(a.dateFin, '2026-06-15');
+  assert.equal(a.debut, '2026-06-01');
+  assert.equal(a.fin, '2026-06-15');
+  assert.equal(a.salId, 'sal-1');
+});
+
+test('normalizeAbsence : mobile (dateDebut/dateFin) -> remplit debut/fin canoniques', () => {
+  const a = { id: 'a2', salId: 'sal-2', dateDebut: '2026-07-10', dateFin: '2026-07-12', type: 'maladie' };
+  normalizeAbsence(a);
+  assert.equal(a.debut, '2026-07-10');
+  assert.equal(a.fin, '2026-07-12');
+  assert.equal(a.dateDebut, '2026-07-10');
+  assert.equal(a.dateFin, '2026-07-12');
+});
+
+test('normalizeAbsence : DB raw (date_debut/date_fin/salarie_id) -> remplit canoniques', () => {
+  const a = { id: 'a3', salarie_id: 'sal-3', date_debut: '2026-08-01', date_fin: '2026-08-05',
+              heure_debut: '08:00', heure_fin: '12:00', type: 'absence' };
+  normalizeAbsence(a);
+  assert.equal(a.debut, '2026-08-01');
+  assert.equal(a.fin, '2026-08-05');
+  assert.equal(a.salId, 'sal-3');
+  assert.equal(a.heureDebut, '08:00');
+  assert.equal(a.heureFin, '12:00');
+});
+
+test('normalizeAbsence : idempotent (rerun ne casse rien)', () => {
+  const a = { id: 'a4', salId: 'sal-4', debut: '2026-09-01', fin: '2026-09-02', type: 'conge' };
+  normalizeAbsence(a);
+  const snap1 = JSON.stringify(a);
+  normalizeAbsence(a);
+  normalizeAbsence(a);
+  assert.equal(JSON.stringify(a), snap1);
+});
+
+test('normalizeAbsence : null/undefined safe', () => {
+  assert.equal(normalizeAbsence(null), null);
+  assert.equal(normalizeAbsence(undefined), undefined);
+  assert.equal(normalizeAbsence('string'), 'string');
+});
+
+// ============================================================
+// migrerCleLegacy (R10 — Onglet 4 Planning, 2026-05-17)
+// ============================================================
+
+test('migrerCleLegacy : source legacy presente, cible vide -> migre', () => {
+  setupLocalStorageStub();
+  localStorage.setItem('plannings_hebdo', JSON.stringify([{ id: 1 }]));
+  const did = migrerCleLegacy('plannings_hebdo', 'plannings');
+  assert.equal(did, true);
+  assert.equal(localStorage.getItem('plannings_hebdo'), null);
+  assert.equal(localStorage.getItem('plannings'), JSON.stringify([{ id: 1 }]));
+  delete global.localStorage;
+});
+
+test('migrerCleLegacy : cible deja peuplee -> conserve cible, supprime source', () => {
+  setupLocalStorageStub();
+  localStorage.setItem('plannings_hebdo', JSON.stringify([{ id: 1, vieux: true }]));
+  localStorage.setItem('plannings', JSON.stringify([{ id: 2, recent: true }]));
+  const did = migrerCleLegacy('plannings_hebdo', 'plannings');
+  assert.equal(did, true);
+  assert.equal(localStorage.getItem('plannings_hebdo'), null);
+  assert.equal(localStorage.getItem('plannings'), JSON.stringify([{ id: 2, recent: true }]));
+  delete global.localStorage;
+});
+
+test('migrerCleLegacy : source absente -> no-op', () => {
+  setupLocalStorageStub();
+  const did = migrerCleLegacy('plannings_hebdo', 'plannings');
+  assert.equal(did, false);
+  delete global.localStorage;
+});
+
+test('migrerCleLegacy : cible existe mais array vide -> migre quand meme', () => {
+  setupLocalStorageStub();
+  localStorage.setItem('plannings_hebdo', JSON.stringify([{ id: 1 }]));
+  localStorage.setItem('plannings', JSON.stringify([]));
+  migrerCleLegacy('plannings_hebdo', 'plannings');
+  assert.equal(localStorage.getItem('plannings'), JSON.stringify([{ id: 1 }]));
+  delete global.localStorage;
+});
+
+test('migrerCleLegacy : idempotent (deuxieme call no-op)', () => {
+  setupLocalStorageStub();
+  localStorage.setItem('plannings_hebdo', JSON.stringify([{ id: 1 }]));
+  migrerCleLegacy('plannings_hebdo', 'plannings');
+  const did2 = migrerCleLegacy('plannings_hebdo', 'plannings');
+  assert.equal(did2, false);
+  assert.equal(localStorage.getItem('plannings'), JSON.stringify([{ id: 1 }]));
+  delete global.localStorage;
 });

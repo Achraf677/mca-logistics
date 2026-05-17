@@ -152,7 +152,7 @@
       reseed() { clearAll(); window.location.href = window.location.pathname + '?seed=1'; },
       summary() {
         const keys = ['livraisons', 'clients', 'fournisseurs', 'vehicules', 'salaries',
-          'carburant', 'charges', 'alertes_admin', 'plannings_hebdo',
+          'carburant', 'charges', 'alertes_admin', 'plannings',
           'entretiens', 'inspections', 'incidents', 'heures_pointage', 'tva_declarations', 'paiements'];
         const s = {};
         keys.forEach(k => { s[k] = safeRead(k).length; });
@@ -658,7 +658,10 @@
     localStorage.setItem('carburant', JSON.stringify(CARBURANT));
     localStorage.setItem('charges', JSON.stringify(CHARGES));
     localStorage.setItem('alertes_admin', JSON.stringify(ALERTES));
-    localStorage.setItem('plannings_hebdo', JSON.stringify(PLANNINGS_HEBDO));
+    // Phase 92 — clé localStorage canonique = 'plannings' (l'adapter Supabase
+    // sync `localStorage.plannings <-> public.plannings_hebdo`). Avant : on
+    // écrivait dans 'plannings_hebdo' → orphelin côté front.
+    localStorage.setItem('plannings', JSON.stringify(PLANNINGS_HEBDO));
     localStorage.setItem('config_entreprise', JSON.stringify(CONFIG));
     localStorage.setItem('entretiens', JSON.stringify(ENTRETIENS));
     localStorage.setItem('inspections', JSON.stringify(INSPECTIONS));

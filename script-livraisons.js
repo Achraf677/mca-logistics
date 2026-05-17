@@ -18,6 +18,34 @@
 // mobile voient le meme contenu.
 // ============================================================
 function migrerSchemasDataPC() {
+  // R10 (Audit Onglet 4 Planning, 2026-05-17) — Migration cle legacy
+  // 'plannings_hebdo' (localStorage) -> 'plannings'. L'adapter Supabase
+  // utilise la cle 'plannings' (cf. plannings-supabase-adapter.js STORAGE_KEY).
+  // Anciennes installs avec donnees orphelines sous 'plannings_hebdo' :
+  // on rapatrie ou on supprime (si 'plannings' a deja du contenu plus recent).
+  try {
+    if (typeof migrerCleLegacy === 'function') {
+      migrerCleLegacy('plannings_hebdo', 'plannings');
+    }
+  } catch (e) { console.warn('[pc] migrerCleLegacy plannings', e); }
+
+  // R11 (Audit Onglet 4 Planning, 2026-05-17) — Normalisation absences_periodes.
+  // 3 schemas historiques : admin {debut,fin,salId}, mobile {dateDebut,dateFin},
+  // DB {date_debut,date_fin,salarie_id}. Helper normalizeAbsence mirror les 3.
+  try {
+    if (typeof normalizeAbsence === 'function') {
+      const absences = charger('absences_periodes');
+      let ch = false;
+      absences.forEach(a => {
+        if (!a || a._absence_migrated_v1) return;
+        normalizeAbsence(a);
+        a._absence_migrated_v1 = true;
+        ch = true;
+      });
+      if (ch) sauvegarder('absences_periodes', absences);
+    }
+  } catch (e) { console.warn('[pc] migration absences_periodes', e); }
+
   // R3 — LDV
   try {
     if (typeof normalizeLDV === 'function') {

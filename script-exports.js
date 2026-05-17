@@ -157,7 +157,8 @@ window.exporterRentabiliteCSV = exporterRentabiliteCSV;
 
 // Phase 59 — Export Planning iCal (.ics, mockup-aligned)
 function exporterPlanningIcal() {
-  const plannings = (typeof loadSafe === 'function') ? loadSafe('plannings_hebdo', []) : (charger ? charger('plannings_hebdo') : []);
+  // Phase 92 — clé canonique 'plannings' (cf. plannings-supabase-adapter.js)
+  const plannings = (typeof loadSafe === 'function') ? loadSafe('plannings', []) : (charger ? charger('plannings') : []);
   const salaries = (typeof charger === 'function') ? charger('salaries') : [];
   const lines = [];
   lines.push('BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//MCA Logistics//Planning//FR', 'CALSCALE:GREGORIAN');
@@ -194,7 +195,8 @@ function exporterPlanningIcal() {
 window.exporterPlanningIcal = exporterPlanningIcal;
 
 function exporterPlanningCSV() {
-  const plannings = (typeof loadSafe === 'function') ? loadSafe('plannings_hebdo', []) : (charger ? charger('plannings_hebdo') : []);
+  // Phase 92 — clé canonique 'plannings' (cf. plannings-supabase-adapter.js)
+  const plannings = (typeof loadSafe === 'function') ? loadSafe('plannings', []) : (charger ? charger('plannings') : []);
   const salaries = (typeof charger === 'function') ? charger('salaries') : [];
   const rows = [];
   plannings.forEach(p => {
@@ -218,7 +220,8 @@ function exporterPlanningCSV() {
 window.exporterPlanningCSV = exporterPlanningCSV;
 
 function exporterPlanningExcel() {
-  const plannings = (typeof loadSafe === 'function') ? loadSafe('plannings_hebdo', []) : (charger ? charger('plannings_hebdo') : []);
+  // Phase 92 — clé canonique 'plannings' (cf. plannings-supabase-adapter.js)
+  const plannings = (typeof loadSafe === 'function') ? loadSafe('plannings', []) : (charger ? charger('plannings') : []);
   const salaries = (typeof charger === 'function') ? charger('salaries') : [];
   const rows = [];
   plannings.forEach(p => {

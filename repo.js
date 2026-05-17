@@ -184,7 +184,10 @@
     paiements: createArrayRepo('paiements'),
     incidents: createArrayRepo('incidents'),
     alertes_admin: createArrayRepo('alertes_admin'),
-    plannings_hebdo: createArrayRepo('plannings_hebdo'),
+    // Phase 92 — clé localStorage canonique 'plannings' (l'adapter Supabase
+    // mappe 'plannings' <-> public.plannings_hebdo). repo.plannings_hebdo
+    // n'avait aucun caller : renommé en repo.plannings pour cohérence.
+    plannings: createArrayRepo('plannings'),
     absences_periodes: createArrayRepo('absences_periodes'),
     salaries_documents: createArrayRepo('salaries_documents')
   };
