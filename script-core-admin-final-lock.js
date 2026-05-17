@@ -202,7 +202,10 @@ const __renderLivraisonsAdminFinal_v2 = function() {
   const formatClientLabel = function(value) {
     var raw = String(value || '').trim();
     if (!raw) return '—';
-    return /^\d+$/.test(raw) ? ('Client #' + raw) : raw;
+    var label = /^\d+$/.test(raw) ? ('Client #' + raw) : raw;
+    // Audit 2026-05-17 : tronque à 48 char + ellipse pour éviter de pousser
+    // la colonne au-delà de sa width. Le title attribute conserve le nom complet.
+    return label.length > 48 ? (label.slice(0, 48) + '…') : label;
   };
   const formatArchivedDriverHtml = function(value) {
     var raw = String(value || '').trim();
@@ -221,6 +224,8 @@ const __renderLivraisonsAdminFinal_v2 = function() {
     const statutPaiement = l.statutPaiement || 'en-attente';
     const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
     const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>À payer</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+    const clientRaw = String(l.client || '—').trim();
+    const clientFull = /^\d+$/.test(clientRaw) ? ('Client #' + clientRaw) : (clientRaw || '—');
     const client = formatClientLabel(l.client || '—');
     const clientText = escapeHtml(client);
     const depart = l.depart || '';
@@ -234,7 +239,7 @@ const __renderLivraisonsAdminFinal_v2 = function() {
     return `<tr data-liv-id="${escapeAttr(l.id)}">
       <td class="bulk-col"><input type="checkbox" class="bulk-liv-check" data-liv-id="${escapeAttr(l.id)}" onchange="majBulkActions()" aria-label="Sélectionner" /></td>
       <td class="livraison-ref-cell">${escapeHtml(l.numLiv || '—')}</td>
-      <td><strong class="livraison-cell-text livraison-client-text" title="${escapeAttr(client)}">${clientText}</strong></td>
+      <td><strong class="livraison-cell-text livraison-client-text" title="${escapeAttr(clientFull)}">${clientText}</strong></td>
       <td><span class="livraison-cell-text livraison-zone-text" title="${escapeAttr(zoneGeo || '—')}">${zoneGeoText}</span></td>
       <td class="livraison-number-cell">${l.distance ? formatKm(l.distance) : '—'}</td>
       <td class="livraison-number-cell">${euros(ht)}</td>

@@ -48,16 +48,16 @@ On termine **complètement** un onglet (= tous ses `[ ]` deviennent `[x]` ou `[~
 - [x] Colonne Véhicule td manquant / désaligné [Agent B] — *fixé 2026-05-17 commits a3d0e65 + 455e77b*
 - [x] Drawer typo `vehImmat || vehImmat` [Agent B] — *fixé 2026-05-17*
 - [x] Auto-fill véhicule depuis chauffeur (vehImmat canonical) — *fixé 2026-05-17*
-- [ ] Brouillon filtre désynchro : filter doit accepter `brouillon || en-attente` [Agent B]
-- [ ] Refresh chain `ajouterLivraison` à aligner avec `confirmerEditLivraison` [Agent B]
-- [ ] Chip "Parking" : ajouter au comptage [Agent B]
-- [ ] Nom client tronqué : slice 48 + ellipse [Agent B]
+- [x] Brouillon filtre désynchro : `getLivraisonsFiltresActifs` accepte maintenant `brouillon || en-attente` *(commit 2026-05-17)*
+- [x] Refresh chain `ajouterLivraison` alignée avec `confirmerEditLivraison` (ajout `refreshDrawerClient` + `refreshDrawerLivraisonDetail`) *(commit 2026-05-17)*
+- [x] Chip "Parking" : déjà compté (script-charges-kpis-categorie.js:50,100, Phase 91.55 Bug E). En réalité dans onglet Charges, pas Livraisons.
+- [x] Nom client tronqué : `slice(0,48) + '…'` dans `formatClientLabel`, title attribut conserve nom complet via `clientFull` *(commit 2026-05-17)*
 - [ ] Bulk Edit Modal N>1 livraisons (1j chantier) [TODO-LIVRAISONS #4]
   - Modal HTML `modal-bulk-edit-livraisons` dans admin.html
   - `window.bulkEditLivraisons(ids)` nouveau fichier
   - `confirmerBulkEditLivraisons()` avec verrouEdition par id
   - Champs candidats : statut, statutPaiement, chaufId, vehId, date, modePaiement, tauxTVA
-- [ ] Génération facture depuis dropdown : valider try/catch + cas SIRET vide (BUG-005) [PLAN-REFONTE 2.2]
+- [x] Génération facture depuis dropdown : try/catch wrapper en place (script-livraisons-polish.js:565-584) + SIRET vide handler (script-livraisons.js:1028-1032 toast + redirect Paramètres)
 
 ## 2. Dashboard
 

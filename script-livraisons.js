@@ -322,11 +322,14 @@ function ajouterLivraison() {
   closeModal('modal-livraison');
   viderFormulaireLivraison();
   afficherLivraisons();
-  // Phase 91.55 Bug G — refresh chain parité avec confirmerEditLivraison (manquait dashboard/encaissement/rentabilité)
+  // Phase 91.55 Bug G + Audit 2026-05-17 — refresh chain complète parité avec confirmerEditLivraison.
   try { if (typeof window.rafraichirDashboard === 'function') window.rafraichirDashboard(); } catch (_) {}
   try { if (typeof window.afficherRentabilite === 'function') window.afficherRentabilite(); } catch (_) {}
   try { if (typeof window.afficherEncaissement === 'function') window.afficherEncaissement(); } catch (_) {}
   try { if (typeof window.refreshLivraisonsChipsCounts === 'function') window.refreshLivraisonsChipsCounts(); } catch (_) {}
+  // Drawers : si une fiche client est ouverte pendant la création (livraison rattachée), elle doit refléter la nouvelle ligne.
+  try { if (typeof window.refreshDrawerClient === 'function') window.refreshDrawerClient(); } catch (_) {}
+  try { if (typeof window.refreshDrawerLivraisonDetail === 'function') window.refreshDrawerLivraisonDetail(livraison.id); } catch (_) {}
   if (clientCreeAuto && typeof afficherClients === 'function') {
     try { afficherClients(); } catch (e) {
       if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
@@ -678,7 +681,10 @@ function getLivraisonsFiltresActifs() {
   const filtrePaiement = document.getElementById('filtre-paiement')?.value || '';
   const filtreChauffeur = document.getElementById('filtre-chauffeur')?.value || '';
 
-  if (filtreStatut) livraisons = livraisons.filter(l => l.statut === filtreStatut);
+  // Phase 91.55 Bug B — chip "Brouillons" doit matcher livraisons legacy `statut === 'en-attente'`.
+  if (filtreStatut) livraisons = livraisons.filter(l => filtreStatut === 'brouillon'
+    ? (l.statut === 'brouillon' || l.statut === 'en-attente' || l.brouillon === true)
+    : l.statut === filtreStatut);
   if (filtreDateDeb) livraisons = livraisons.filter(l => l.date >= filtreDateDeb);
   if (filtreDateFin) livraisons = livraisons.filter(l => l.date <= filtreDateFin);
   if (filtrePaiement) livraisons = livraisons.filter(l => (l.statutPaiement || 'en-attente') === filtrePaiement);
