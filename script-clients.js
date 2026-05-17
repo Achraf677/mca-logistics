@@ -371,6 +371,8 @@ function ajouterClient() {
   closeModal('modal-client');
   if (!venantDeLivraison) afficherClients();
   ajouterEntreeAudit('Création client', nom + (email ? ' · ' + email : '') + (siren ? ' · SIREN ' + siren : ''));
+  // Phase 91.73 (2026-05-17) — refresh drawer client si ouvert (no-op si fermé)
+  try { if (typeof window.refreshDrawerClient === 'function') window.refreshDrawerClient(); } catch (_) {}
   afficherToast(venantDeLivraison
     ? '✅ Client « ' + nom + ' » créé et lié à la livraison en cours'
     : '✅ Client ajouté');
@@ -394,6 +396,8 @@ async function supprimerClient(id) {
   const clients = loadSafe('clients', []).filter(c=>c.id!==id);
   localStorage.setItem('clients', JSON.stringify(clients));
   afficherClients();
+  // Phase 91.73 (2026-05-17) — ferme drawer 360 si client courant supprimé (évite refresh sur ressource morte)
+  try { if (typeof window.s25FermerDrawer === 'function') window.s25FermerDrawer(); } catch (_) {}
   ajouterEntreeAudit('Suppression client', (client.nom || 'Client') + ' supprimé' + (livsLiees.length ? ' (' + livsLiees.length + ' livraison(s) orpheline(s))' : ''));
   afficherToast('Client supprimé');
 }
@@ -588,6 +592,8 @@ function confirmerEditClient() {
   closeModal('modal-edit-client');
   _editClientId = null;
   afficherClientsDashboard();
+  // Phase 91.73 (2026-05-17) — refresh drawer client si ouvert (compteurs + infos figées sinon)
+  try { if (typeof window.refreshDrawerClient === 'function') window.refreshDrawerClient(); } catch (_) {}
   ajouterEntreeAudit('Modification client', nom + (email ? ' · ' + email : '') + (nbLivsRenommees ? ' · ' + nbLivsRenommees + ' livraison(s) propagée(s)' : ''));
   afficherToast(nbLivsRenommees ? '✅ Client mis à jour · ' + nbLivsRenommees + ' livraison(s) synchronisée(s)' : '✅ Client mis à jour');
 }
