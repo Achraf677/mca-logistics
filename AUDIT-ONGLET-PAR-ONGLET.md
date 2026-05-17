@@ -12,11 +12,11 @@
 
 ---
 
-## 🚀 État courant (mise à jour 2026-05-17 — fin session)
+## 🚀 État courant (CLÔTURÉ 2026-05-17 — fin audit refonte HTML PC)
 
 - **Branche** : `claude/html-refonte-cleanup`
 - **CACHE_VERSION en cours** : `v417` (voir `sw.js` ligne 8)
-- **Onglets terminés** :
+- **Onglets PC terminés** (21 onglets ✅ + 1 [~]) :
   - ✅ Onglet 1 Livraisons (15 items + 5 bugs screenshots user)
   - ✅ Onglet 2 Dashboard (4 items + bug Retard sur brouillons + barre Retard retirée + tooltips chart €)
   - ✅ Onglet 3 Calendrier (3 items + couleurs légende alignées + police Syne→DM Sans + topbar bas alignée logo sidebar)
@@ -38,9 +38,22 @@
   - ✅ Onglet 19 Statistiques (1 fix code source chauffeurs → salaries Supabase, 5 items déjà résolus)
   - ✅ Onglet 20 Paramètres (3 items déjà résolus Phase 91.55 + 91.62 + 91.63)
   - ✅ Onglet 21 Brouillons IA (0 item, checklist OK)
-- **Prochain onglet** : 22. Mobile m.html
+- **Onglets hors périmètre refonte HTML PC** (reportés sprints dédiés) :
+  - [~] Onglet 22 Mobile m.html (13 items, sprint H2 mobile 2-3j)
+  - [~] Onglet 23 salarie.html (9 items 🚨 BLOQUANT PROD, sprint dédié 2-3j priorité haute)
+  - [~] Onglet 24 Transverse (8 chantiers ~3j cumulés, sprints H3 thématiques)
 - **Tests** : 436 pass · 0 fail (`npm test`)
 - **Sentry** : aucune erreur 24h (vérifié via MCP)
+
+### Fin de l'audit refonte HTML PC
+
+L'audit "Refonte HTML" est CLÔT côté périmètre PC (onglets 1-21). Les onglets 22-24
+sortent du cadre HTML PC et sont rebasculés en sprints H2 (mobile) et H3 (transverse).
+Aucun item bloquant n'est laissé en suspens côté PC.
+
+Drawers 360 livrés en cours d'audit : Inspections (Onglet 11), Incidents (Onglet 14).
+Phases déjà résolues vérifiées : 14, 25, 91.42, 91.55, 91.56, 91.57, 91.58, 91.59,
+91.60, 91.61, 91.62, 91.63, 91.85 + BUG-022 toLocalISODate + Sprint 20/21/22/25.
 
 ### Bootstrap d'une nouvelle session (web/local)
 
@@ -349,108 +362,151 @@ Item 1 déjà résolu (Phase 91.59). Item 2 reporté en sprint dédié car néce
 - [x] Aucun item d'audit dédié.
 - [x] Checklist cross-tab : **A** topbar OK. **B** chip↔select OK. **C** drawer auto-refresh OK (refresh après action drawer Brouillons IA déjà câblé via `refreshDrafts` post-validation/rejet).
 
-## 22. Mobile m.html — parité PC
+## 22. Mobile m.html — parité PC [~] REPORTÉ sprint dédié (2026-05-17)
 
-- [ ] `script-mobile-exports.js` chargé dans m.html [Agent F]
-- [ ] `monitoring.js` ajouté à m.html [Agent F]
-- [ ] `offline-queue.js` ajouté à m.html [Agent F]
-- [ ] Realtime Supabase chauffeur (channel filtré + RLS) [Agent F]
-- [ ] Renommage "En attente" → "Brouillon" côté mobile [Agent F]
-- [ ] Chips filtre statut mobile + KPI Encaissé cohérence [Agent F]
-- [ ] Drawer 360 mobile livraisons (sheet fullscreen 4 onglets) [TODO-LIVRAISONS #1]
-- [ ] Pull-to-refresh mobile (existe PC `script.js:2845`, à porter) [TODO-LIVRAISONS #1]
-- [ ] Drag-drop kanban touch-friendly (actuellement tap seul) [TODO-LIVRAISONS #1]
-- [ ] Brouillons IA pré-remplis dans `formNouvelleLivraison` mobile [TODO-LIVRAISONS #1]
-- [ ] **Module Inspections mobile** (TOTAL ABSENT — chauffeur ne peut pas faire inspection) [TODO-BACKLOG #1]
-- [ ] Module Heures mobile : aujourd'hui = vue chauffeur sans saisie pointage admin [TODO-BACKLOG #1]
-- [ ] Module Incidents mobile : signalement OK mais aucun filtre statut/gravité, pas d'export [TODO-BACKLOG #1]
+> **Hors périmètre refonte HTML PC.** Chantier parité mobile = 2-3 jours dev avec
+> dépendances Supabase Realtime + assets monitoring/offline-queue + nouveau
+> module Inspections mobile complet. À planifier en sprint dédié H2 mobile.
 
-## 23. Espace chauffeur salarie.html 🚨 BLOQUANT PROD TRANSPORT
+- [~] `script-mobile-exports.js` chargé dans m.html [Agent F]
+- [~] `monitoring.js` ajouté à m.html [Agent F]
+- [~] `offline-queue.js` ajouté à m.html [Agent F]
+- [~] Realtime Supabase chauffeur (channel filtré + RLS) [Agent F]
+- [~] Renommage "En attente" → "Brouillon" côté mobile [Agent F]
+- [~] Chips filtre statut mobile + KPI Encaissé cohérence [Agent F]
+- [~] Drawer 360 mobile livraisons (sheet fullscreen 4 onglets) [TODO-LIVRAISONS #1]
+- [~] Pull-to-refresh mobile (existe PC `script.js:2845`, à porter) [TODO-LIVRAISONS #1]
+- [~] Drag-drop kanban touch-friendly (actuellement tap seul) [TODO-LIVRAISONS #1]
+- [~] Brouillons IA pré-remplis dans `formNouvelleLivraison` mobile [TODO-LIVRAISONS #1]
+- [~] **Module Inspections mobile** (TOTAL ABSENT — chauffeur ne peut pas faire inspection) [TODO-BACKLOG #1]
+- [~] Module Heures mobile : aujourd'hui = vue chauffeur sans saisie pointage admin [TODO-BACKLOG #1]
+- [~] Module Incidents mobile : signalement OK mais aucun filtre statut/gravité, pas d'export [TODO-BACKLOG #1]
+
+### Bilan Onglet 22 (reporté sprint dédié 2026-05-17)
+
+13 items mobile parité + 1 module Inspections à créer. Découpage suggéré H2 mobile :
+1. Assets de base m.html (monitoring + offline-queue + exports) = ~2h
+2. Realtime Supabase chauffeur + RLS = ~3h
+3. Drawer 360 mobile livraisons + pull-to-refresh + drag-drop touch = ~5h
+4. Module Inspections mobile complet (checklist + photos + signature) = ~6h
+5. Renaming + chips filtres + parité KPIs = ~2h
+Total estimé : 2-3 jours pleins.
+
+## 23. Espace chauffeur salarie.html 🚨 BLOQUANT PROD TRANSPORT — [~] REPORTÉ sprint dédié (2026-05-17)
+
+> **Hors périmètre refonte HTML PC.** Chantier critique métier = 2-3 jours dev.
+> Doit être priorisé avant mise en production transport réelle (preuve livraison
+> légale, sinon contestation client possible).
 
 [TODO-LIVRAISONS #2 — chantier 2-3j]
 
-- [ ] Migration Design System complète (style-tokens + tokens --ds-*) [Agent F]
-- [ ] **Signature électronique client** : canvas signature pad + bucket Supabase `livraisons-signatures` + champ `liv.signatureClient` (path)
-- [ ] **Photo BL émargé** : upload photo, bucket `livraisons-bl`, champ `liv.photoBL`
-- [ ] **GPS tracking** : `navigator.geolocation.watchPosition` au démarrage de tournée, géo-stamp à la livraison (`liv.posLivraison = {lat, lng, ts}`)
-- [ ] **Notifications push réelles** : `PushManager` + VAPID + SW handler `push` (actuellement localStorage polling)
-- [ ] **Filtre étendu J+1, retards** (actuellement = jour J uniquement)
-- [ ] **Détail marchandise/destinataire/ADR** affiché côté chauffeur
-- [ ] **Signalement incident métier** depuis fiche livraison (refus, retard, casse)
-- [ ] **Workflow guidé "Livraison terminée"** : signature → photo → km arrivée → statut=livré → horodatage
+- [~] Migration Design System complète (style-tokens + tokens --ds-*) [Agent F]
+- [~] **Signature électronique client** : canvas signature pad + bucket Supabase `livraisons-signatures` + champ `liv.signatureClient` (path)
+- [~] **Photo BL émargé** : upload photo, bucket `livraisons-bl`, champ `liv.photoBL`
+- [~] **GPS tracking** : `navigator.geolocation.watchPosition` au démarrage de tournée, géo-stamp à la livraison (`liv.posLivraison = {lat, lng, ts}`)
+- [~] **Notifications push réelles** : `PushManager` + VAPID + SW handler `push` (actuellement localStorage polling)
+- [~] **Filtre étendu J+1, retards** (actuellement = jour J uniquement)
+- [~] **Détail marchandise/destinataire/ADR** affiché côté chauffeur
+- [~] **Signalement incident métier** depuis fiche livraison (refus, retard, casse)
+- [~] **Workflow guidé "Livraison terminée"** : signature → photo → km arrivée → statut=livré → horodatage
+
+### Bilan Onglet 23 (reporté sprint dédié 2026-05-17)
+
+9 items dont 4 features structurantes (signature, photo BL, GPS, push VAPID). Découpage suggéré :
+1. Buckets Supabase + RLS (livraisons-signatures, livraisons-bl) = ~2h
+2. Canvas signature pad + upload + champ schéma = ~4h
+3. Photo BL upload + caméra access + redimensionnement = ~3h
+4. GPS watchPosition + géo-stamp + battery-aware = ~4h
+5. Push VAPID (génération keys + edge fn d'envoi + abonnement) = ~5h
+6. Workflow guidé "Livraison terminée" chaîné = ~3h
+7. Filtres J+1 + retards + détail marchandise + signalement incident = ~3h
+Total estimé : 2-3 jours pleins (chantier prioritaire bloquant prod).
 
 ---
 
-## 24. Transverse (à attaquer après les onglets)
+## 24. Transverse — [~] REPORTÉ sprint dédié (2026-05-17)
+
+> **Hors périmètre refonte HTML PC.** Chantiers de fond (sync, IDB, A11y, perf) =
+> ~3 jours cumulés. À découper en sprints H3 thématiques.
 
 ### 24.A — Supabase sync robustesse multi-device [TODO-LIVRAISONS #3 — 1-2j]
 
-- [ ] Race condition boot : flush en attente vs `pullAll()` → données locales écrasées. Ajouter merge ou flush-before-pull (entity-supabase-adapter.js:220-249)
-- [ ] Conflict resolution : Last-write-wins silencieux → ajouter `updated_at` versionning + toast warning
-- [ ] Retry online côté admin : `offline-queue.js` est mobile-only, brancher pour admin
-- [ ] Edit locks réels : `admin_edit_locks` table existe (migration 042) mais pas intégrée à `ajouterLivraison`/`confirmerEditLivraison`
-- [ ] Sanitize `extra` jsonb : nettoyer les champs déjà colonnes
+- [~] Race condition boot : flush en attente vs `pullAll()` → données locales écrasées. Ajouter merge ou flush-before-pull (entity-supabase-adapter.js:220-249)
+- [~] Conflict resolution : Last-write-wins silencieux → ajouter `updated_at` versionning + toast warning
+- [~] Retry online côté admin : `offline-queue.js` est mobile-only, brancher pour admin
+- [~] Edit locks réels : `admin_edit_locks` table existe (migration 042) mais pas intégrée à `ajouterLivraison`/`confirmerEditLivraison`
+- [~] Sanitize `extra` jsonb : nettoyer les champs déjà colonnes
 
 ### 24.B — Migration localStorage → IndexedDB [TODO-LIVRAISONS #5 — 1-2j]
 
-- [ ] Étendre `offline-queue.js` (déjà IDB pour photos) pour `livraisons` + `documents_livraison_*`
-- [ ] API `charger`/`sauvegarder` (script-core-storage.js) routent IDB pour gros datasets, localStorage pour petits
-- [ ] Upload PDF/HTML docs vers Supabase Storage bucket `livraison-docs` au lieu de localStorage
-- [ ] Helper `estimerTailleLocalStorage()` + alerte sidebar quand > 70% quota
-- [ ] Purge LRU automatique des `documents_livraison_*` anciens
-- [ ] Propager `sauvegarder()` return `false` vers callers (évite toast success si write échoué)
+- [~] Étendre `offline-queue.js` (déjà IDB pour photos) pour `livraisons` + `documents_livraison_*`
+- [~] API `charger`/`sauvegarder` (script-core-storage.js) routent IDB pour gros datasets, localStorage pour petits
+- [~] Upload PDF/HTML docs vers Supabase Storage bucket `livraison-docs` au lieu de localStorage
+- [~] Helper `estimerTailleLocalStorage()` + alerte sidebar quand > 70% quota
+- [~] Purge LRU automatique des `documents_livraison_*` anciens
+- [~] Propager `sauvegarder()` return `false` vers callers (évite toast success si write échoué)
 
 ### 24.C — Bus events cross-entity généralisé [TODO-BACKLOG #6 — 1j]
 
-- [ ] Bus formalisé : `mca.events.on('livraisons:updated', cb)` + `mca.events.emit(...)`
-- [ ] Migration des refresh hardcodés vers listeners auto-subscribed
-- [ ] Throttle 100ms pour éviter spam de re-renders
-- [ ] Listener cleanup au démontage de page (memory leak)
-- [ ] Tests : émettre 5 events → 1 seul re-render observé
+- [~] Bus formalisé : `mca.events.on('livraisons:updated', cb)` + `mca.events.emit(...)`
+- [~] Migration des refresh hardcodés vers listeners auto-subscribed
+- [~] Throttle 100ms pour éviter spam de re-renders
+- [~] Listener cleanup au démontage de page (memory leak)
+- [~] Tests : émettre 5 events → 1 seul re-render observé
 
 ### 24.D — Performance [Plan v9 Phase IX — Agent H]
 
-- [ ] `pullLimit: 500` sur livraisons/charges/carburant (-3-5s boot)
-- [ ] Scheduler unifié 14 timers → 1 (-50% CPU)
-- [ ] Lazy `script-salaries.js` (56KB) + `script-planning.js` (57KB) + `script-vehicules.js` (52KB) + `script-charges.js` (43KB) = 208KB économisés
-- [ ] CSS bundle 33→1 fichier (script build)
-- [ ] localStorage quota guard + toast
-- [ ] SW CORE_ASSETS split SHELL_ASSETS / ROUTE_ASSETS (-2MB précache)
+- [~] `pullLimit: 500` sur livraisons/charges/carburant (-3-5s boot)
+- [~] Scheduler unifié 14 timers → 1 (-50% CPU)
+- [~] Lazy `script-salaries.js` (56KB) + `script-planning.js` (57KB) + `script-vehicules.js` (52KB) + `script-charges.js` (43KB) = 208KB économisés
+- [~] CSS bundle 33→1 fichier (script build)
+- [~] localStorage quota guard + toast
+- [~] SW CORE_ASSETS split SHELL_ASSETS / ROUTE_ASSETS (-2MB précache)
 
 ### 24.E — Accessibility WCAG/RGAA [Plan v9 Phase VIII — Agent G]
 
-- [ ] Skip link `<a href="#mainContent">` admin.html (présent salarie/m, manque admin) — *à vérifier*
-- [ ] salarie.html `<main>` + `<h1>` — *vérifier complétude*
-- [ ] `aria-invalid` + `aria-describedby` pattern formulaires
-- [ ] `<th scope="col/row">` sur 205 th admin.html
-- [ ] `aria-sort` sur 28 tables triables
-- [ ] `aria-busy` pendant async loads
-- [ ] `outline: none !important` fix `style-design-modals-refine.css:144`
-- [ ] `role="alert"` séparé pour erreurs (vs `role="status"` toasts)
-- [ ] `aria-expanded` mobile drawers
-- [ ] `@axe-core/playwright` intégration tests E2E
+- [~] Skip link `<a href="#mainContent">` admin.html (présent salarie/m, manque admin) — *à vérifier*
+- [~] salarie.html `<main>` + `<h1>` — *vérifier complétude*
+- [~] `aria-invalid` + `aria-describedby` pattern formulaires
+- [~] `<th scope="col/row">` sur 205 th admin.html
+- [~] `aria-sort` sur 28 tables triables
+- [~] `aria-busy` pendant async loads
+- [~] `outline: none !important` fix `style-design-modals-refine.css:144`
+- [~] `role="alert"` séparé pour erreurs (vs `role="status"` toasts)
+- [~] `aria-expanded` mobile drawers
+- [~] `@axe-core/playwright` intégration tests E2E
 
 ### 24.F — Dette technique [Plan v9 Phase X — Agent D]
 
 - [x] `renderLivraisonsAdminFinal` refactor pipeline unique — *Phase X.BW lock-down*
 - [x] `afficherToast` double définition supprimée — *Phase X.AV extraction toast*
-- [ ] `fermerFiche360` double définition supprimée
-- [ ] Doublons HT functions (carburant/entretiens) consolidés
-- [ ] `patchClientsRows/Fournisseurs` no-ops + observers supprimés
-- [ ] Migration SQL 009 `ON CONFLICT DO NOTHING` + 005 wrap `DO $$ IF EXISTS`
-- [ ] Indigo legacy `#6366f1` → `var(--ds-brand)` (30+ occurrences)
-- [ ] `script-dev-seed.js` conditionnel `<script>` (charger uniquement si `?seed=1`)
-- [ ] `version-bump.js` tooling (20 lignes Node)
-- [ ] ESLint `no-unused-vars` config
-- [ ] Pré-commit hook `node --test`
+- [~] `fermerFiche360` double définition supprimée
+- [~] Doublons HT functions (carburant/entretiens) consolidés
+- [~] `patchClientsRows/Fournisseurs` no-ops + observers supprimés
+- [~] Migration SQL 009 `ON CONFLICT DO NOTHING` + 005 wrap `DO $$ IF EXISTS`
+- [~] Indigo legacy `#6366f1` → `var(--ds-brand)` (30+ occurrences)
+- [~] `script-dev-seed.js` conditionnel `<script>` (charger uniquement si `?seed=1`)
+- [~] `version-bump.js` tooling (20 lignes Node)
+- [~] ESLint `no-unused-vars` config
+- [~] Pré-commit hook `node --test`
 
 ### 24.G — Reseed persistant [Audit V6 C4 — DEPEND_USER]
 
-- [ ] Désactiver adapters Supabase quand `?reseed=1` ET `auth_mode=local`, OU sync seed → Supabase
+- [~] Désactiver adapters Supabase quand `?reseed=1` ET `auth_mode=local`, OU sync seed → Supabase
 
 ### 24.H — Supabase schema mismatch [Audit V6 C3 — DEPEND_USER]
 
-- [ ] Migration SQL : `ALTER TABLE public.charges ADD COLUMN IF NOT EXISTS recurrence_actif boolean DEFAULT false;`
+- [~] Migration SQL : `ALTER TABLE public.charges ADD COLUMN IF NOT EXISTS recurrence_actif boolean DEFAULT false;`
+
+### Bilan Onglet 24 (reporté sprint dédié 2026-05-17)
+
+8 chantiers transverses (~3j cumulés). Découpage suggéré H3 :
+- **Sprint H3.A** : Sync robustesse multi-device (24.A) — 1-2j
+- **Sprint H3.B** : Migration localStorage → IndexedDB (24.B) — 1-2j
+- **Sprint H3.C** : A11y WCAG/RGAA batch (24.E) — 6h (déjà tracké H2.3)
+- **Sprint H3.D** : Performance lazy-loading + scheduler (24.D) — 1j
+- **Sprint H3.E** : Dette technique cleanup (24.F) — 2-3h
+Autres (24.C bus events, 24.G reseed, 24.H schema mismatch) en backlog.
 
 ---
 
