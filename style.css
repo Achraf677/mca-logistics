@@ -4429,9 +4429,12 @@ kbd {
   font-size: .82rem;
   color: var(--text-muted);
 }
+/* Phase 91.81 (2026-05-17) — Grid 4 colonnes : searchbar (flex) + 2 selects
+   + bouton Réinitialiser. Avant : 3 cols seulement → le bouton Réinitialiser
+   passait sur une 2e ligne pleine largeur (UX moche, user feedback). */
 .filters-vehicules {
   display: grid;
-  grid-template-columns: minmax(300px, 1fr) minmax(220px, 260px) auto;
+  grid-template-columns: minmax(280px, 1fr) minmax(160px, 220px) minmax(160px, 220px) auto;
   gap: 12px;
   align-items: center;
 }
@@ -4446,8 +4449,11 @@ kbd {
 
 @media (width <= 1180px) {
   .filters-vehicules {
-    grid-template-columns: 1fr 240px auto;
+    /* Phase 91.81 — adapté 4 cols : searchbar pleine 1ère ligne, 2 selects + Réinit 2ème ligne */
+    grid-template-columns: 1fr 1fr auto;
+    grid-template-areas: "search search search" "sel1 sel2 reset";
   }
+  .filters-vehicules .searchbar { grid-area: search; }
 }
 
 @media (width <= 900px) {
