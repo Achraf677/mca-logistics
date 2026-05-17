@@ -665,9 +665,10 @@
         <h1 class="page-title">Livraisons</h1>
         <div class="sub-meta">
           <strong id="livraisons-titlerow-count">0</strong> ce mois
-          <span id="livraisons-titlerow-retards-wrap" style="display:none">
-            <span> · </span>
-            <span class="alert"><strong id="livraisons-titlerow-retards">0</strong> retard<span id="livraisons-titlerow-retards-s">s</span></span>
+          <!-- "X retard(s)" retiré 2026-05-17 (user feedback : inutile, déjà couvert par chip Retards).
+               IDs preservés en hidden pour compat scripts (script-livraisons-chips.js). -->
+          <span id="livraisons-titlerow-retards-wrap" hidden>
+            <strong id="livraisons-titlerow-retards">0</strong><span id="livraisons-titlerow-retards-s"></span>
           </span>
           <span id="livraisons-titlerow-periode" hidden>ce mois</span>
         </div>
