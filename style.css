@@ -298,20 +298,19 @@ body.app-shell > .main-content {
 .topbar {
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
-  padding: 10px 20px;
+  padding: 14px 20px;
   display: flex;
   align-items: center;
   gap: 12px;
   position: sticky;
   top: 0;
   z-index: 50;
-  /* Audit 2026-05-17 : flex-wrap NOWRAP — la topbar reste sur 1 ligne ~52px peu importe
-     le viewport. Avant : wrap → topbar doublait/triplait de hauteur sur écrans étroits.
-     Les éléments secondaires (titre page, date, branding) sont masqués via media queries
-     ci-dessous pour ne pas overflow. */
+  /* Audit 2026-05-17 : flex-wrap NOWRAP + hauteur fixe alignée sur .sidebar-header
+     (padding 18px + logo 24px + padding 18px + border 1px = 61px) pour que le bas
+     de la topbar coïncide avec le bas du logo "MCA LOGISTICS" sidebar. User feedback. */
   flex-wrap: nowrap;
-  min-height: 52px;
-  max-height: 52px;
+  min-height: 61px;
+  max-height: 61px;
 }
 .topbar > * { flex-shrink: 0; }
 .topbar > .topbar-search-wrap { flex-shrink: 1; min-width: 0; }
@@ -326,7 +325,7 @@ body.app-shell > .main-content {
 @media (max-width: 768px) {
   .topbar #btn-install-pwa { display: none !important; }
   .topbar #ai-status-bar .ai-status-label { display: none; }
-  .topbar { padding: 8px 12px; min-height: 48px; max-height: 48px; }
+  .topbar { padding: 10px 12px; min-height: 56px; max-height: 56px; }
 }
 
 .topbar-branding {

@@ -417,12 +417,17 @@
 }
 
 /* Phase 91.47 — Palette moderne unifiée (Linear/Notion inspired, dark-mode optimized) */
-.cal16-legend-dot.today    { background: var(--ds-brand, #e63946); box-shadow: 0 0 0 2px rgba(230,57,70,0.25); }
-.cal16-legend-dot.ferie    { background: #a78bfa; }  /* lavande — distingue des verts */
-.cal16-legend-dot.livraison { background: #60a5fa; }  /* sky blue */
-.cal16-legend-dot.echeance { background: #fbbf24; }  /* amber */
-.cal16-legend-dot.paiement { background: #34d399; }  /* emerald soft */
-.cal16-legend-dot.relance  { background: #fb7185; }  /* rose framboise */
+/* Audit 2026-05-17 : couleurs alignées sur celles réellement appliquées aux events
+   dans script-core-sprint16-calendrier-operationnel.js getEventsForRange().
+   Avant : légende affichait des couleurs purement décoratives qui ne correspondaient
+   à rien sur les cellules (user feedback "vérifie que les légendes correspondent
+   bien à ce qui va être affiché sur le calendrier"). */
+.cal16-legend-dot.today    { background: #e63946; box-shadow: 0 0 0 2px rgba(230,57,70,0.25); }  /* brand red */
+.cal16-legend-dot.ferie    { background: #a78bfa; }  /* lavande — pas event mais marqueur de jour */
+.cal16-legend-dot.livraison { background: #22c55e; }  /* vert — script line 106 color:'#22c55e' */
+.cal16-legend-dot.echeance { background: #ef4444; }  /* rouge — script line 123 color:'#ef4444' */
+.cal16-legend-dot.paiement { background: #eab308; }  /* jaune amber — script line 142 color:'#eab308' */
+.cal16-legend-dot.relance  { background: #f97316; }  /* orange — script line 133 color:'#f97316' */
 
 /* ============ Phase 51 : Calendrier sidebar mockup alignment ============ */
 /* Sidebar KPI grid: 1 column (mockup vertical stacked layout) */
@@ -456,6 +461,11 @@
   letter-spacing: -0.03em;
   color: var(--ds-text);
   margin-top: 0;
+  /* Audit 2026-05-17 : font-style normal + tnum explicites — sans ça les chiffres
+     Syne 800 apparaissaient en faux-italique sur cette règle (override de la 258
+     qui les avait). User feedback : "police italic grave bizarre, enlève-moi ça". */
+  font-style: normal;
+  font-feature-settings: "tnum";
 }
 
 /* Phase 75 : cal16-kpi-lbl semantic colors via sibling ID → parent :has() */

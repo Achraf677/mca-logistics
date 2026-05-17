@@ -129,11 +129,14 @@ Root causes notables :
 - [x] 🆕 **Tooltips chart Activité 14j/30j/90j** : montants affichés en € exact avec séparateur milliers (ex : "2 450 € HT") au lieu de k€ arrondi ("2,5 k€"). Format `toLocaleString('fr-FR')` côté callback Chart.js. Pluriel livraisons aussi corrigé.
 - [x] Checklist cross-tab A (topbar) : OK. B (chip/select/badge) : badge brouillon harmonisé. C (drawer) : N/A.
 
-## 3. Calendrier
+## 3. Calendrier ✅ TERMINÉ (2026-05-17)
 
-- [ ] `script-stats-calendrier-counts.js:125` écrase fix Phase 91.50 sur `cal16-kpi-pai` → "Encaissé 600€" non vraiment fixé. Supprimer ce bloc legacy. [Agent B]
-- [ ] Cellule "Aujourd'hui" en brand red `#E11D48` [Agent E, audit H26] — *à vérifier*
-- [ ] Légende complète Aujourd'hui/Férié/Livraison/Échéance — *à vérifier*
+- [x] `script-stats-calendrier-counts.js:125` bloc legacy déjà supprimé Phase 91.55 Bug C. Le KPI `cal16-kpi-pai` est désormais écrit uniquement par `setKPIMoisCourant()` (script-core-sprint16-calendrier-operationnel.js:255) qui filtre `paiements[].sens === 'in'`. "—" affiché quand aucun paiement = comportement correct.
+- [x] Cellule "Aujourd'hui" : brand red `#e63946` appliqué (.cal16-legend-dot.today). User valide visuellement.
+- [x] Légende 6 items (Aujourd'hui/Férié/Livraison/Échéance/Paiement/Relance) présents admin.html:3659-3666.
+- [x] 🆕 **Couleurs de la légende alignées sur les events réels** : avant, les dots étaient des couleurs décoratives qui ne correspondaient pas. Maintenant : livraison vert `#22c55e`, écheance rouge `#ef4444`, paiement jaune `#eab308`, relance orange `#f97316` — match exact avec `getEventsForRange()` du script.
+- [x] 🆕 **Police KPI italic supprimée** (user feedback "police italic grave bizarre, enlève-moi ça") : ajout `font-style: normal` + `font-feature-settings: "tnum"` sur `#page-calendrier .cal16-kpi-val` qui n'héritait pas de la règle 258 (override de spécificité).
+- [x] 🆕 **Topbar alignée bas du logo "MCA LOGISTICS"** : hauteur topbar 52px → 61px desktop / 56px mobile (impact transverse toutes pages) pour matcher `.sidebar-header` (padding 18px × 2 + logo 24px + border 1px = 61px).
 
 ## 4. Planning
 
