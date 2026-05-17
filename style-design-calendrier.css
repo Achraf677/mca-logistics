@@ -455,15 +455,17 @@
 }
 
 #page-calendrier .cal16-kpi-val {
-  font-family: var(--ds-font-display);
-  font-size: 22px;
+  /* Audit 2026-05-17 fix #2 : Syne display avait des digits naturellement slantés
+     (apparence "italic" sur 5/0/4 même avec font-style:normal). Switch sur DM Sans
+     body, IDENTIQUE à Dashboard (#page-dashboard .kpi-grid-primary .kpi-value
+     style-design-dashboard-hero.css:514). User : "toujours la même police". */
+  font-family: var(--ds-font-body, var(--font-body, system-ui));
+  font-size: 32px;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.025em;
   color: var(--ds-text);
-  margin-top: 0;
-  /* Audit 2026-05-17 : font-style normal + tnum explicites — sans ça les chiffres
-     Syne 800 apparaissaient en faux-italique sur cette règle (override de la 258
-     qui les avait). User feedback : "police italic grave bizarre, enlève-moi ça". */
+  margin-top: 4px;
+  line-height: 1.1;
   font-style: normal;
   font-feature-settings: "tnum";
 }
