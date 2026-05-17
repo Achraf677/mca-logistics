@@ -277,15 +277,14 @@ tr[data-impaye="1"] td {
   font-feature-settings: "tnum";
 }
 
-/* Phase 91.78 (2026-05-17) — user feedback : centre toutes les colonnes
-   (headers + cellules) pour cohérence visuelle complète. Avant : mix
-   gauche/droite (Nom gauche, CA/Encours droite, Statut gauche, Actions
-   centré) cassait la lisibilité par scanner vertical. */
+/* Phase 91.79 (2026-05-17) — user feedback : aligne tout à gauche (au lieu
+   du centre v429) pour scan vertical naturel lecture FR. Les largeurs de
+   colonnes restent inchangées (text-align n'affecte pas la largeur). */
 .clients-table th,
 .clients-table td,
 .fournisseurs-table th,
 .fournisseurs-table td {
-  text-align: center !important;
+  text-align: left !important;
 }
 
 /* Phase 91.74 (2026-05-17) — Fix bug police HEADER mixte sur Carnet Client.
