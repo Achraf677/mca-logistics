@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v426-carnet-client-fix-police-header-bordures-arrondies';
+const CACHE_VERSION = 'mca-v2026-05-17-v427-carnet-client-encours-dm-sans-tabular-nums';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

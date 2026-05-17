@@ -263,9 +263,12 @@ tr[data-impaye="1"] td {
   letter-spacing: 0.01em;
 }
 
-/* Amount columns — right-aligned monospace */
+/* Amount columns — right-aligned, tabular-nums pour alignement chiffres */
 /* clients: CA 12m (5) + Encours (6) */
 /* fournisseurs: Dépenses 12m (5) + À régler (6) */
+/* Phase 91.75 (2026-05-17) — user feedback : police monospace retirée pour
+   cohérence visuelle avec colonne Statut (DM Sans). `tabular-nums` aligne
+   les chiffres même en DM Sans (feature OpenType), pas besoin de monospace. */
 .clients-table th:nth-child(5),
 .clients-table td:nth-child(5),
 .clients-table th:nth-child(6),
@@ -275,7 +278,6 @@ tr[data-impaye="1"] td {
 .fournisseurs-table th:nth-child(6),
 .fournisseurs-table td:nth-child(6) {
   text-align: right;
-  font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
   font-size: 0.85rem;
