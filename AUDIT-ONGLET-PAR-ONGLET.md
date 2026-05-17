@@ -55,6 +55,50 @@ Drawers 360 livrés en cours d'audit : Inspections (Onglet 11), Incidents (Ongle
 Phases déjà résolues vérifiées : 14, 25, 91.42, 91.55, 91.56, 91.57, 91.58, 91.59,
 91.60, 91.61, 91.62, 91.63, 91.85 + BUG-022 toLocalISODate + Sprint 20/21/22/25.
 
+---
+
+## 🔍 Doublons détectés en cours de session
+
+> **Règle CLAUDE.md (2026-05-17)** : avant toute vérif/modif, grep les patterns
+> voisins pour détecter doublons préexistants (refonte HTML active = ancienne
+> version coexiste souvent avec nouvelle). Logguer ici, consolider si trivial,
+> sinon reporter en sprint dette tech (24.F).
+
+### Polices d'écriture (audit 2026-05-17 sur demande user)
+
+**Source de vérité unique** : `style-tokens.css:59-61`
+- `--ds-font-display` = `"Syne", system-ui, -apple-system, sans-serif`
+- `--ds-font-body` = `"DM Sans", system-ui, -apple-system, sans-serif`
+- `--ds-font-mono` = `"JetBrains Mono", ui-monospace, Menlo, monospace`
+
+**Aliases volontaires** : `style.css:93-95` expose `--font-display/body/mono`
+qui pointent vers `--ds-*` (rétro-compat code existant), + `style.css:102` :
+`--font: var(--font-body)` alias court.
+
+**Chargement Google Fonts** :
+- `admin.html:22` : Syne + DM Sans + JetBrains Mono ✅ (Phase 91.54 I.3)
+- `m.html` : ❌ **AUCUNE** police Google chargée → fallback silencieux system-ui malgré usage de `--font-display` (m.html:25)
+- `salarie.html` : ❌ **AUCUNE** police Google chargée + font-family hardcodée `-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI'` (salarie.html:46) → bypass total design system
+- `login.html` : utilise `--font: "Segoe UI"` locale (login.html:24) — intentionnel (page autonome avant chargement DS) mais drift visuel
+
+**Doublons identifiés** :
+1. `previews/tokens.css:43-45` + `design-handoff/colors_and_type.css:43-45` : copies des tokens fonts pour Figma handoff, NON chargés en prod mais peuvent dériver de la source de vérité `style-tokens.css`. **Action** : pinner les valeurs via commentaire `/* GENERATED — sync from style-tokens.css */` ou supprimer si Figma utilise déjà la source canonique.
+2. `style.css:102` `--font: var(--font-body)` + `login.html:24` `--font: "Segoe UI"` : la même variable `--font` est définie 2× avec des valeurs différentes selon la page. Pas un bug (login est page autonome) mais à documenter.
+3. `style-design-calendrier.css` : utilise les 2 formes mélangées : `var(--ds-font-body)` (lignes 14-200) ET `var(--ds-font-body, 'DM Sans', system-ui, sans-serif)` (lignes 77, 250, 308, 322, 330, 350, 462) — incohérence stylistique pas bug. Idem `style-design-clients-fournisseurs.css` (lignes 345-454).
+4. `style-design-clients-fournisseurs.css:250,262,278` : utilise `var(--font-mono, 'DM Mono', monospace)` au lieu de `var(--ds-font-mono, 'JetBrains Mono', ...)`. **Fallback DM Mono incorrect** : la fallback list mentionne "DM Mono" qui n'existe pas (vraisemblablement confusion avec DM Sans). Sans incidence (var pointe bien vers JetBrains Mono via alias) mais à nettoyer.
+
+**Drifts critiques mobile/chauffeur** → déjà capturés dans :
+- Onglet 22 (Mobile parité) : pas de chargement Google Fonts dans m.html
+- Onglet 23 (salarie.html migration Design System) : font-family hardcodée Apple/Segoe à remplacer par `var(--ds-font-body)` + ajout `<link>` Google Fonts
+
+**Actions à prévoir (non bloquantes)** :
+- [ ] `m.html` : ajouter `<link rel="preconnect">` + `<link href="...DM Sans...">` (5 min, parité visuelle PC) → Onglet 22
+- [ ] `salarie.html` : remplacer `font-family: -apple-system,...` ligne 46 par `var(--ds-font-body, 'DM Sans', system-ui, sans-serif)` + charger Google Fonts → Onglet 23
+- [ ] `previews/tokens.css` + `design-handoff/colors_and_type.css` : ajouter commentaire de synchro ou supprimer (24.F dette)
+- [ ] `style-design-clients-fournisseurs.css:250,262,278` : remplacer `--font-mono, 'DM Mono'` par `--ds-font-mono, 'JetBrains Mono'` (24.F dette)
+
+---
+
 ### Bootstrap d'une nouvelle session (web/local)
 
 Si tu lances claude.ai/code ou une nouvelle session Claude Code, colle CE prompt :
