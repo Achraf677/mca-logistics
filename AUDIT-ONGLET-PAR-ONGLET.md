@@ -92,8 +92,8 @@ qui pointent vers `--ds-*` (rétro-compat code existant), + `style.css:102` :
 - Onglet 23 (salarie.html migration Design System) : font-family hardcodée Apple/Segoe à remplacer par `var(--ds-font-body)` + ajout `<link>` Google Fonts
 
 **Actions à prévoir (non bloquantes)** :
-- [ ] `m.html` : ajouter `<link rel="preconnect">` + `<link href="...DM Sans...">` (5 min, parité visuelle PC) → Onglet 22
-- [ ] `salarie.html` : remplacer `font-family: -apple-system,...` ligne 46 par `var(--ds-font-body, 'DM Sans', system-ui, sans-serif)` + charger Google Fonts → Onglet 23
+- [x] `m.html` : ajouter `<link rel="preconnect">` + `<link href="...DM Sans...">` *(Phase 91.71, fixé 2026-05-17 — commit suite)*
+- [x] `salarie.html` : remplacer `font-family: -apple-system,...` ligne 46 par `var(--ds-font-body, 'DM Sans', system-ui, sans-serif)` + charger Google Fonts *(Phase 91.71, fixé 2026-05-17 — commit suite)*
 - [ ] `previews/tokens.css` + `design-handoff/colors_and_type.css` : ajouter commentaire de synchro ou supprimer (24.F dette)
 - [ ] `style-design-clients-fournisseurs.css:250,262,278` : remplacer `--font-mono, 'DM Mono'` par `--ds-font-mono, 'JetBrains Mono'` (24.F dette)
 
