@@ -117,12 +117,17 @@ Root causes notables :
 
 ---
 
-## 2. Dashboard ⬅ **PROCHAIN ONGLET À ATTAQUER**
+## 2. Dashboard ✅ TERMINÉ (2026-05-17)
 
-- [ ] Topbar `margin-top:20px` global sur `.page > .ds-section-head:first-child` [Agent A] — *à vérifier appliqué*
-- [ ] Sub-meta date "Mai 2026" wired (était vide) [plan v9] — *à vérifier*
-- [ ] KPI bar mockup-aligned (Livraisons/CA HT/Marge nette/Retards) — *à vérifier*
-- [ ] Indice santé 4 sous-cartes FINANCE/FLOTTE/RH/CONFORMITÉ — *à vérifier*
+- [x] Topbar `margin-top:20px` : `.ds-section-head` premier enfant de `.page` → règle CSS s'applique (héritée Onglet 1).
+- [x] Sub-meta date "Mai 2026" : wiré dans `script-dashboard-submeta.js` (boot + refresh horaire).
+- [x] KPI bar mockup-aligné : 4 cartes Livraisons / CA HT / Marge nette / Retards (admin.html:532-555).
+- [x] Indice santé 4 sous-cartes Finance/Flotte/RH/Conformité : `buildSubScores()` dans `script-dashboard-finish.js:241` calcule depuis livraisons/vehicules/salaries/alertes.
+- [x] 🆕 **isRetard() corrigé** (user feedback : "j'ai retard qui existe alors que ça ne devrait pas exister") : avant, toute livraison non-livrée past date était marquée Retard, y compris les brouillons. Maintenant seules les livraisons `en-cours` past date sont retard. Brouillon = pas engagé = pas de retard possible.
+- [x] 🆕 **Label "En attente" → "Brouillon"** dans `statusBadge()` du widget Dernières livraisons (parité onglet Livraisons).
+- [x] 🆕 **Barre "Retard" retirée** du widget Statuts livraisons (user feedback : inutile, déjà couvert par KPI Retards en haut). Label "En attente" → "Brouillon" aussi dans cette barre.
+- [x] 🆕 **Tooltips chart Activité 14j/30j/90j** : montants affichés en € exact avec séparateur milliers (ex : "2 450 € HT") au lieu de k€ arrondi ("2,5 k€"). Format `toLocaleString('fr-FR')` côté callback Chart.js. Pluriel livraisons aussi corrigé.
+- [x] Checklist cross-tab A (topbar) : OK. B (chip/select/badge) : badge brouillon harmonisé. C (drawer) : N/A.
 
 ## 3. Calendrier
 

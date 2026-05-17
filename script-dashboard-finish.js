@@ -30,8 +30,11 @@
   }
 
   function isRetard(l) {
+    // Audit 2026-05-17 : seules les livraisons ENGAGÉES (en-cours) peuvent être "en retard".
+    // Brouillon / en-attente = pas encore engagées → pas de retard possible (user feedback).
+    // Livré = pas de retard (achevé).
     var s = getStatut(l);
-    if (s === 'livre' || s === 'livré' || s === 'livree') return false;
+    if (s !== 'en-cours' && s !== 'en cours') return false;
     var d = l.dateLivraison || l.dateLiv || l.date;
     if (!d) return false;
     try {
@@ -97,12 +100,13 @@
         + '</div>';
     }
 
+    // Audit 2026-05-17 — barre "Retard" retirée (user feedback : inutile, déjà couvert
+    // par le KPI Retards en haut). Label "En attente" → "Brouillon" (unification).
     var bars = ''
       + '<div class="status-bars">'
-      +   barRow('ok',      'Livrées',    counts.livre,   pct(counts.livre))
-      +   barRow('warn',    'En cours',   counts.encours, pct(counts.encours))
-      +   barRow('attente', 'En attente', counts.attente, pct(counts.attente))
-      +   barRow('alert',   'Retard',     counts.retard,  pct(counts.retard))
+      +   barRow('ok',      'Livrées',   counts.livre,   pct(counts.livre))
+      +   barRow('warn',    'En cours',  counts.encours, pct(counts.encours))
+      +   barRow('attente', 'Brouillon', counts.attente, pct(counts.attente))
       + '</div>';
 
     var foot = ''
@@ -141,7 +145,8 @@
     var s = getStatut(l);
     if (s === 'livre' || s === 'livré' || s === 'livree') return '<span class="badge ok">Livrée</span>';
     if (s === 'en-cours' || s === 'en cours') return '<span class="badge pending">En cours</span>';
-    return '<span class="badge attente">En attente</span>';
+    // Audit 2026-05-17 — unification : en-attente legacy affiché "Brouillon" (parité onglet Livraisons).
+    return '<span class="badge attente">Brouillon</span>';
   }
 
   function buildLastDeliveries() {

@@ -202,9 +202,15 @@
             callbacks: {
               title: function (items) { return items[0].label; },
               label: function (c) {
-                return c.datasetIndex === 0
-                  ? ' ' + c.parsed.y + ' livraisons'
-                  : ' ' + c.parsed.y.toFixed(1).replace('.', ',') + ' k€';
+                // Audit 2026-05-17 : tooltips affichent le montant exact en € (pas k€ arrondi).
+                // Dataset 0 = nb livraisons (entier), Dataset 1 = CA en k€ → reconverti en € exact.
+                if (c.datasetIndex === 0) {
+                  var n = c.parsed.y;
+                  return ' ' + n + ' livraison' + (n > 1 ? 's' : '');
+                }
+                var ke = c.parsed.y;
+                var euros = Math.round(ke * 1000);
+                return ' ' + euros.toLocaleString('fr-FR') + ' € HT';
               },
             },
           },
