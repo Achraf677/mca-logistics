@@ -42,7 +42,9 @@
       label: 'Parc auto',
       section: 'flotte',
       pages: ['vehicules', 'carburant', 'entretiens', 'inspections'],
-      labels: { vehicules: 'Véhicules', carburant: '⛽ Carburant', entretiens: 'Entretiens', inspections: 'Inspections' },
+      // Phase 91.84 (2026-05-17) — retiré emoji ⛽ devant Carburant (cohérence
+      // avec Véhicules / Entretiens / Inspections sans emoji, user feedback).
+      labels: { vehicules: 'Véhicules', carburant: 'Carburant', entretiens: 'Entretiens', inspections: 'Inspections' },
       defaultPage: 'vehicules',
       storageKey: 's22_last_parc',
     },
