@@ -84,7 +84,7 @@
       + row('Trajet', escHtml(liv.depart || '—') + ' → ' + escHtml(liv.arrivee || '—'))
       + (distance ? row('Distance', escHtml(distance) + ' km') : '')
       + row('Chauffeur', escHtml(liv.chaufNom || '—'))
-      + row('Véhicule', escHtml(liv.vehImmat || liv.vehImmat || '—'))
+      + row('Véhicule', escHtml(liv.vehImmat || liv.vehNom || '—'))
       + row('Statut', statutBadge(liv.statut))
       + row('Date livraison', fmtDateFr(liv.date || liv.date_livraison || liv.dateLivraison))
       + row('Montant HT', fmtEur2(ht))

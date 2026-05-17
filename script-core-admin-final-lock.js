@@ -241,7 +241,6 @@ const __renderLivraisonsAdminFinal_v2 = function() {
       <td class="livraison-number-cell livraison-muted-cell">${euros(tva)}</td>
       <td class="livraison-number-cell livraison-total-cell">${euros(ttc)}</td>
       <td>${formatArchivedDriverHtml(chauffeur)}</td>
-      <td><span class="livraison-cell-text">${escapeHtml(l.vehNom || l.vehImmat || '—')}</span></td>
       <td><div class="livraison-select-cell">${selectStatutPropre}</div></td>
       <td><div class="livraison-select-cell">${selectPaiementPropre}</div></td>
       <td class="livraison-number-cell">${datePaiement}</td>

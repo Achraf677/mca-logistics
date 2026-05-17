@@ -160,7 +160,8 @@
     vehTd.className = 'liv-veh-cell';
     if (livraison) {
       const veh = livraison.vehImmat || livraison.vehimmat || livraison.veh_immat
-                 || livraison.vehicule || livraison.vehiculeImmat || '';
+                 || livraison.vehicule || livraison.vehiculeImmat
+                 || livraison.vehNom || '';
       vehTd.textContent = String(veh).replace(/[<>]/g, '') || '—';
     } else {
       vehTd.textContent = '—';
