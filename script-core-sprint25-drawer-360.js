@@ -65,6 +65,33 @@
     }
   };
 
+  // Audit 2026-05-17 — ouvre un document (BL/CMR/facture) pour la livraison d'une facture
+  // depuis le drawer client, sans changer de page. Délègue aux générateurs globaux qui
+  // affichent le PDF en popup/print preview puis ferment.
+  window.s25OuvrirDocFacture = function (livId, type) {
+    if (!livId || !type) return;
+    try {
+      if (type === 'facture' && typeof window.genererFactureLivraison === 'function') {
+        window.genererFactureLivraison(livId);
+      } else if (type === 'bl' && typeof window.genererBonsLivraison === 'function') {
+        window.genererBonsLivraison(livId);
+      } else if (type === 'bl' && typeof window.genererBonLivraison === 'function') {
+        window.genererBonLivraison(livId);
+      } else if (type === 'cmr' && typeof window.genererLettreDeVoiture === 'function') {
+        window.genererLettreDeVoiture(livId);
+      } else if (type === 'cmr' && typeof window.genererLettreVoiture === 'function') {
+        window.genererLettreVoiture(livId);
+      } else if (typeof window.afficherToast === 'function') {
+        window.afficherToast('Générateur "' + type + '" indisponible', 'error');
+      }
+    } catch (e) {
+      console.warn('[s25OuvrirDocFacture]', type, livId, e);
+      if (typeof window.afficherToast === 'function') {
+        window.afficherToast('Erreur génération document : ' + (e && e.message ? e.message : 'inconnue'), 'error');
+      }
+    }
+  };
+
   function renderDrawer(html) {
     ensureDrawer();
     const o = document.getElementById('s25-drawer-overlay');
@@ -167,7 +194,7 @@
       </div>
       <div class="s25-tab-content">
         ${renderVueClient(c, factures, livs, paiements, relances)}
-        ${renderFactTab(factures)}
+        ${renderFactTab(factures, livs)}
         ${renderLivsTab(livs)}
         ${renderPayTab(paiements)}
         ${renderComTab(relances, c)}
@@ -224,20 +251,54 @@
       </div>`;
   }
 
-  function renderFactTab(factures) {
+  // Audit 2026-05-17 — labels lisibles pour statuts livraison/facture
+  // (avant : "en-attente" / "livre" affichés tels quels en minuscule, sans accents).
+  function labelStatutLivraison(s) {
+    var v = String(s || '').toLowerCase().trim();
+    if (v === 'livre' || v === 'livré' || v === 'livree' || v === 'livrée') return 'Livré';
+    if (v === 'en-cours' || v === 'en cours') return 'En cours';
+    if (v === 'brouillon' || v === 'draft') return 'Brouillon';
+    if (v === 'en-attente' || v === 'en attente') return 'Brouillon'; // unifié H2.5
+    if (v === 'annule' || v === 'annulee' || v === 'annulé' || v === 'annulée') return 'Annulé';
+    if (v === 'retard') return 'En retard';
+    return s ? (s.charAt(0).toUpperCase() + s.slice(1)) : '—';
+  }
+  function labelStatutFacture(s) {
+    var v = String(s || '').toLowerCase().trim();
+    if (v === 'payée' || v === 'payee' || v === 'paye' || v === 'payé') return 'Payée';
+    if (v === 'émise' || v === 'emise') return 'Émise';
+    if (v === 'annulée' || v === 'annulee') return 'Annulée';
+    return s ? (s.charAt(0).toUpperCase() + s.slice(1)) : '—';
+  }
+
+  function renderFactTab(factures, livs) {
     if (!factures.length) return '<div class="s25-tab-panel" data-panel="fact"><div class="s25-empty">Aucune facture</div></div>';
-    const rows = factures.sort((a,b) => new Date(b.dateFacture||0) - new Date(a.dateFacture||0))
+    const rows = factures.sort((a,b) => new Date(b.dateFacture||b.date||0) - new Date(a.dateFacture||a.date||0))
       .map(f => {
         const s = soldeFact(f);
         const pillCls = f.statut === 'payée' || s <= 0.01 ? 'pill-ok' : (s > 0 ? 'pill-due' : 'pill-neutral');
-        return '<tr><td>'+fmtDate(f.dateFacture)+'</td><td><strong>'+esc(f.numero||'—')+'</strong></td><td>'+fmtEur(f.montantTTC||f.totalTTC||0)+'</td><td style="color:'+(s>0?'#ef4444':'inherit')+'">'+fmtEur(s)+'</td><td><span class="s25-pill '+pillCls+'">'+esc(f.statut||'—')+'</span></td></tr>';
+        // Audit 2026-05-17 — dropdown documents liés (BL + LDV) par facture, sans changer de page.
+        const livId = f.livId || '';
+        const dropdownId = 's25-fact-menu-' + esc(f.id || '');
+        const docMenu = livId
+          ? '<div class="s25-doc-dd" style="position:relative;display:inline-block">'
+            + '<button type="button" class="s25-btn-sm" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById(\''+dropdownId+'\');var o=m.style.display!==\'block\';m.style.display=o?\'block\':\'none\';b.setAttribute(\'aria-expanded\',o);document.addEventListener(\'click\',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.style.display=\'none\';b.setAttribute(\'aria-expanded\',\'false\');document.removeEventListener(\'click\',h)}},{once:true});})(this)" title="Documents liés">📎 ▾</button>'
+            + '<div id="'+dropdownId+'" class="s25-doc-menu" style="display:none;position:absolute;right:0;top:100%;z-index:10;background:var(--bg-elevated,#22262d);border:1px solid var(--border,#3a4150);border-radius:8px;padding:6px;min-width:200px;box-shadow:0 6px 20px rgba(0,0,0,.4)">'
+            + '<button type="button" class="s25-doc-item" style="display:block;width:100%;text-align:left;padding:8px 10px;background:transparent;border:0;color:inherit;cursor:pointer;border-radius:4px" onclick="window.s25OuvrirDocFacture(\''+livId+'\',\'bl\')">📦 Bon de livraison</button>'
+            + '<button type="button" class="s25-doc-item" style="display:block;width:100%;text-align:left;padding:8px 10px;background:transparent;border:0;color:inherit;cursor:pointer;border-radius:4px" onclick="window.s25OuvrirDocFacture(\''+livId+'\',\'cmr\')">📋 Lettre de voiture (CMR)</button>'
+            + '<button type="button" class="s25-doc-item" style="display:block;width:100%;text-align:left;padding:8px 10px;background:transparent;border:0;color:inherit;cursor:pointer;border-radius:4px;border-top:1px solid var(--border,#3a4150);margin-top:4px;padding-top:10px" onclick="window.s25OuvrirDocFacture(\''+livId+'\',\'facture\')">🧾 Facture (réimprimer)</button>'
+            + '</div></div>'
+          : '<span style="color:var(--text-muted)">—</span>';
+        return '<tr><td>'+fmtDate(f.dateFacture||f.date)+'</td><td><strong>'+esc(f.numero||'—')+'</strong></td><td>'+fmtEur(f.montantTTC||f.totalTTC||0)+'</td><td style="color:'+(s>0?'#ef4444':'inherit')+'">'+fmtEur(s)+'</td><td><span class="s25-pill '+pillCls+'">'+esc(labelStatutFacture(f.statut))+'</span></td><td style="text-align:right">'+docMenu+'</td></tr>';
       }).join('');
-    return '<div class="s25-tab-panel" data-panel="fact"><table class="s25-table"><thead><tr><th>Date</th><th>N°</th><th>Total TTC</th><th>Solde dû</th><th>Statut</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    return '<div class="s25-tab-panel" data-panel="fact"><table class="s25-table"><thead><tr><th>Date</th><th>N°</th><th>Total TTC</th><th>Solde dû</th><th>Statut</th><th style="text-align:right">Docs</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   function renderLivsTab(livs) {
     if (!livs.length) return '<div class="s25-tab-panel" data-panel="livs"><div class="s25-empty">Aucune livraison</div></div>';
-    const rows = livs.sort((a,b) => new Date(b.date||0) - new Date(a.date||0))
-      .map(l => '<tr><td>'+fmtDate(l.date)+'</td><td><strong>'+esc(l.numero||'—')+'</strong></td><td>'+fmtEur(l.montant||l.totalHT||0)+'</td><td>'+esc(l.statut||'—')+'</td></tr>').join('');
+    // Audit 2026-05-17 — l.numero était mort (champ inexistant) → utiliser l.numLiv canonique.
+    // Date fallback l.dateLivraison pour livraisons legacy. Montant fallback l.prix (TTC) si HT absent.
+    const rows = livs.sort((a,b) => new Date(b.date||b.dateLivraison||0) - new Date(a.date||a.dateLivraison||0))
+      .map(l => '<tr><td>'+fmtDate(l.date||l.dateLivraison)+'</td><td><strong>'+esc(l.numLiv||l.numero||'—')+'</strong></td><td>'+fmtEur(l.montantHT||l.totalHT||l.prixHT||l.prix||l.montant||0)+'</td><td>'+esc(labelStatutLivraison(l.statut))+'</td></tr>').join('');
     return '<div class="s25-tab-panel" data-panel="livs"><table class="s25-table"><thead><tr><th>Date</th><th>N°</th><th>Montant</th><th>Statut</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   function renderPayTab(paiements) {
