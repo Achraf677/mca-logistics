@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v423-fix-syntaxe-css-polices-mono-simplifie-var-font-mono';
+const CACHE_VERSION = 'mca-v2026-05-17-v424-polices-mono-pointage-direct-ds-font-mono';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

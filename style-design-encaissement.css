@@ -252,7 +252,7 @@
 #enc-period-nav .enc-period-dates {
   font-size: 11px;
   color: var(--text-muted);
-  font-family: var(--font-mono, monospace);
+  font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
 }
 
 #enc-period-nav .enc-period-chips {

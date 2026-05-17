@@ -108,7 +108,7 @@
 
 /* Col 2 : N° LIV en mono */
 .livraisons-table td:nth-child(2) {
-  font-family: var(--font-mono);
+  font-family: var(--ds-font-mono, 'JetBrains Mono', ui-monospace, monospace);
   font-size: 12px;
   letter-spacing: 0.02em;
   color: var(--ds-text-muted, var(--text-muted));
