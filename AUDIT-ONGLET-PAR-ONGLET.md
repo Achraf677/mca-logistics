@@ -52,11 +52,13 @@ On termine **complètement** un onglet (= tous ses `[ ]` deviennent `[x]` ou `[~
 - [x] Refresh chain `ajouterLivraison` alignée avec `confirmerEditLivraison` (ajout `refreshDrawerClient` + `refreshDrawerLivraisonDetail`) *(commit 2026-05-17)*
 - [x] Chip "Parking" : déjà compté (script-charges-kpis-categorie.js:50,100, Phase 91.55 Bug E). En réalité dans onglet Charges, pas Livraisons.
 - [x] Nom client tronqué : `slice(0,48) + '…'` dans `formatClientLabel`, title attribut conserve nom complet via `clientFull` *(commit 2026-05-17)*
-- [ ] Bulk Edit Modal N>1 livraisons (1j chantier) [TODO-LIVRAISONS #4]
-  - Modal HTML `modal-bulk-edit-livraisons` dans admin.html
-  - `window.bulkEditLivraisons(ids)` nouveau fichier
-  - `confirmerBulkEditLivraisons()` avec verrouEdition par id
-  - Champs candidats : statut, statutPaiement, chaufId, vehId, date, modePaiement, tauxTVA
+- [x] Bulk Edit Modal N>1 livraisons *(commit 2026-05-17)*
+  - Modal HTML `modal-bulk-edit-livraisons` ajouté dans admin.html
+  - `script-livraisons-bulk-edit.js` créé avec `bulkEditLivraisons(ids)` + `confirmerBulkEditLivraisons()`
+  - 7 champs cochables : statut, statutPaiement, chaufId, vehId, date, modePaiement, tauxTVA
+  - Verrou édition vérifié par id (skip + count si verrouillé par autre admin)
+  - synchroniserAffectationLivraison appelé si chauffeur/véhicule changé
+  - Audit log 1 entrée pour le batch, refresh chain complète
 - [x] Génération facture depuis dropdown : try/catch wrapper en place (script-livraisons-polish.js:565-584) + SIRET vide handler (script-livraisons.js:1028-1032 toast + redirect Paramètres)
 
 ## 2. Dashboard

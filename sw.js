@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v401-livraisons-audit-onglet-1-items-1-4';
+const CACHE_VERSION = 'mca-v2026-05-17-v402-bulk-edit-livraisons-modal';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -82,6 +82,7 @@ const CORE_ASSETS = [
   // Phase 23 refonte HTML — livraisons table refonte (mockup-aligned)
   '/style-design-livraisons-refonte.css',
   '/script-livraisons-polish.js',
+  '/script-livraisons-bulk-edit.js',
   // Phase 29 refonte HTML — topbar refine (cross-page, mockup-aligned)
   '/style-design-topbar-refine.css',
   // Phase 32 refonte HTML — drawer 360 livraison (slide from right, 4 tabs)
