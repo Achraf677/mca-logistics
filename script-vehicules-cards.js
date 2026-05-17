@@ -52,9 +52,15 @@
   }
 
   function buildCard(v, salaries, carburant, entretiens) {
-    // Chauffeur
+    // Chauffeur — Phase 91.82 (2026-05-17) : utilise getSalarieNomComplet
+    // (script-salaries.js:104) au lieu du concat naïf, pour éviter le doublon
+    // "Achraf Achraf Chikri" quand prenom == nom ou prenom inclus dans nom.
     var sal = v.salId ? salaries.find(function (s) { return s.id === v.salId; }) : null;
-    var chauffeur = sal ? ((sal.prenom || '') + ' ' + (sal.nom || '')).trim() : '—';
+    var chauffeur = sal
+      ? (typeof window.getSalarieNomComplet === 'function'
+          ? window.getSalarieNomComplet(sal)
+          : ((sal.prenom || '') + ' ' + (sal.nom || '')).trim())
+      : '—';
 
     // Consommation 30j réelle — Phase 60 V7 polish : accepte vehiculeId/kmCompteur (seed) ET vehId/km (legacy)
     var now = new Date();

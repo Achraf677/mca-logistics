@@ -4432,15 +4432,55 @@ kbd {
 /* Phase 91.81 (2026-05-17) — Grid 4 colonnes : searchbar (flex) + 2 selects
    + bouton Réinitialiser. Avant : 3 cols seulement → le bouton Réinitialiser
    passait sur une 2e ligne pleine largeur (UX moche, user feedback). */
+/* Phase 91.83 (2026-05-17) — user feedback "filtres pas très très beau" :
+   - searchbar plus mesurée (max 480px au lieu de prendre tout l'espace dispo)
+   - selects + compacts (180px max, height fixe 38px, padding réduit)
+   - bouton Réinitialiser style ghost (background transparent + hover subtil)
+   - espacement vertical aéré (margin-top:14px du section-head) */
 .filters-vehicules {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(160px, 220px) minmax(160px, 220px) auto;
-  gap: 12px;
+  grid-template-columns: minmax(280px, 480px) minmax(140px, 180px) minmax(140px, 180px) auto;
+  gap: 10px;
   align-items: center;
+  margin-top: 14px;
+  margin-bottom: 14px;
 }
 .filters-vehicules .searchbar {
   min-width: 0;
   width: 100%;
+  height: 38px;
+}
+.filters-vehicules .searchbar input {
+  font-size: 0.86rem;
+}
+.filters-vehicules select {
+  height: 38px;
+  padding: 0 32px 0 12px;
+  font-size: 0.86rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.filters-vehicules select:hover {
+  border-color: var(--ds-border-strong, var(--text-muted));
+}
+.filters-vehicules .btn-secondary {
+  height: 38px;
+  padding: 0 16px;
+  font-size: 0.86rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.filters-vehicules .btn-secondary:hover {
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  border-color: var(--ds-border-strong, var(--text-muted));
 }
 #tb-budget-encaissements td:last-child,
 #tb-budget-decaissements td:last-child {
