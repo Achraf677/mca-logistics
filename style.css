@@ -298,14 +298,35 @@ body.app-shell > .main-content {
 .topbar {
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
-  padding: 12px 20px;
+  padding: 10px 20px;
   display: flex;
   align-items: center;
   gap: 12px;
   position: sticky;
   top: 0;
   z-index: 50;
-  flex-wrap: wrap;
+  /* Audit 2026-05-17 : flex-wrap NOWRAP — la topbar reste sur 1 ligne ~52px peu importe
+     le viewport. Avant : wrap → topbar doublait/triplait de hauteur sur écrans étroits.
+     Les éléments secondaires (titre page, date, branding) sont masqués via media queries
+     ci-dessous pour ne pas overflow. */
+  flex-wrap: nowrap;
+  min-height: 52px;
+  max-height: 52px;
+}
+.topbar > * { flex-shrink: 0; }
+.topbar > .topbar-search-wrap { flex-shrink: 1; min-width: 0; }
+/* Masquage progressif des éléments non-critiques pour préserver la hauteur fixe */
+@media (max-width: 1280px) {
+  .topbar .topbar-title { display: none; }
+}
+@media (max-width: 1024px) {
+  .topbar .topbar-date { display: none; }
+  .topbar .topbar-branding { display: none; }
+}
+@media (max-width: 768px) {
+  .topbar #btn-install-pwa { display: none !important; }
+  .topbar #ai-status-bar .ai-status-label { display: none; }
+  .topbar { padding: 8px 12px; min-height: 48px; max-height: 48px; }
 }
 
 .topbar-branding {
@@ -1493,7 +1514,8 @@ body.light-mode .searchbar-clear:hover {
   .page { padding: 20px 12px 16px; }
   .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .data-table { min-width: 700px; }
-  .topbar { flex-wrap: wrap; }
+  /* Audit 2026-05-17 : flex-wrap forcé en nowrap aussi sur mobile pour garder une hauteur fixe.
+     Les items secondaires sont masqués via media queries (cf .topbar block ligne ~298). */
   .topbar-mois { order: 3; width: 100%; justify-content: center; }
   .page-actions { align-items: flex-start; }
   .page-actions-toolbar { width: 100%; justify-content: flex-start; padding-right: 0; }
@@ -5328,10 +5350,10 @@ body.light-mode .budget-base-controls input {
     font-size: 1.2rem !important;
   }
 
-  /* Topbar admin sur mobile */
+  /* Topbar admin sur mobile — Audit 2026-05-17 : flex-wrap nowrap pour hauteur fixe.
+     Padding réduit. Items secondaires masqués via media queries dédiées (cf bloc principal). */
   .topbar {
-    padding: 10px 12px !important;
-    flex-wrap: wrap;
+    padding: 8px 12px !important;
     gap: 6px;
   }
   .topbar-title {
