@@ -97,6 +97,81 @@ qui pointent vers `--ds-*` (rétro-compat code existant), + `style.css:102` :
 - [ ] `previews/tokens.css` + `design-handoff/colors_and_type.css` : ajouter commentaire de synchro ou supprimer (24.F dette)
 - [ ] `style-design-clients-fournisseurs.css:250,262,278` : remplacer `--font-mono, 'DM Mono'` par `--ds-font-mono, 'JetBrains Mono'` (24.F dette)
 
+### Cartographie doublons + code mort (audit 3 agents 2026-05-17)
+
+> Triple audit lancé sur demande user "détecte tous les doublons + codes morts du site"
+> (3 agents Explore en parallèle : JS / CSS / orphelins-codemort). Tableau consolidé
+> ci-dessous, ✅ = validé manuellement, ⚠️ = à valider, ❌ = faux positif.
+
+#### A. Doublons JavaScript confirmés (HIGH)
+
+| Fonction | Statut | Détail |
+|---|---|---|
+| `renderLivraisonsAdminFinal` | ⚠️ **2 défs conflictuelles + 4 wrappers** | `script-core-admin-final-lock-iife.js:38` (IIFE) vs `script-core-admin-final-lock.js:269` (`__renderLivraisonsAdminFinal_v2`). Race condition ordre chargement. Wrappers S7, S8, S9, `script-livraisons.js:1446`. → **24.F dette** |
+| `fermerFiche360` | ⚠️ **2 défs anonymes sans guard** | `script-core-sprint20-rh360.js:196` (RH360) écrasé par `script-core-sprint21-parc360.js:158` (Parc360). Pas de wrapper, pas de flag. Mobile drawer 360 peut échouer silencieusement. → **24.F dette** ou H2.1 |
+| `afficherToast` | ✅ **OK** | 1 def + 1 wrapper volontaire S10 (toasts stackés), pattern correct |
+| `naviguerVers` | ✅ **OK** | 1 def + 6 wrappers volontaires (flags `__mbn`, `__s22Hooked`, ...) |
+| `openModal` / `closeModal` | ✅ **OK** | 1 def chacune dans `script-core-ui.js:260/321` |
+| Scripts chargés 2× HTML | ✅ **Aucun** | Vérifié `admin.html`, `m.html`, `salarie.html` |
+
+#### B. Doublons CSS confirmés — candidats consolidation (24.F)
+
+| Groupe | Fichiers | Action |
+|---|---|---|
+| **Livraisons** | `style-design-livraisons.css` (312l) + `style-design-livraisons-refonte.css` (682l, 106× `.livraisons-table`) + `style-design-livraisons-drawer.css` (401l) | Choisir UNE version avant merge main (refonte = nouveau) |
+| **Modales** | `style-design-modal.css` (65 sel) + `style-design-modals-refine.css` (95 sel) — refine override avec `!important` | Merger refine → modal.css, supprimer refine |
+| **Mobile** | `style-mobile.css` (759l) + `style-design-mobile-refine.css` (775l) — 14 sel `.m-*` overlap | Merger refine → mobile.css, supprimer refine |
+| **Dashboard** | `style-design-dashboard.css` + `-charts.css` + `-finish.css` + `-hero.css` (4 fichiers) | Étudier chevauchement `.kpi-*`, `.hero-*` |
+| **Topbar / tabs** | `style-design-shell.css` + `-topbar-refine.css` ; `style-design-modal.css` + `-tables-refine.css` | ✅ Override `!important` intentionnel, documenter dans header CSS |
+
+⚠️ Faux positif vérifié : `style-design-mobile-refine.css` chargé **1×** dans `m.html` (pas 2× comme prétendu par agent).
+
+#### C. CSS handoff Figma (LOW — doc seulement)
+
+| Fichier | Action |
+|---|---|
+| `previews/tokens.css` (43l), `previews/modals-shared.css` (151l), `design-handoff/colors_and_type.css` | Ajouter en tête : `/* GENERATED — Figma handoff, non chargé en prod, ne pas dériver */` |
+
+#### D. Code mort JS suspecté (à valider avant suppression)
+
+Fonctions définies dans le repo avec **0 caller détecté** :
+
+| Fonction | Fichier:ligne | Note validation |
+|---|---|---|
+| `s26SaveFactureMontant` / `Statut` / `Echeance` | `script-core-sprint26-timeline-stats-signature.js:304/313/321` | Référencés via `cell.dataset.s26Save` (l.254) mais **aucun `data-s26-save="..."` dans le repo** — vraisemblablement morts |
+| `s26SaveLivraisonStatut` | idem:329 | idem |
+| `s22Desactiver` | `script-core-sprint22-23-hubs.js:215` | Aucun caller (`onclick`, `(`) — vraisemblablement mort |
+| `dismissToastById` | `script-core-sprint10-toasts-stacked.js:164` | Aucun caller détecté — peut être appelé via callback dynamique |
+| `removeToastListener` | `script-core-toast.js:26` | Pair API `add/remove`, garder pour cohérence API même si pas utilisé |
+| `refreshDrawerFournisseur` | `script-core-sprint25-drawer-360.js:62` | Drawer 360 PC fournisseur non implémenté (cf. H2.4 CLAUDE.md) — placeholder |
+| `refreshDrawerInspection` | `script-inspections-drawer-360.js:280` | Aucun caller — peut être appelé via Supabase Realtime callback |
+
+**Recommandation** : suppression seulement pour les `s26SaveX` (5 fonctions) après confirmation user. Les autres = grep approfondi nécessaire (callback patterns dynamiques).
+
+#### E. Fichiers "orphelins" — FAUX POSITIFS
+
+| Fichier signalé | Réalité |
+|---|---|
+| `script-core-i18n.js` | Chargé dans `admin.html` + `m.html` + `salarie.html` ✅ |
+| `script-dashboard-submeta.js`, `script-sidebar-foot.js`, `script-tva-tabs.js` | Chargés dans `admin.html` ✅ |
+| `style-design-encaissement.css`, `style-design-heures-incidents.css` | Chargés dans `admin.html` ✅ — manquent juste de `sw.js` CORE_ASSETS (non précachés) → **action 24.F : ajouter au CORE_ASSETS pour offline** |
+
+#### F. Backend drift
+
+| Item | Statut | Action |
+|---|---|---|
+| Edge fn `ai-debug v4` | Déployée prod, source absente repo | Déjà connu (CLAUDE.md L147) — republier ou supprimer |
+| Migrations SQL `040`-`048` | Présentes repo mais non documentées dans CLAUDE.md (L153 stoppe à 039) | Mettre à jour CLAUDE.md — confirmer si toutes appliquées en prod |
+| Fichiers `.bak`/`.old`/`.tmp`/`-deprecated` | ✅ Aucun trouvé | — |
+| MD docs stale | ✅ Aucun trouvé (tous datés < 2 mois ou pointers actifs CLAUDE.md) | — |
+
+#### Récap priorisé
+
+1. **HIGH (à fixer rapidement)** : `renderLivraisonsAdminFinal` 2 défs (race condition possible) + `fermerFiche360` 2 défs anonymes (Parc360 écrase RH360)
+2. **MEDIUM (consolidation)** : merger les 3 paires CSS `refine` (modal, mobile, topbar déjà OK) + choisir 1 fichier livraisons CSS avant merge main
+3. **LOW (cleanup)** : supprimer ~5 fonctions s26Save mortes après confirm user + ajouter CSS au CORE_ASSETS pour offline + commenter previews/handoff
+4. **DOC** : mettre à jour CLAUDE.md (migrations 040-048 + status `ai-debug`)
+
 ---
 
 ### Bootstrap d'une nouvelle session (web/local)
