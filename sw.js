@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v399-fix-double-vehicule-cell-drawer-typo';
+const CACHE_VERSION = 'mca-v2026-05-17-v400-vehImmat-mirror-canonical';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

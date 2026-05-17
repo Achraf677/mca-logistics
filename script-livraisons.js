@@ -111,11 +111,14 @@ function synchroniserAffectationLivraison(chaufId, vehId) {
   let vehicule = vehId ? vehicules.find(function(item) { return item.id === vehId; }) : null;
   if (salarie && !vehicule) vehicule = getVehiculeParSalId(salarie.id);
   if (vehicule && !salarie && vehicule.salId) salarie = salaries.find(function(item) { return item.id === vehicule.salId; }) || null;
+  const immat = vehicule ? vehicule.immat : '';
   return {
     chaufId: salarie ? salarie.id : '',
     chaufNom: salarie ? getSalarieNomComplet(salarie) : 'Non assigné',
     vehId: vehicule ? vehicule.id : '',
-    vehNom: vehicule ? vehicule.immat : ''
+    vehNom: immat,
+    vehImmat: immat,
+    vehModele: vehicule ? (vehicule.modele || '') : ''
   };
 }
 
@@ -282,7 +285,7 @@ function ajouterLivraison() {
     clientTvaIntracom: clientTvaSnapshot, clientPays: clientPaysSnapshot,
     depart, arrivee, distance, prix, prixHT, tauxTVA, profit,
     chaufId: affectation.chaufId || null, chaufNom: affectation.chaufNom,
-    vehId: affectation.vehId || null, vehNom: affectation.vehNom,
+    vehId: affectation.vehId || null, vehNom: affectation.vehNom, vehImmat: affectation.vehImmat, vehModele: affectation.vehModele,
     statut, date, notes,
     statutPaiement: 'en-attente',
     modePaiement:   document.getElementById('liv-mode-paiement')?.value || '',
@@ -527,6 +530,8 @@ function confirmerEditLivraison() {
   livraisons[idx].chaufNom = affectation.chaufNom;
   livraisons[idx].vehId = affectation.vehId || null;
   livraisons[idx].vehNom = affectation.vehNom;
+  livraisons[idx].vehImmat = affectation.vehImmat;
+  livraisons[idx].vehModele = affectation.vehModele;
   livraisons[idx].date      = document.getElementById('edit-liv-date').value;
   livraisons[idx].heureDebut = document.getElementById('edit-liv-heure-debut')?.value || '';
   livraisons[idx].modePaiement = document.getElementById('edit-liv-mode-paiement')?.value || '';
