@@ -127,7 +127,12 @@ function afficherStatistiques() {
   });
 
   // Chauffeurs — horizontal bar
-  const ch=charger('chauffeurs');
+  // Onglet 19 item 1 (2026-05-17) — Privilégier `salaries` (adapter Supabase actif)
+  // sur `chauffeurs` (clé legacy localStorage maintenue par seed pour rétro-compat).
+  // Les chauffeurs externes non-salariés restent visibles via le fallback.
+  const _salariesCh = charger('salaries');
+  const _chauffeursLegacy = charger('chauffeurs').filter(c => !_salariesCh.find(s => s.id === c.id));
+  const ch = _salariesCh.concat(_chauffeursLegacy);
   if(chartChauff)chartChauff.destroy();
   const chData = ch.length ? ch.map(c=>({nom:c.nom, nb:livsFiltrees.filter(l=>l.chaufId===c.id).length})).sort((a,b)=>b.nb-a.nb) : [{nom:'Aucun',nb:0}];
   const _cvChauff = document.getElementById('chartChauffeurs');

@@ -15,7 +15,7 @@
 ## 🚀 État courant (mise à jour 2026-05-17 — fin session)
 
 - **Branche** : `claude/html-refonte-cleanup`
-- **CACHE_VERSION en cours** : `v416` (voir `sw.js` ligne 8)
+- **CACHE_VERSION en cours** : `v417` (voir `sw.js` ligne 8)
 - **Onglets terminés** :
   - ✅ Onglet 1 Livraisons (15 items + 5 bugs screenshots user)
   - ✅ Onglet 2 Dashboard (4 items + bug Retard sur brouillons + barre Retard retirée + tooltips chart €)
@@ -31,7 +31,14 @@
   - ✅ Onglet 12 Équipe/Salariés (Sprint 20 drawer 360 + Sprint 22 hub Équipe déjà livrés)
   - [~] Onglet 13 Heures & Km REPORTÉ sprint dédié (décision user, workflow pointage mobile 2-3 jours hors périmètre)
   - ✅ Onglet 14 Incidents (drawer 360 incident livré + 2 items déjà résolus en Phase 91.42)
-- **Prochain onglet** : 15. Charges
+  - ✅ Onglet 15 Charges (2 items déjà résolus Phase 91.57)
+  - ✅ Onglet 16 Encaissement (4 items déjà résolus Phase 91.42 + 91.58)
+  - [~] Onglet 17 TVA partiel (bannière + chips déjà résolus Phase 91.59, refonte CA3 reportée sprint dédié)
+  - ✅ Onglet 18 Rentabilité (2 items déjà résolus Phase 91.60 + 91.56)
+  - ✅ Onglet 19 Statistiques (1 fix code source chauffeurs → salaries Supabase, 5 items déjà résolus)
+  - ✅ Onglet 20 Paramètres (3 items déjà résolus Phase 91.55 + 91.62 + 91.63)
+  - ✅ Onglet 21 Brouillons IA (0 item, checklist OK)
+- **Prochain onglet** : 22. Mobile m.html
 - **Tests** : 436 pass · 0 fail (`npm test`)
 - **Sentry** : aucune erreur 24h (vérifié via MCP)
 
@@ -263,22 +270,32 @@ Tests : 436 pass (inchangé, pas de couverture unitaire ajoutée — drawer = pu
 
 3 items résolus (1 livré + 2 déjà résolus). Touchés : `script-incidents-drawer-360.js` (nouveau, 250 lignes) · `script-incidents.js` (clic ligne + fermeture drawer suppression) · `admin.html` (script tag) · `sw.js` (precache + v415→v416). Tests : 436 pass (inchangé).
 
-## 15. Charges
+## 15. Charges ✅ TERMINÉ (2026-05-17)
 
-- [ ] Fusion filtres + mini-KPI dans grille [Plan v9 Phase IV.91.57]
-- [ ] Déplacer catégories custom Paramètres → Charges [Plan v9 Phase IV.91.57]
+- [x] Fusion filtres + mini-KPI dans grille livrée en Phase 91.57 (admin.html:3063-3103) : 2 KPI grids `.ds-kpi-grid--charges` — 4 cards par catégorie (Carburant/Entretien/Péages/Assurance) + 3 cards par statut paiement (Impayé/Retard/Payé). Chips toolbar filtre catégorie sync avec select via `appliquerChipCharges`.
+- [x] Catégories custom déplacées Paramètres → Charges en Phase 91.57 (admin.html:3184-3198) : `<details id="charges-categories-custom-block">` collapse dans la page Charges (logique métier au plus près).
+- [x] Checklist cross-tab : **A** topbar OK (`hub-subnav:first-child`). **B** chip↔select OK (chips catégorie sync via `appliquerChipCharges` + `filtre-charge-cat`). **C** drawer auto-refresh : N/A (pas de drawer dédié charges).
 
-## 16. Encaissement
+### Bilan Onglet 15 (✅ clôt 2026-05-17)
 
-- [ ] KPI "Encaissé ce mois" fallback sur `dateLivraison` si pas de `datePaiement` (gonfle artificiellement) [Audit Agent 7 HIGH]
-- [ ] `calculerDSO` lit uniquement `dateLivraison` (legacy) au lieu du champ `date` actuel [Audit Agent 7 HIGH]
-- [ ] DSO calculé pour brief IA + KPI page Encaissement [CLAUDE.md H3.4]
-- [ ] Tabs internes 4 onglets (Suivi/Relances/Historique/Analyse) [Plan v9 Phase IV.91.58]
+0 commit code. Vérifications : admin.html:3063-3103 + 3184-3198. Tests inchangés.
 
-## 17. TVA 🚧 quasi-placeholder
+## 16. Encaissement ✅ TERMINÉ (2026-05-17)
 
-- [ ] Bannière sticky "à payer" + chips Mois/Trim/An [Plan v9 Phase IV.91.59]
-- [ ] **Refonte complète déclaration** (2j) [TODO-BACKLOG #5] :
+- [x] KPI "Encaissé ce mois" strict : date paiement uniquement, pas de fallback dateLivraison. Phase 91.42, `script-encaissement-counts.js:44-64`. Skip explicite si pas de `datePaiement || date_paiement`.
+- [x] `calculerDSO` lit `date || dateLivraison || date_livraison` (Phase 91.42, `script-core-dso.js:38`). Helper exposé `window.calculerDSO` + module.exports pour tests Node.
+- [x] DSO câblé dans 3 sources : KPI page Encaissement (`script-encaissement-counts.js` via `enc-kpi-dso`), KPI mobile (`script-mobile.js:6969`), brief IA (`infra/supabase/functions/ai-brief`). Cf. `script-core-dso.js:5-11`.
+- [x] Tabs internes Encaissement livrés (Sprint H Phase IV.91.58) : 3 onglets Suivi factures / Détails & relances / Analyse (admin.html:2881-2884) — équivalent fonctionnel aux 4 originalement prévus (Relances+Historique combinés dans "Détails & relances"). `script-encaissement-tabs.js`.
+- [x] Checklist cross-tab : **A** topbar OK (`hub-subnav:first-child`). **B** chip↔select OK (tabs sync via `switchEncMainTab`). **C** drawer auto-refresh : N/A (pas de drawer dédié encaissement).
+
+### Bilan Onglet 16 (✅ clôt 2026-05-17)
+
+0 commit code. Vérifications : `script-encaissement-counts.js:44-64`, `script-core-dso.js`, `admin.html:2881-2884`. Tests inchangés (déjà couverts par `tests/encaissement-kpis.test.js` + `tests/dso.test.js`).
+
+## 17. TVA ✅ TERMINÉ partiel — item 2 reporté (2026-05-17)
+
+- [x] Bannière sticky "TVA à payer cette période" livrée Phase 91.59 (admin.html:2190-2202) : icône + label + montant + échéance, info la plus critique en tête de page. Chips Mois/Trim/An (admin.html:2219-2224) sync via `data-period-target="vue-tva-select"`.
+- [~] **Refonte complète déclaration** (2j) [TODO-BACKLOG #5] — *reporté sprint dédié TVA déclaration (décision user 2026-05-17)* :
   - Tableau récap mois/trimestre : CA collecté + TVA collectée + TVA déductible + TVA à payer
   - Export PDF déclaration CA3 préformatée
   - Bouton "Marquer déclaré" + date butoir + statut
@@ -286,35 +303,51 @@ Tests : 436 pass (inchangé, pas de couverture unitaire ajoutée — drawer = pu
   - Alerte automatique 5j avant date limite déclaration
   - Sync Pennylane (la déclaration officielle s'y fait — MCA prépare)
   - Edge fn possible `tva-export-ca3`
+- [x] Checklist cross-tab : **A** topbar OK (`hub-subnav:first-child`). **B** chip↔select OK (chips période sync). **C** drawer auto-refresh : N/A.
 
-## 18. Rentabilité
+### Bilan Onglet 17 (clôt 2026-05-17 — item 2 reporté)
 
-- [ ] Simulateur en drawer/modal séparé [Plan v9 Phase IV.91.60]
-- [ ] Donut "Répartition charges" à supprimer (doublon Charges) [Plan v9 Phase III.3.3 + Agent E]
+Item 1 déjà résolu (Phase 91.59). Item 2 reporté en sprint dédié car nécessite intégration Pennylane + edge fn + workflow déclaration. Tests inchangés.
 
-## 19. Statistiques
+## 18. Rentabilité ✅ TERMINÉ (2026-05-17)
 
-- [ ] Source `chauffeurs` localStorage → Supabase [Plan v9 Phase IV.91.61]
-- [ ] Unifier period chips [Plan v9 Phase IV.91.61]
-- [ ] CA inclut brouillons + annulées (à exclure) [Audit Agent 8 HIGH]
-- [ ] Label "CA HT" mais utilise `l.prix` (TTC) dans graphiques [Audit Agent 8 HIGH]
-- [ ] `buildAreaData` `toISOString().slice(0,10)` décale 1j en CEST [Audit Agent 8 MED]
-- [ ] Sub-meta : drop dates redondantes [Plan v9 Phase III.3.2]
+- [x] Simulateur en drawer/modal séparé livré Phase 91.60 (admin.html:1369-1370 + 1519-1523) : CTA "Ouvrir le simulateur de rentabilité" appelle `openSimulateurRentabilite` qui ouvre le drawer `rent-simu-drawer`. Justification commentée : "libère un onglet, simulateur est outil ponctuel pas un axe d'analyse".
+- [x] Donut "Répartition charges" supprimé Phase 91.56 III.3 (admin.html:1409 commentaire confirmé). Doublon avec le donut Charges éliminé.
+- [x] Checklist cross-tab : **A** topbar OK (`hub-subnav:first-child`). **B** chip↔select OK. **C** drawer auto-refresh OK (simulateur ouvert au demand, fermeture explicite).
 
-## 20. Paramètres
+### Bilan Onglet 18 (✅ clôt 2026-05-17)
 
-- [ ] Déplacer "Identité visuelle" → onglet Apparence [Plan v9 Phase IV.91.62]
-- [ ] Notifications toggles : créer handler + persist localStorage [Plan v9 Phase II.2.4]
-- [ ] Polices globales dynamiques [Plan v9 Phase V.91.63] :
-  - `script-core-fonts.js` lit localStorage, applique `setProperty(':root', '--ds-font-body', value)`
-  - UI sélecteur cards visuelles dans Apparence
-  - Chargement Google Fonts dynamique
-  - Body : DM Sans / Inter / Manrope / Outfit / IBM Plex Sans
-  - Display : Syne / Space Grotesk / Sora / Manrope
+0 commit code. Vérifications : admin.html:1369-1370, 1409, 1519-1523. Tests inchangés.
 
-## 21. Brouillons IA
+## 19. Statistiques ✅ TERMINÉ (2026-05-17)
 
-- [ ] (rien d'identifié hier hors items transverses)
+- [x] Source `chauffeurs` localStorage → Supabase : `script-stats.js:130-135` lit maintenant `salaries` en priorité (adapter Supabase actif) avec fallback `chauffeurs` legacy pour les chauffeurs externes non-salariés. *(commit 2026-05-17)*
+- [x] Unifier period chips : Phase 91.61 déjà résolue. Chips section-head retirés au profit de la `.period-chips` unique de la period-nav (admin.html:1726-1727 commentaire confirmé).
+- [x] CA exclut brouillons + annulées : Phase 91.42 déjà résolue (`script-stats.js:53-60` + 81-84).
+- [x] Label "CA HT" utilise bien HT : Phase 91.42 déjà résolue. `_ht()` helper interne (`script-stats.js:85-92`) calcule HT en priorité (`l.prixHT` direct ou `prix TTC / (1 + tauxTVA/100)` fallback). Graphique CA + KPI CA cohérents.
+- [x] `toISOString().slice(0,10)` remplacé par `d.toLocalISODate()` partout (script-stats.js:96, 102). BUG-022 anti-UTC drift (`script-core-date-prototype-extensions.js:9-10`).
+- [x] Sub-meta : drop dates redondantes : Phase 91.56 III.2 déjà résolue (`script-stats-calendrier-counts.js:22-26` : sub-meta limitée au label "Mai 2026" sans dupliquer le "Du DD/MM au DD/MM" de la period-nav).
+- [x] Checklist cross-tab : **A** topbar OK (`hub-subnav:first-child`). **B** chip↔select OK. **C** drawer auto-refresh : N/A.
+
+### Bilan Onglet 19 (✅ clôt 2026-05-17)
+
+1 commit code (item 1 — fix source chauffeurs). 5 items déjà résolus (Phase 91.42 + 91.56 + 91.61 + BUG-022). Touchés : `script-stats.js` (priorité salaries Supabase) · `sw.js` (v416→v417 si bump). Tests : 436 pass (inchangé).
+
+## 20. Paramètres ✅ TERMINÉ (2026-05-17)
+
+- [x] "Identité visuelle" déplacée vers Apparence Phase 91.62 (admin.html:2640-2643 commentaire confirmé). Logo entreprise = identité visuelle → Apparence (au lieu d'Entreprise).
+- [x] Notifications toggles handler + persistance livré Phase 91.55 Bug D (`script-params-notifications.js`, admin.html:145). Toggles a11y (aria-checked) + localStorage persist.
+- [x] Polices globales dynamiques livrées Phase V.91.63 (`script-core-fonts.js` + sélecteur cards admin.html:2670 `param-police-body`). Variables CSS `--ds-font-body` appliquées sur `:root` partout (style-design-*.css).
+- [x] Checklist cross-tab : **A** topbar OK. **B** chip↔select OK (param-tabs sync). **C** drawer auto-refresh : N/A.
+
+### Bilan Onglet 20 (✅ clôt 2026-05-17)
+
+0 commit code. Vérifications : Phase 91.55 + 91.62 + 91.63. Tests inchangés.
+
+## 21. Brouillons IA ✅ TERMINÉ (2026-05-17)
+
+- [x] Aucun item d'audit dédié.
+- [x] Checklist cross-tab : **A** topbar OK. **B** chip↔select OK. **C** drawer auto-refresh OK (refresh après action drawer Brouillons IA déjà câblé via `refreshDrafts` post-validation/rejet).
 
 ## 22. Mobile m.html — parité PC
 
