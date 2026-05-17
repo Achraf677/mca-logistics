@@ -74,6 +74,12 @@ On termine **complètement** un onglet (= tous ses `[ ]` deviennent `[x]` ou `[~
 - [x] 🆕 Génération facture ne refresh pas le drawer client ouvert (compteur "Factures (0)" figé) — `refreshDrawerClient` défini dans script-core-sprint25-drawer-360.js + appelé depuis `assurerArchiveFactureLivraison` *(commit 2026-05-17)*
 - [x] 🆕 Topbar collée sur écrans <1920px : padding-top `.page` harmonisé sur tous breakpoints (24/20/18/16px selon viewport, au lieu de 18/14/12/10px) *(commit 2026-05-17, signalé par user)*
 - [x] 🆕 Facture liée canoniquement au client via clientId (avant : match par nom uniquement, fragile). assurerArchiveFactureLivraison écrit maintenant `facture.clientId` + `facture.clientSiren` + `facture.date` canonique. Migration boot R9 backfill toutes les factures pre-existantes via livraison.clientId puis fallback nom *(commit 2026-05-17)*
+- [x] 🆕 Topbar Livraisons parité layout avec Alertes : `<div class="title-row">` H1+sub-meta restauré (la suppression Phase 91.5 avait cassé l'aération en haut sur écrans < 1920px). User feedback : "copie exactement le même code". *(commit 2026-05-17)*
+- [x] 🆕 Garde-fous métier génération documents (drawer Documents + toolbar dropdown) :
+  - **Facture** bloquée si statut ≠ "livré" (CGI art. 289, facture pour prestation effective)
+  - **Bon de livraison** bloqué si statut = "brouillon"/"en-attente" (livraison non engagée)
+  - **Lettre de voiture (CMR)** : AUCUN blocage (document légal transport, arrêté 09/11/1999, doit être en cabine AVANT départ)
+  Toast d'erreur explicite citant la règle métier au lieu d'un échec silencieux. *(commit 2026-05-17)*
 
 ## 2. Dashboard
 

@@ -319,6 +319,25 @@
 
     const livId = selected[0] || null;
 
+    // Audit 2026-05-17 — Garde-fous métier identiques à actionGenererLivraisonPour.
+    if (livId && (type === 'facture' || type === 'bl')) {
+      const livs = (window.charger ? window.charger('livraisons') : []) || [];
+      const l = livs.find(x => x && x.id === livId);
+      const statut = l ? (l.statut || '') : '';
+      const toastF = (msg) => {
+        if (typeof window.afficherToast === 'function') window.afficherToast(msg, 'error');
+        else alert(msg);
+      };
+      if (type === 'facture' && statut !== 'livre' && statut !== 'livré') {
+        toastF('Facture interdite : la livraison doit être au statut "Livré" (CGI art. 289).');
+        return;
+      }
+      if (type === 'bl' && (statut === 'brouillon' || statut === 'en-attente' || !statut)) {
+        toastF('Bon de livraison interdit en brouillon : passez la livraison au statut "En cours" avant.');
+        return;
+      }
+    }
+
     // Dispatch selon type
     const dispatch = {
       'facture': () => {
@@ -382,6 +401,24 @@
     const livs = (window.charger ? window.charger('livraisons') : []) || [];
     const l = livs.find(x => x && x.id === livId);
     const numLiv = l ? (l.numLiv || l.num_liv || livId) : livId;
+    // Audit 2026-05-17 — Gardes-fous métier :
+    // - Facture : interdire si statut ≠ livré (CGI art. 289, facture pour prestation effective).
+    // - Bon de livraison : interdire en brouillon (livraison non engagée). OK dès "en-cours".
+    // - Lettre de voiture (CMR) : pas de blocage (document légal transport doit être en cabine
+    //   AVANT départ, arrêté 09/11/1999).
+    const statut = l ? (l.statut || '') : '';
+    const toast = (msg, kind) => {
+      if (typeof window.afficherToast === 'function') window.afficherToast(msg, kind || 'error');
+      else alert(msg);
+    };
+    if (type === 'facture' && statut !== 'livre' && statut !== 'livré') {
+      toast('Facture interdite : la livraison doit être au statut "Livré" (CGI art. 289 — facture pour prestation effective).');
+      return;
+    }
+    if (type === 'bl' && (statut === 'brouillon' || statut === 'en-attente' || !statut)) {
+      toast('Bon de livraison interdit en brouillon : passez la livraison au statut "En cours" avant d\'imprimer le BL.');
+      return;
+    }
     const baseDoc =
       type === 'facture' ? { type: 'facture', name: 'Facture ' + String(numLiv).replace(/^L-/, 'F-') }
       : type === 'bl' ? { type: 'bl', name: 'Bon de livraison ' + numLiv }

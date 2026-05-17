@@ -658,11 +658,20 @@
     <section class="page" id="page-livraisons">
       <!-- Phase 91.54 I.10 : breadcrumb retiré (page niveau 1 sidebar, le retour n'a pas de sens) -->
 
-      <!-- Phase 6 refonte HTML : title-row pattern (page name H1 + meta count) -->
-      <!-- Phase 91.5 — title-row "Livraisons + 2 ce mois" retiré (user feedback : sub-meta peu pertinent, déjà couvert par chips + page-actions). IDs cachés conservés pour compat scripts. -->
-      <span id="livraisons-titlerow-count" hidden>0</span>
-      <span id="livraisons-titlerow-periode" hidden>ce mois</span>
-      <span id="livraisons-titlerow-retards-wrap" hidden><span id="livraisons-titlerow-retards">0</span><span id="livraisons-titlerow-retards-s"></span></span>
+      <!-- Audit 2026-05-17 : title-row restauré pour parité layout avec Alertes (user feedback :
+           sur écrans < 1920px le titre H2 "Toutes les livraisons" collait à la topbar parce que le
+           title-row absent ne fournissait plus le buffer d'aération. Structure identique à #page-alertes). -->
+      <div class="title-row">
+        <h1 class="page-title">Livraisons</h1>
+        <div class="sub-meta">
+          <strong id="livraisons-titlerow-count">0</strong> ce mois
+          <span id="livraisons-titlerow-retards-wrap" style="display:none">
+            <span> · </span>
+            <span class="alert"><strong id="livraisons-titlerow-retards">0</strong><span id="livraisons-titlerow-retards-s"></span> à traiter</span>
+          </span>
+          <span id="livraisons-titlerow-periode" hidden>ce mois</span>
+        </div>
+      </div>
 
       <!-- Phase 91.5 : "Filtrer, exporter, suivre..." inline à droite de "Toutes les livraisons" (au lieu d'en dessous). -->
       <div class="page-actions page-actions-livraisons ds-section-head">
