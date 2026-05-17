@@ -43,10 +43,27 @@
     d.addEventListener('click', e => { if (e.target === d) fermerDrawer(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && d.classList.contains('open')) fermerDrawer(); });
   }
+  // Audit 2026-05-17 : tracker l'id ouvert pour rafraîchir le drawer après mutations
+  // (facture émise, livraison ajoutée/modifiée, paiement, etc.).
+  let _currentClientId = null;
+  let _currentFournisseurId = null;
   function fermerDrawer() {
     const o = document.getElementById('s25-drawer-overlay'); if (o) o.classList.remove('open');
+    _currentClientId = null;
+    _currentFournisseurId = null;
   }
   window.s25FermerDrawer = fermerDrawer;
+  // Refresh exposé pour callers externes (script-livraisons.js, assurerArchiveFactureLivraison...).
+  window.refreshDrawerClient = function () {
+    if (_currentClientId && typeof window.ouvrirFiche360Client === 'function') {
+      try { window.ouvrirFiche360Client(_currentClientId); } catch (_) {}
+    }
+  };
+  window.refreshDrawerFournisseur = function () {
+    if (_currentFournisseurId && typeof window.ouvrirFiche360Fournisseur === 'function') {
+      try { window.ouvrirFiche360Fournisseur(_currentFournisseurId); } catch (_) {}
+    }
+  };
 
   function renderDrawer(html) {
     ensureDrawer();
@@ -93,6 +110,8 @@
   window.ouvrirFiche360Client = function(clientId) {
     const c = load(LS.clients).find(x => x.id === clientId);
     if (!c) { toast('Client introuvable', 'error'); return; }
+    _currentClientId = clientId;
+    _currentFournisseurId = null;
     const factures = factClient(c);
     const livs = livsClient(c);
     const paiements = paiementsClient(c);
@@ -247,6 +266,8 @@
   window.ouvrirFiche360Fournisseur = function(fournId) {
     const f = load(LS.fournisseurs).find(x => x.id === fournId);
     if (!f) { toast('Fournisseur introuvable', 'error'); return; }
+    _currentFournisseurId = fournId;
+    _currentClientId = null;
     const charges = chargesFourn(f);
     const paiements = paiementsFourn(f).filter(p => {
       const cs = charges.map(c => c.id);

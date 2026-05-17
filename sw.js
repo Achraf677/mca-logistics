@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v402-bulk-edit-livraisons-modal';
+const CACHE_VERSION = 'mca-v2026-05-17-v403-topbar-brouillon-drawer-refresh';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

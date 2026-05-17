@@ -1003,6 +1003,10 @@ function assurerArchiveFactureLivraison(livraison) {
     livraisons[idx].factureId = facture.id;
     sauvegarder('livraisons', livraisons);
   }
+  // Audit 2026-05-17 : refresh drawer client si ouvert (sinon le compteur "Factures (0)" reste figé).
+  try { if (typeof window.refreshDrawerClient === 'function') window.refreshDrawerClient(); } catch (_) {}
+  try { if (typeof window.afficherEncaissement === 'function') window.afficherEncaissement(); } catch (_) {}
+  try { if (typeof window.rafraichirDashboard === 'function') window.rafraichirDashboard(); } catch (_) {}
   return facture;
 }
 

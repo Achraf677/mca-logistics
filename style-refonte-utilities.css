@@ -10,14 +10,29 @@
 /* ============ Phase 91.54 — Quick wins fondations ============ */
 
 /* I.1 Topbar padding global : aérer entre topbar et contenu sur TOUTES les pages
-   (avant : seul Dashboard avait style="margin-top:20px" en inline). */
+   (avant : seul Dashboard avait style="margin-top:20px" en inline).
+   2026-05-17 Audit Onglet 1 : Livraisons + 5 autres pages ont des <span hidden>
+   avant la section-head (IDs preserves pour compat scripts). `:first-child` ne
+   match pas, donc on enumère les cas 1-4 hidden spans precedents. */
 .page > .ds-section-head:first-child,
 .page > .page-actions.ds-section-head:first-child,
 .page > .title-row:first-child,
 .page > .ds-crumbs + .title-row,
 .page > .ds-crumbs + .ds-section-head,
 .page > .ds-crumbs + .page-actions,
-.page > .hub-subnav:first-child {
+.page > .hub-subnav:first-child,
+.page > [hidden]:first-child + .ds-section-head,
+.page > [hidden]:first-child + .page-actions.ds-section-head,
+.page > [hidden]:first-child + .title-row,
+.page > [hidden]:first-child + [hidden] + .ds-section-head,
+.page > [hidden]:first-child + [hidden] + .page-actions.ds-section-head,
+.page > [hidden]:first-child + [hidden] + .title-row,
+.page > [hidden]:first-child + [hidden] + [hidden] + .ds-section-head,
+.page > [hidden]:first-child + [hidden] + [hidden] + .page-actions.ds-section-head,
+.page > [hidden]:first-child + [hidden] + [hidden] + .title-row,
+.page > [hidden]:first-child + [hidden] + [hidden] + [hidden] + .ds-section-head,
+.page > [hidden]:first-child + [hidden] + [hidden] + [hidden] + .page-actions.ds-section-head,
+.page > [hidden]:first-child + [hidden] + [hidden] + [hidden] + .title-row {
   margin-top: 20px;
 }
 

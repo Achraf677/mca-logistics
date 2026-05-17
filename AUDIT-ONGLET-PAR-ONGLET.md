@@ -43,6 +43,16 @@ On termine **complètement** un onglet (= tous ses `[ ]` deviennent `[x]` ou `[~
 
 ---
 
+## 🔁 Checklist cross-tab (à vérifier sur CHAQUE onglet 2 → 21)
+
+Émergé de l'audit Onglet 1 (2026-05-17). Ces 3 checks systématiques s'ajoutent aux items spécifiques de chaque onglet :
+
+- **A. Topbar non collée** : titre H1/H2 a une marge ≥ 20px avec la topbar (règle CSS `.page > ...:first-child { margin-top: 20px }` couvre les cas standards + les pages avec `<span hidden>` en tête). Sinon → fix CSS ciblé.
+- **B. Cohérence labels chip ↔ select ↔ badge** : si un chip filtre dit "Brouillons" mais le select statut dit "En attente" et le badge dit "Brouillon", c'est une drift. Unifier le terme visible (la `value=` reste pour rétro-compat data).
+- **C. Drawer auto-refresh après mutation** : si une mutation (ajout, edit, génération facture/document) ne re-renderise pas le drawer 360 ouvert, le compteur reste figé. Vérifier que la mutation appelle `refreshDrawerX` (client / fournisseur / vehicule / salarie / etc.).
+
+---
+
 ## 1. Livraisons
 
 - [x] Colonne Véhicule td manquant / désaligné [Agent B] — *fixé 2026-05-17 commits a3d0e65 + 455e77b*
@@ -60,6 +70,8 @@ On termine **complètement** un onglet (= tous ses `[ ]` deviennent `[x]` ou `[~
   - synchroniserAffectationLivraison appelé si chauffeur/véhicule changé
   - Audit log 1 entrée pour le batch, refresh chain complète
 - [x] Génération facture depuis dropdown : try/catch wrapper en place (script-livraisons-polish.js:565-584) + SIRET vide handler (script-livraisons.js:1028-1032 toast + redirect Paramètres)
+- [x] 🆕 Statut "En attente" → "Brouillon" (label visuel dropdown statut, value=en-attente conservée rétro-compat) — 4 renderers mis à jour *(commit 2026-05-17, signalé par user screenshot)*
+- [x] 🆕 Génération facture ne refresh pas le drawer client ouvert (compteur "Factures (0)" figé) — `refreshDrawerClient` défini dans script-core-sprint25-drawer-360.js + appelé depuis `assurerArchiveFactureLivraison` *(commit 2026-05-17, signalé par user screenshot)*
 
 ## 2. Dashboard
 

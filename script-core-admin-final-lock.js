@@ -222,7 +222,10 @@ const __renderLivraisonsAdminFinal_v2 = function() {
     const tva = (parseFloat(l.prix) || 0) - ht;
     const ttc = parseFloat(l.prix) || 0;
     const statutPaiement = l.statutPaiement || 'en-attente';
-    const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+    // Phase 91.28 + Audit 2026-05-17 : "En attente" renommé "Brouillon" partout (unification chip+statut).
+    // L'option garde value="en-attente" pour rétro-compat data legacy, mais le LABEL affiche "Brouillon".
+    const statutBrouillonSelected = (l.statut === 'en-attente' || l.statut === 'brouillon' || !l.statut) ? 'selected' : '';
+    const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + statutBrouillonSelected + '>Brouillon</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
     const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>À payer</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
     const clientRaw = String(l.client || '—').trim();
     const clientFull = /^\d+$/.test(clientRaw) ? ('Client #' + clientRaw) : (clientRaw || '—');
