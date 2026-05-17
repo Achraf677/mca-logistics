@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-17-v425-drawer-client-refresh-3-mutations';
+const CACHE_VERSION = 'mca-v2026-05-17-v426-carnet-client-fix-police-header-bordures-arrondies';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;

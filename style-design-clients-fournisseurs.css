@@ -281,6 +281,15 @@ tr[data-impaye="1"] td {
   font-size: 0.85rem;
 }
 
+/* Phase 91.74 (2026-05-17) — Fix bug police HEADER mixte sur Carnet Client.
+   Les règles monospace ci-dessus (SIREN/Tel/CA/Encours) ciblaient th + td,
+   ce qui forçait JetBrains Mono sur les libellés de header. Le header doit
+   rester en DM Sans (cohérence typo). Override final, n'impacte QUE thead. */
+.clients-table thead th,
+.fournisseurs-table thead th {
+  font-family: var(--ds-font-body, 'DM Sans', system-ui, sans-serif) !important;
+}
+
 /* Actions column — centered + compact */
 .clients-table th.cli-col-actions,
 .clients-table td:nth-child(8),

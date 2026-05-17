@@ -549,6 +549,12 @@ body.role-salarie-unified .page:not(.active) {
 .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .data-table thead { background: rgba(255,255,255,0.03); }
 .data-table th { padding: 11px 14px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+/* Phase 91.74 (2026-05-17) — fix bordures non arrondies en haut des tables :
+   .table-card a overflow:visible (pour dropdowns Actions), donc le thead
+   sort des coins arrondis du .card parent. On force les coins du premier
+   et dernier th à matcher le radius parent. */
+.card.table-card .data-table thead tr:first-child th:first-child { border-top-left-radius: calc(var(--radius) - 1px); }
+.card.table-card .data-table thead tr:first-child th:last-child { border-top-right-radius: calc(var(--radius) - 1px); }
 .data-table td { padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
 .data-table td:last-child { overflow: visible; position: relative; }
 .data-table tbody tr:hover { background: rgba(255,255,255,0.02); }
