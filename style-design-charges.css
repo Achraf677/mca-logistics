@@ -144,7 +144,7 @@ td.montant-positif,
 .carb-period-nav .period-dates {
   font-size: 11px;
   color: var(--text-muted, #7c8299);
-  font-family: var(--ds-font-mono, var(--font-mono, monospace));
+  font-family: var(--font-mono);
 }
 
 .carb-period-nav .period-right {
