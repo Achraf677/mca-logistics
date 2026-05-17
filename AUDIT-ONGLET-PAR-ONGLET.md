@@ -15,7 +15,7 @@
 ## 🚀 État courant (mise à jour 2026-05-17 — fin session)
 
 - **Branche** : `claude/html-refonte-cleanup`
-- **CACHE_VERSION en cours** : `v415` (voir `sw.js` ligne 8)
+- **CACHE_VERSION en cours** : `v416` (voir `sw.js` ligne 8)
 - **Onglets terminés** :
   - ✅ Onglet 1 Livraisons (15 items + 5 bugs screenshots user)
   - ✅ Onglet 2 Dashboard (4 items + bug Retard sur brouillons + barre Retard retirée + tooltips chart €)
@@ -28,7 +28,10 @@
   - ✅ Onglet 9 Carburant (0 item, checklist cross-tab OK)
   - ✅ Onglet 10 Entretiens (0 item, checklist cross-tab OK)
   - ✅ Onglet 11 Inspections (drawer 360 inspection livré + filtre véhicule + exports respectent filtres actifs)
-- **Prochain onglet** : 12. Équipe / Salariés
+  - ✅ Onglet 12 Équipe/Salariés (Sprint 20 drawer 360 + Sprint 22 hub Équipe déjà livrés)
+  - [~] Onglet 13 Heures & Km REPORTÉ sprint dédié (décision user, workflow pointage mobile 2-3 jours hors périmètre)
+  - ✅ Onglet 14 Incidents (drawer 360 incident livré + 2 items déjà résolus en Phase 91.42)
+- **Prochain onglet** : 15. Charges
 - **Tests** : 436 pass · 0 fail (`npm test`)
 - **Sentry** : aucune erreur 24h (vérifié via MCP)
 
@@ -225,16 +228,21 @@ Tests : 436 pass · 0 fail (étaient 426 avant, +10 nouveaux).
 
 Tests : 436 pass (inchangé, pas de couverture unitaire ajoutée — drawer = pur DOM, exports = filtres déjà couverts indirectement par tests).
 
-## 12. Équipe / Salariés
+## 12. Équipe / Salariés ✅ TERMINÉ (2026-05-17)
 
-- [ ] Drawer 360 PC Salariés (PR #29 a livré mobile, PC = modal édition) [plan v9 H2.4]
-- [ ] Hub Équipe Sprint 22 : actuellement entrées plates (Planning/Heures/Incidents/Salariés sont 4 entrées plates au lieu d'un hub) [plan v9 H2.4]
+- [x] Drawer 360 PC Salariés livré en Sprint 20 (`script-core-sprint20-rh360.js:180` `ouvrirFiche360Salarie(salId)` + drawer `#s20-drawer-overlay`/`#s20-drawer`). L'audit MD était obsolète.
+- [x] Hub Équipe livré en Sprint 22 (`script-core-sprint22-23-hubs.js:20-32` config HUBS.rh : `salaries/heures/planning/incidents` regroupés dans une seule entrée sidebar "Équipe" avec sous-navigation par bandeau). L'audit MD était obsolète.
+- [x] Checklist cross-tab : **A** topbar OK (le bandeau hub-subnav est `:first-child` de `.page`, couvert ligne 23 style-refonte-utilities.css). **B** chip↔select OK. **C** drawer auto-refresh OK (Sprint 20 expose `refreshDrawerSalarie` / `ouvrirFiche360Salarie` rappelable).
 
-## 13. Heures & Km 🚨 BLOQUANT PROD
+### Bilan Onglet 12 (✅ clôt 2026-05-17)
 
-- [ ] Stockage dual `heures` + `heures_pointage` à unifier [Audit Agent 6 HIGH]
-- [ ] Éclipse planifié quand réelle partielle [Audit Agent 6 MED]
-- [ ] **Workflow guidé "Saisie pointage" mobile chauffeur** (2-3j) [TODO-BACKLOG #4] :
+0 commit code. Vérifications : `script-core-sprint20-rh360.js:180`, `script-core-sprint22-23-hubs.js:20-32`. Tests inchangés.
+
+## 13. Heures & Km 🚨 BLOQUANT PROD — [~] REPORTÉ SPRINT DÉDIÉ (décision user 2026-05-17)
+
+- [~] Stockage dual `heures` + `heures_pointage` à unifier [Audit Agent 6 HIGH] — *fix tech ~30min, reporté avec l'onglet*
+- [~] Éclipse planifié quand réelle partielle [Audit Agent 6 MED] — *reporté*
+- [~] **Workflow guidé "Saisie pointage" mobile chauffeur** (2-3j) [TODO-BACKLOG #4] — *chantier dédié hors refonte HTML* :
   - Bouton "Démarrer ma journée" sur salarie.html → enregistre heureDebut + position GPS
   - Bouton "Pause / Reprise" pour CE 561 (45 min après 4h30 conduite)
   - Bouton "Fin de journée" → calcule total + signature électronique facultative
@@ -242,11 +250,18 @@ Tests : 436 pass (inchangé, pas de couverture unitaire ajoutée — drawer = pu
   - Validation admin via drawer "Heures à valider" PC
   - Migration `043_heures_validation.sql` avec champs `debut_gps`, `fin_gps`, `validee`, `valideeLe`
 
-## 14. Incidents
+**Justification report** : décision user 2026-05-17 — l'item 3 nécessite une analyse approfondie chauffeur + tests usage terrain (GPS, batterie, hors-zone) + migration SQL + push réelle (VAPID). Hors périmètre "refonte HTML" de cette session. Les items 1+2 sont des fix tech rapides qui dépendent du choix d'architecture du workflow (stockage final), donc cohérent de les attaquer ensemble dans un sprint dédié "Heures & Km mobile".
 
-- [ ] Drawer 360 PC Incidents (modal édition uniquement) [TODO-BACKLOG #1]
-- [ ] `changerStatutIncident` ne pose pas `resoluLe` quand statut=traite → KPIs résolution faux [Audit Agent 4 MED]
-- [ ] `supprimerLivraison` n'orpheline pas les incidents/paiements/docs liés [Audit Agent 4 MED]
+## 14. Incidents ✅ TERMINÉ (2026-05-17)
+
+- [x] Drawer 360 PC Incidents livré : `script-incidents-drawer-360.js` (nouveau). 3 onglets (Vue / Photos / Historique chauffeur), KPI row (Statut/Gravité/Coût/Photos), actions de statut intégrées (Marquer ouvert/en cours/traité), liens cross-drawer (livraison/véhicule/chauffeur). Lignes du tableau cliquables (cellule Actions stop-propagation pour préserver le dropdown). Auto-fermeture sur suppression. *(commit 2026-05-17)*
+- [x] `changerStatutIncident` pose déjà `resoluLe` quand statut=traite/clos/resolu et le retire à la réouverture (`script-incidents.js:135-149`, Phase 91.42). L'audit MD était obsolète.
+- [x] `supprimerLivraison` orpheline déjà incidents (livId/livraisonId), paiements (livraison_id/livraisonId) et docs/commentaires/modifs préfixés (`script-livraisons.js:537-553`). L'audit MD était obsolète.
+- [x] Checklist cross-tab : **A** topbar OK (`.title-row` premier enfant). **B** chip↔select OK (chips Tous/Ouverts/Graves sync via `incChipFilter`). **C** drawer auto-refresh OK (`refreshDrawerIncident` rappelé après chaque action, `fermerFiche360Incident` sur suppression).
+
+### Bilan Onglet 14 (✅ clôt 2026-05-17)
+
+3 items résolus (1 livré + 2 déjà résolus). Touchés : `script-incidents-drawer-360.js` (nouveau, 250 lignes) · `script-incidents.js` (clic ligne + fermeture drawer suppression) · `admin.html` (script tag) · `sw.js` (precache + v415→v416). Tests : 436 pass (inchangé).
 
 ## 15. Charges
 

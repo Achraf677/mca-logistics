@@ -61,13 +61,15 @@ function afficherIncidents() {
 
   var livraisons = charger('livraisons');
 
+  // Onglet 14 (2026-05-17) — clic sur ligne ouvre drawer 360 incident
+  // (cellule Actions stop-propagation pour preserver le dropdown).
   paginer(incidents, 'tb-incidents', function(items) {
     return items.map(i => {
       var vehImmat = '';
       if (i.livId) { var liv = livraisons.find(l => l.id === i.livId); vehImmat = (liv && (liv.vehImmat || liv.vehicule)) || ''; }
       var coutVal = parseFloat(i.cout || i.cost || i.montant || 0);
       var coutHtml = coutVal > 0 ? '<span class="amount">' + coutVal.toLocaleString('fr-FR', {minimumFractionDigits:0,maximumFractionDigits:0}) + ' €</span>' : '—';
-      return `<tr>
+      return `<tr style="cursor:pointer" onclick="window.ouvrirFiche360Incident&&window.ouvrirFiche360Incident('${i.id}')">
     <td>${formatDateExport(i.date)}</td>
     <td>${typeBadgeHtml(i)}</td>
     <td style="font-family:var(--font-mono,monospace);font-size:.82rem">${vehImmat||'—'}</td>
@@ -75,7 +77,7 @@ function afficherIncidents() {
     <td style="font-size:.83rem">${i.description||'—'}</td>
     <td class="amount">${coutHtml}</td>
     <td>${statBadge[i.statut||'ouvert']||''}</td>
-    <td>${buildInlineActionsDropdown('Actions', [
+    <td onclick="event.stopPropagation()">${buildInlineActionsDropdown('Actions', [
       { icon:'🔴', label:'Marquer ouvert', action:`changerStatutIncident('${i.id}','ouvert')` },
       { icon:'🟡', label:'Marquer en cours', action:`changerStatutIncident('${i.id}','encours')` },
       { icon:'✅', label:'Marquer traité', action:`changerStatutIncident('${i.id}','traite')` },
@@ -154,6 +156,8 @@ async function supprimerIncident(id) {
   const ok = await confirmDialog('Supprimer cet incident ?',{titre:'Supprimer',icone:'🚨',btnLabel:'Supprimer'});
   if (!ok) return;
   sauvegarder('incidents', charger('incidents').filter(i=>i.id!==id));
+  // Onglet 14 — ferme drawer 360 incident si ouvert (no-op si fermé)
+  try { if (typeof window.fermerFiche360Incident === 'function') window.fermerFiche360Incident(); } catch (_) {}
   afficherIncidents();
   afficherToast('Incident supprimé');
 }
