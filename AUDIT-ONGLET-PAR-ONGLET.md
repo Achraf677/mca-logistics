@@ -12,6 +12,26 @@
 
 ---
 
+## 🚀 État courant (mise à jour 2026-05-17)
+
+- **Branche** : `claude/html-refonte-cleanup`
+- **Dernier commit** : voir `git log` (le plus récent traite Onglet 1)
+- **CACHE_VERSION en cours** : voir `sw.js` ligne 8
+- **Onglet 1 Livraisons** : ✅ TERMINÉ (15 items cochés, dont 5 bugs trouvés via screenshots user du 2026-05-17)
+- **Prochain onglet** : 2. Dashboard
+- **Tests** : 426 pass · 0 fail (`npm test`)
+- **Sentry** : aucune erreur 24h (vérifié via MCP)
+
+### Bootstrap d'une nouvelle session (web/local)
+
+Si tu lances claude.ai/code ou une nouvelle session Claude Code, colle CE prompt :
+
+```
+On reprend la refonte HTML MCA Logistics. Lis AUDIT-ONGLET-PAR-ONGLET.md (à la racine du repo) — c'est la source UNIQUE de vérité. Onglet 1 Livraisons est terminé. Continue à partir de l'Onglet 2 Dashboard, en respectant la règle d'engagement (un onglet à la fois, finir avant de passer au suivant, transverse seulement à la fin, aucun ajout hors MD). Vérifie aussi à chaque onglet la Checklist cross-tab A/B/C en tête de MD. Branche : claude/html-refonte-cleanup. Commit + push à chaque item, bump sw.js CACHE_VERSION à chaque release. Tests : `npm test` doit rester vert (426 pass minimum).
+```
+
+---
+
 ## 🧭 Ordre d'exécution (verrouillé)
 
 1. Livraisons (admin)
@@ -83,7 +103,21 @@ On termine **complètement** un onglet (= tous ses `[ ]` deviennent `[x]` ou `[~
 - [x] 🆕 Title-row sub-meta "7s à traiter" corrigée → "7 retards" (le span -s était mal placé) *(commit 2026-05-17)*
 - [x] 🆕 **Facture wipée au refresh** : `supabase-storage-sync.js` n'excluait pas `factures_emises` de `applyRemoteSnapshot`. Le snapshot remote (qui ne contient pas ce registre local-only) écrasait les factures fraîchement émises au prochain boot. Exclu : `factures_emises`, `avoirs_emis`, `encaissements`, `encaissements_manuels`, `acomptes`, `relances` (registres financiers sans miroir Supabase aujourd'hui). *(commit 2026-05-17, root cause user "facture disparaît au refresh")*
 
-## 2. Dashboard
+### Bilan Onglet 1 (✅ clôt 2026-05-17)
+
+15 items résolus, 6 commits livrés (de a3d0e65 à 8430e7c). Touchés :
+`script-core-admin-final-lock.js` · `script-core-admin-final-lock-iife.js` · `script-core-sprint7-pagination-search.js` · `script-core-sprint8-tri-colonnes.js` · `script-core-sprint25-drawer-360.js` · `script-livraisons.js` · `script-livraisons-drawer.js` · `script-livraisons-polish.js` · `script-livraisons-bulk-edit.js` (nouveau) · `supabase-storage-sync.js` · `style-refonte-utilities.css` · `style.css` · `admin.html` · `sw.js`.
+
+Root causes notables :
+1. Le renderer v2 dupliquait la cellule Véhicule que le polish injectait déjà → 17 td dans un thead de 16 → désalignement.
+2. Le drawer client avait `vehImmat || vehImmat` (faute de frappe, fallback inutile).
+3. `refreshDrawerClient` était APPELÉ partout mais jamais DÉFINI.
+4. `factures_emises` n'était pas dans la liste d'exclusion sync Supabase → wipé au boot.
+5. Le `title-row` avait été retiré Phase 91.5 sans compenser le padding-top → topbar collée sur écrans < 1920px.
+
+---
+
+## 2. Dashboard ⬅ **PROCHAIN ONGLET À ATTAQUER**
 
 - [ ] Topbar `margin-top:20px` global sur `.page > .ds-section-head:first-child` [Agent A] — *à vérifier appliqué*
 - [ ] Sub-meta date "Mai 2026" wired (était vide) [PLAN-REFONTE] — *à vérifier*
