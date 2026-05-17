@@ -80,6 +80,8 @@ On termine **complètement** un onglet (= tous ses `[ ]` deviennent `[x]` ou `[~
   - **Bon de livraison** bloqué si statut = "brouillon"/"en-attente" (livraison non engagée)
   - **Lettre de voiture (CMR)** : AUCUN blocage (document légal transport, arrêté 09/11/1999, doit être en cabine AVANT départ)
   Toast d'erreur explicite citant la règle métier au lieu d'un échec silencieux. *(commit 2026-05-17)*
+- [x] 🆕 Title-row sub-meta "7s à traiter" corrigée → "7 retards" (le span -s était mal placé) *(commit 2026-05-17)*
+- [x] 🆕 **Facture wipée au refresh** : `supabase-storage-sync.js` n'excluait pas `factures_emises` de `applyRemoteSnapshot`. Le snapshot remote (qui ne contient pas ce registre local-only) écrasait les factures fraîchement émises au prochain boot. Exclu : `factures_emises`, `avoirs_emis`, `encaissements`, `encaissements_manuels`, `acomptes`, `relances` (registres financiers sans miroir Supabase aujourd'hui). *(commit 2026-05-17, root cause user "facture disparaît au refresh")*
 
 ## 2. Dashboard
 

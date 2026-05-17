@@ -80,6 +80,16 @@
     if (key.indexOf('documents_livraison_') === 0) return false;
     // Commentaires internes locaux par livraison : idem (lecture locale, pas multi-device).
     if (key.indexOf('commentaires_liv_') === 0) return false;
+    // Audit 2026-05-17 — factures_emises + avoirs_emis : registre local uniquement
+    // (aucune table Supabase miroir aujourd'hui). Sans cette exclusion, le snapshot
+    // remote wipe les factures fraîchement émises au prochain boot.
+    if (key === 'factures_emises') return false;
+    if (key === 'avoirs_emis') return false;
+    // Encaissements + acomptes : idem, pas de table Supabase miroir.
+    if (key === 'encaissements') return false;
+    if (key === 'encaissements_manuels') return false;
+    if (key === 'acomptes') return false;
+    if (key === 'relances') return false;
     // Phase 2.1 : clients sync via clients-supabase-adapter.js (table native public.clients)
     if (key === 'clients') return false;
     // Phase 2.2 : vehicules sync via vehicules-supabase-adapter.js (table native public.vehicules)
